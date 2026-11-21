@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xưởng series</title>
+<style>
+:root{--bg:#F6F4EE;--panel:#fff;--soft:#F0EDE3;--ink:#171A22;--mut:#646A78;--line:#E2DED1;--y:#F4D81C;--yd:#C9AE00;--red:#D92D20;--ok:#15884B;--warn:#B45309;--blue:#2457C5;--sh:0 1px 2px rgba(20,24,38,.06),0 6px 22px rgba(20,24,38,.06)}
+@media (prefers-color-scheme:dark){:root{--bg:#0F1117;--panel:#181B23;--soft:#20242E;--ink:#ECEEF3;--mut:#9AA0AD;--line:#2B303B;--yd:#F4D81C;--red:#FF6B5E;--ok:#3DDC84;--warn:#F5B454;--blue:#8AB0FF;--sh:none}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--blue)}
+header.top{position:sticky;top:0;z-index:20;background:#141826;color:#fff;display:flex;align-items:center;gap:18px;padding:0 20px;height:56px}
+header.top .brand{font-weight:800;font-size:18px;letter-spacing:.01em;color:#fff;text-decoration:none;display:flex;align-items:center;gap:10px}
+header.top .brand i{width:26px;height:26px;border-radius:8px;background:var(--y);display:grid;place-items:center;color:#141826;font-style:normal;font-size:15px}
+header.top nav{display:flex;gap:4px;flex:1}
+header.top nav a{color:#C9CEDB;text-decoration:none;padding:7px 12px;border-radius:9px;font-weight:600;font-size:14px}
+header.top nav a.on,header.top nav a:hover{background:#262C40;color:#fff}
+.pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:650;background:var(--soft);color:var(--mut);white-space:nowrap}
+.pill.run{background:#FFF3BF;color:#6B5600}.pill.ok{background:#DDF5E7;color:#0E6B3A}.pill.bad{background:#FDE4E1;color:#A32117}.pill.info{background:#E3ECFF;color:#1F4AA8}
+@media (prefers-color-scheme:dark){.pill.run{background:#4A3F08;color:#FFE873}.pill.ok{background:#10381F;color:#7BE6A8}.pill.bad{background:#4A1712;color:#FFA79E}.pill.info{background:#182B55;color:#A9C4FF}}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}.pill.run .dot{animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.25}}
+main{max-width:1240px;margin:0 auto;padding:26px 20px 90px}
+h1{font-size:28px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em}
+h2{font-size:18px;margin:0 0 4px}
+h3{font-size:16px;margin:0}
+.lead{color:var(--mut);margin:0 0 22px;max-width:760px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--sh)}
+.grid{display:grid;gap:16px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+@media (max-width:1040px){.cols{display:flex;flex-direction:column}.cols>*{width:100%}.side{display:contents}#jobbox{order:-1}}
+.side{position:sticky;top:76px;display:grid;gap:16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:9px 15px;font-weight:650;cursor:pointer;text-decoration:none;color:var(--ink);line-height:1.2}
+.btn:hover{border-color:var(--mut)}
+.btn.pri{background:var(--y);border-color:var(--yd);color:#141826}
+.btn.pri:hover{filter:brightness(.96)}
+.btn.dark{background:#141826;border-color:#141826;color:#fff}
+.btn.danger{color:var(--red)}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:9px}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn .ai{font-size:11px;font-weight:800;background:#141826;color:var(--y);border-radius:5px;padding:1px 5px;letter-spacing:.04em}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sp{flex:1}
+.mut{color:var(--mut)}.small{font-size:13px}
+label.f,div.f{display:grid;gap:5px;font-weight:650;font-size:13.5px}
+label.f span.h,div.f span.h{font-weight:400;color:var(--mut);font-size:12.5px}
+input[type=text],input[type=number],select,textarea{width:100%;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 11px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--yd);box-shadow:0 0 0 3px rgba(244,216,28,.3)}
+textarea{resize:vertical;min-height:74px}
+.fg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fg .w2{grid-column:1/-1}
+@media (max-width:700px){.fg{grid-template-columns:1fr}}
+.sec{display:grid;grid-template-columns:210px minmax(0,1fr);gap:22px;padding:22px 0;border-top:1px solid var(--line)}
+.sec:first-of-type{border-top:0;padding-top:4px}
+.sec>div:first-child p{color:var(--mut);font-size:13.5px;margin:4px 0 0}
+.sec .n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#141826;color:var(--y);font-weight:800;font-size:13px;margin-right:8px}
+@media (max-width:820px){.sec{grid-template-columns:1fr;gap:12px}}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 13px;cursor:pointer;font-weight:600;text-align:left}
+.seg button small{display:block;font-weight:400;color:var(--mut);font-size:12.5px;max-width:230px}
+.seg button.on{border-color:#141826;box-shadow:inset 0 0 0 1.5px #141826;background:#FFFBE0}
+@media (prefers-color-scheme:dark){.seg button.on{border-color:var(--y);box-shadow:inset 0 0 0 1.5px var(--y);background:#2A2710}}
+.sw{display:flex;align-items:center;gap:10px}
+.sw i{width:44px;height:44px;border-radius:10px;position:relative;flex:none;border:1px solid rgba(0,0,0,.15)}
+.sw i b{position:absolute;right:5px;bottom:5px;width:14px;height:14px;border-radius:50%}
+.sw i u{position:absolute;left:6px;top:7px;width:20px;height:4px;border-radius:2px}
+.chr{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:12px;background:var(--panel)}
+.chr .hd{display:flex;align-items:center;gap:10px}
+.chr .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--y);color:#141826;flex:none}
+.chr .av.v{background:#3A1512;color:#FFB4AB}
+.chr .g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.chr .g{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ck{display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:14px;cursor:pointer}
+.ck input{width:16px;height:16px;accent-color:#141826}
+input[type=color]{width:44px;height:38px;padding:2px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 22px}
+.steps>div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;gap:11px;align-items:center}
+.steps b{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--soft);font-size:14px;flex:none}
+.steps .done b{background:var(--ok);color:#fff}.steps .cur b{background:var(--y);color:#141826}
+.steps span{display:block;font-weight:700;line-height:1.2}.steps small{color:var(--mut)}
+@media (max-width:700px){.steps{grid-template-columns:1fr}}
+.ep{display:grid;gap:14px}
+.ep .hd{display:flex;gap:14px;align-items:flex-start}
+.ep .no{font-weight:800;font-size:26px;line-height:1;color:var(--mut);min-width:40px;font-variant-numeric:tabular-nums}
+.ep p{margin:0}.ep ol{margin:0;padding-left:20px}
+.ep .k{display:inline-block;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin-right:8px}
+.board{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.board img{height:230px;border-radius:9px;border:1px solid var(--line);cursor:zoom-in;flex:none;background:#000}
+.film{display:grid;grid-template-columns:230px minmax(0,1fr);gap:18px;align-items:start}
+.film video{width:230px;aspect-ratio:9/16;border-radius:12px;background:#000;object-fit:contain}
+.film video.wide{aspect-ratio:16/9;width:100%}
+@media (max-width:640px){.film{grid-template-columns:1fr}.film video{width:100%;max-width:300px}}
+.note{background:var(--soft);border-radius:11px;padding:10px 13px;font-size:13.5px}
+.note.warn{background:#FFF1D6;color:#7A4A00}.note.bad{background:#FDE4E1;color:#8E1B12}
+@media (prefers-color-scheme:dark){.note.warn{background:#3D2C08;color:#FFD591}.note.bad{background:#4A1712;color:#FFB4AB}}
+pre.log{margin:0;background:#0E1118;color:#D6DAE4;border-radius:11px;padding:12px;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;height:300px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.sum{white-space:pre-wrap;font-size:14px}
+.chars{width:100%;border-radius:11px;border:1px solid var(--line);cursor:zoom-in;display:block;background:#F3F1EA}
+.list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.list a.card{text-decoration:none;color:inherit;display:grid;gap:10px;transition:transform .12s,border-color .12s}
+.list a.card:hover{border-color:var(--mut);transform:translateY(-2px)}
+.bar{height:6px;border-radius:3px;background:var(--soft);overflow:hidden}.bar i{display:block;height:100%;background:var(--ok)}
+details>summary{cursor:pointer;font-weight:650;color:var(--mut);font-size:13.5px}
+details[open]>summary{margin-bottom:10px}
+#lb{position:fixed;inset:0;background:rgba(8,10,16,.9);display:none;place-items:center;z-index:50;cursor:zoom-out;padding:20px}
+#lb img{max-width:100%;max-height:100%;border-radius:10px}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:#141826;color:#fff;padding:11px 18px;border-radius:12px;font-weight:600;z-index:60;display:none;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+#toast.bad{background:#A32117}
+.sticky{position:sticky;bottom:0;background:linear-gradient(transparent,var(--bg) 30%);padding:26px 0 14px;display:flex;gap:10px;align-items:center;justify-content:flex-end}
+code.cmd{display:block;background:var(--soft);border-radius:9px;padding:9px 11px;font:12.5px/1.5 ui-monospace,Menlo,monospace;word-break:break-word}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#/"><i>▶</i>Xưởng series</a>
+  <nav><a href="#/" id="nav-home">Series của tôi</a><a href="#/new" id="nav-new">+ Series mới</a></nav>
+  <a id="jobpill" class="pill" style="display:none;text-decoration:none"></a>
+</header>
+<main id="app"></main>
+<div id="lb"><img alt=""></div>
+<div id="toast"></div>
+<script>
+'use strict';
+// ───────── tiện ích dựng DOM (mọi chữ đi qua textContent — không chèn HTML thô)
+const h = (tag, attrs, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs ?? {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'value') el.value = v;
+    else if (k === 'checked' || k === 'disabled' || k === 'open' || k === 'selected') el[k] = !!v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(String(c)));
+  return el;
+};
+const app = document.getElementById('app');
+const api = async (method, url, body) => {
+  const r = await fetch(url, { method, headers: method === 'GET' ? {} : { 'content-type': 'application/json', 'x-xuong': '1' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `Lỗi ${r.status}`);
+  return j;
+};
+let toastT;
+const toast = (msg, bad) => { const t = document.getElementById('toast'); t.textContent = msg; t.className = bad ? 'bad' : ''; t.style.display = 'block'; clearTimeout(toastT); toastT = setTimeout(() => (t.style.display = 'none'), bad ? 6000 : 3200); };
+const lb = document.getElementById('lb');
+lb.onclick = () => (lb.style.display = 'none');
+const zoom = (src) => { lb.firstElementChild.src = src; lb.style.display = 'grid'; };
+const copy = async (text) => { try { await navigator.clipboard.writeText(text); toast('Đã chép câu lệnh.'); } catch { prompt('Chép câu lệnh này:', text); } };
+const epDir = (n) => `ep${String(n).padStart(2, '0')}`;
+const mmss = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+// ───────── nhãn
+const THEME = { 'misa-vang': 'MISA vàng – navy', 'misa-sang': 'MISA sáng', 'toi-cong-nghe': 'Tối công nghệ', 'canh-bao': 'Cảnh báo đỏ', 'giay-am': 'Giấy ấm', 'vui-tuoi': 'Vui tươi' };
+const KIND = { misa: 'Polo MISA (vàng + logo)', 'so-mi': 'Sơ mi', vest: 'Vest', hoodie: 'Hoodie', 'ao-thun': 'Áo thun', cardigan: 'Cardigan' };
+const HAIR = { ngan: 'ngắn', vuot: 'vuốt ngược', tia: 'tỉa', xoan: 'xoăn', hoi: 'hói', dai: 'dài', buoc: 'buộc đuôi', bob: 'bob', bui: 'búi' };
+const MOOD = { tension: 'Hồi hộp', lofi: 'Lofi thư thả', upbeat: 'Sôi động', inspire: 'Truyền cảm hứng', playful: 'Vui nhộn', calm: 'Êm dịu' };
+const STYLE = { 'tinh-huong': ['Phim tình huống', 'Nhân vật diễn trong bối cảnh (văn phòng, nhà…), có máy quay, nhãn bật, màn hình điện thoại'], 'thong-tin': ['Đồ hoạ thông tin', 'Người dẫn + danh sách, số liệu, so sánh — hợp nội dung mẹo, kiến thức'], 'ket-hop': ['Kết hợp', 'Mở bằng tình huống, chốt bằng phần tổng kết thông tin'] };
+const SETS = { 'van-phong': 'Văn phòng', nha: 'Ở nhà', 'hang-o': 'Sào huyệt kẻ gian' };
+const MODE = { 'dong-nhat': ['Một dàn nhân vật xuyên suốt', 'Khán giả quen mặt qua từng tập'], 'moi-tap': ['Mỗi tập nhân vật khác', 'Claude tự đặt nhân vật cho từng tập'], khong: ['Không dùng nhân vật', 'Chỉ đồ hoạ và giọng dẫn'] };
+const PLATFORMS = ['TikTok', 'Facebook Reels', 'YouTube Shorts', 'YouTube', 'Zalo'];
+
+// ───────── trạng thái chung
+let META = null, JOB = null, LOG = [], CUR = null, VIEW = '';
+const DRAFT = new Map(); // góp ý đang gõ, giữ qua các lần vẽ lại
+const busy = () => JOB && (JOB.status === 'running' || JOB.status === 'stopping');
+
+// ───────── công việc chạy nền
+const jobPill = () => {
+  const p = document.getElementById('jobpill');
+  if (!JOB) return (p.style.display = 'none');
+  p.style.display = '';
+  p.href = `#/s/${JOB.slug}`;
+  const run = busy();
+  p.className = `pill ${run ? 'run' : JOB.status === 'done' ? 'ok' : JOB.status === 'error' ? 'bad' : ''}`;
+  p.replaceChildren(h('span', { class: 'dot' }), `${JOB.label}${JOB.episode ? ` · tập ${JOB.episode}` : ''} — ${run ? mmss(Date.now() - JOB.started) : JOB.status === 'done' ? 'xong' : JOB.status === 'error' ? 'lỗi' : 'đã dừng'}`);
+};
+const jobPanel = () => {
+  const box = document.getElementById('jobbox');
+  if (!box) return;
+  const mine = JOB && CUR && JOB.slug === CUR.slug;
+  if (!mine) return box.replaceChildren(h('h3', {}, 'Tiến trình'), h('p', { class: 'mut small', style: { margin: '6px 0 0' } }, JOB && busy() ? `Đang chạy việc của series khác (${JOB.slug}). Mỗi lúc chỉ chạy một việc.` : 'Chưa có việc nào đang chạy. Bấm một nút bên trái để bắt đầu.'));
+  const run = busy();
+  const old = box.querySelector('pre');
+  const stick = !old || old.scrollTop + old.clientHeight >= old.scrollHeight - 30;
+  const pre = h('pre', { class: 'log' }, LOG.join('\n'));
+  box.replaceChildren(...[
+    h('div', { class: 'row' }, h('h3', {}, 'Tiến trình'), h('span', { class: 'sp' }),
+      h('span', { class: `pill ${run ? 'run' : JOB.status === 'done' ? 'ok' : JOB.status === 'error' ? 'bad' : ''}` }, h('span', { class: 'dot' }), run ? `đang chạy ${mmss(Date.now() - JOB.started)}` : JOB.status === 'done' ? `xong sau ${mmss(JOB.ended - JOB.started)}` : JOB.status === 'error' ? 'lỗi' : 'đã dừng'),
+      run && h('button', { class: 'btn sm danger', onclick: async () => { await api('POST', '/api/job/stop', {}); toast('Đang dừng…'); } }, 'Dừng')),
+    h('div', { class: 'small mut', style: { margin: '4px 0 10px' } }, `${JOB.label}${JOB.episode ? ` · tập ${JOB.episode}` : ''}`),
+    !run && JOB.hint ? h('div', { class: 'note warn', style: { marginBottom: '10px' } }, JOB.hint) : null,
+    !run && JOB.summary ? h('div', { class: 'note sum', style: { marginBottom: '10px' } }, h('b', {}, 'Claude báo lại: '), JOB.summary) : null,
+    pre].filter(Boolean));
+  if (stick) pre.scrollTop = pre.scrollHeight;
+};
+let pollT;
+const poll = async () => {
+  clearTimeout(pollT);
+  try {
+    const wasBusy = busy(), prevId = JOB?.id;
+    const from = JOB ? Math.max(0, LOG.length - 1) : 0;
+    const { job } = await api('GET', `/api/job?from=${from}`);
+    if (job) {
+      if (job.id !== prevId) { const full = from ? (await api('GET', '/api/job?from=0')).job : job; LOG = full.log; JOB = full; }
+      else { LOG.length = Math.min(from, LOG.length); LOG.push(...job.log); JOB = job; }
+    }
+    jobPill(); jobPanel();
+    if (wasBusy && !busy()) {
+      toast(JOB.status === 'done' ? `${JOB.label}: xong.` : JOB.status === 'error' ? `${JOB.label}: có lỗi — xem tiến trình.` : 'Đã dừng.', JOB.status === 'error');
+      if (CUR && JOB.slug === CUR.slug && VIEW === 'series') await openSeries(CUR.slug, true);
+    } else if (wasBusy !== busy()) syncButtons();
+  } catch { /* máy chủ tạm ngắt — thử lại */ }
+  pollT = setTimeout(poll, busy() ? 1000 : 4000);
+};
+const syncButtons = () => document.querySelectorAll('[data-job]').forEach((b) => (b.disabled = busy()));
+const runJob = async (slug, action, episode, feedback) => {
+  try {
+    const { job } = await api('POST', `/api/series/${slug}/jobs`, { action, episode, feedback });
+    JOB = job; LOG = job.log.slice();
+    if (feedback) DRAFT.delete(`${slug}:${action}:${episode ?? ''}`), DRAFT.delete(`${slug}:fix:${episode ?? ''}`);
+    jobPill(); jobPanel(); syncButtons(); poll();
+    document.getElementById('jobbox')?.scrollIntoView({ block: 'nearest' });
+  } catch (e) { toast(e.message, true); }
+};
+const cmdText = (slug, action, n) => `/series Làm theo mục "Chế độ form" của skill. Giai đoạn: ${action}. Series: ${slug}.${n ? ` Tập: ${n}.` : ''}`;
+// nút giao việc cho Claude (hoặc chép lệnh khi máy không có `claude`)
+const aiBtn = (label, slug, action, n, getFb, cls = 'pri') => META.claude
+  ? h('button', { class: `btn ${cls}`, 'data-job': 1, disabled: busy(), onclick: () => { const fb = getFb ? getFb() : ''; if (action === 'fix' && !fb.trim()) return toast('Hãy ghi góp ý trước.', true); runJob(slug, action, n, fb); } }, h('span', { class: 'ai' }, 'AI'), label)
+  : h('button', { class: `btn ${cls}`, onclick: () => copy(cmdText(slug, action, n)) }, 'Chép lệnh: ', label);
+const fbBox = (key, ph) => { const t = h('textarea', { placeholder: ph, value: DRAFT.get(key) ?? '', oninput: () => DRAFT.set(key, t.value) }); return t; };
+
+// ───────── trang danh sách
+const home = async () => {
+  VIEW = 'home'; CUR = null;
+  const list = await api('GET', '/api/series');
+  app.replaceChildren(
+    h('div', { class: 'row', style: { marginBottom: '6px' } }, h('h1', {}, 'Series của tôi'), h('span', { class: 'sp' }), h('a', { class: 'btn pri', href: '#/new' }, '+ Tạo series mới')),
+    h('p', { class: 'lead' }, 'Điền đề bài một lần, rồi duyệt ba bước ngay trên trang: kế hoạch từng tập → kịch bản và storyboard → phim hoàn chỉnh.'),
+    list.length
+      ? h('div', { class: 'list' }, list.map((s) => h('a', { class: 'card', href: `#/s/${s.slug}` },
+          h('div', {}, h('h2', {}, s.name), h('div', { class: 'mut small' }, [s.channel, `${s.total || s.planned || 0} tập`, s.format, THEME[s.theme] ?? s.theme].filter(Boolean).join(' · '))),
+          h('div', { class: 'row small' }, h('span', { class: 'pill' }, `${s.planned} tập có kế hoạch`), h('span', { class: `pill ${s.done ? 'ok' : ''}` }, `${s.done} phim đã dựng`), s.characters ? h('span', { class: 'pill' }, `${s.characters} nhân vật`) : null),
+          h('div', { class: 'bar' }, h('i', { style: { width: `${Math.round((100 * s.done) / Math.max(1, s.total || s.episodes || 1))}%` } })))))
+      : h('div', { class: 'card', style: { textAlign: 'center', padding: '50px 20px' } }, h('h2', {}, 'Chưa có series nào'), h('p', { class: 'mut' }, 'Bắt đầu bằng việc điền đề bài cho series đầu tiên.'), h('a', { class: 'btn pri', href: '#/new' }, '+ Tạo series mới')));
+};
+
+// ───────── form đề bài
+const blankChar = (gender, i) => ({ name: gender === 'nu' ? ['Lan', 'Chị Thu', 'Mai', 'Hà'][i % 4] : ['Minh', 'Anh Quang', 'Nam', 'Tùng'][i % 4], gender, kind: 'misa', hair: gender === 'nu' ? 'buoc' : 'ngan', role: '' });
+const formView = async (slug) => {
+  VIEW = 'form';
+  let src = null;
+  if (slug) { src = await api('GET', `/api/series/${slug}`); CUR = src; }
+  const b = src?.brief ?? {}, bible = src?.bible ?? {};
+  const F = {
+    name: bible.name ?? '', channel: bible.channel ?? '', idea: b.idea ?? '', audience: b.audience ?? '', platform: b.platform ?? 'TikTok, Facebook Reels, YouTube Shorts',
+    episodes: b.episodes ?? bible.episodes ?? 5, duration: b.duration ?? 60, format: b.format ?? bible.format ?? '9:16', theme: b.theme ?? bible.theme?.preset ?? 'misa-vang',
+    style: b.style ?? 'tinh-huong', sets: b.sets ?? ['van-phong', 'nha'], tone: b.tone ?? '', music: b.music ?? bible.music?.mood ?? 'tension',
+    characterMode: b.characterMode ?? bible.characterMode ?? 'dong-nhat', logo: b.logo ?? 'misa', cta: b.cta ?? '', notes: b.notes ?? '',
+    characters: structuredClone(bible.characters ?? [{ ...blankChar('nam', 0), role: 'nhân viên MISA, người dẫn chuyện' }, { ...blankChar('nu', 0), role: 'đồng nghiệp, hay gặp tình huống' }]),
+    narrator: b.narrator ?? bible.narrator ?? null,
+  };
+  if (src && !src.brief && bible.characterMode == null) F.characterMode = 'dong-nhat';
+  const txt = (key, ph, o = {}) => h('input', { type: o.type ?? 'text', placeholder: ph, value: F[key], min: o.min, max: o.max, oninput: (e) => (F[key] = o.type === 'number' ? +e.target.value : e.target.value) });
+  const area = (key, ph, rows = 3) => h('textarea', { placeholder: ph, rows, value: F[key], oninput: (e) => (F[key] = e.target.value) });
+  const lab = (title, hint, field, cls) => h(field.matches?.('input,select,textarea') ? 'label' : 'div', { class: `f ${cls ?? ''}` }, h('span', {}, title, hint ? h('span', { class: 'h' }, ` — ${hint}`) : null), field);
+  const seg = (key, opts, multi) => {
+    const box = h('div', { class: 'seg' });
+    const draw = () => box.replaceChildren(...opts.map(([v, t, sub, pre]) => h('button', { type: 'button', class: (multi ? F[key].includes(v) : F[key] === v) ? 'on' : '', onclick: () => { if (multi) F[key] = F[key].includes(v) ? F[key].filter((x) => x !== v) : [...F[key], v]; else F[key] = v; draw(); box.dispatchEvent(new Event('change')); } }, pre ?? null, pre ? null : t, pre ? null : sub ? h('small', {}, sub) : null)));
+    draw();
+    return box;
+  };
+  // nền tảng: chọn nhiều → chuỗi
+  const plat = { list: PLATFORMS.filter((p) => F.platform.includes(p)) };
+  const platBox = h('div', { class: 'seg' });
+  const drawPlat = () => platBox.replaceChildren(...PLATFORMS.map((p) => h('button', { type: 'button', class: plat.list.includes(p) ? 'on' : '', onclick: () => { plat.list = plat.list.includes(p) ? plat.list.filter((x) => x !== p) : [...plat.list, p]; F.platform = plat.list.join(', '); drawPlat(); } }, p)));
+  drawPlat();
+  // nhân vật
+  const chBox = h('div', { class: 'grid' });
+  const narSel = h('select', { onchange: (e) => (F.narrator = e.target.value || null) });
+  const drawNar = () => {
+    const ids = F.characters.map((c, i) => c.id ?? `#${i}`);
+    if (!ids.includes(F.narrator)) F.narrator = ids[F.characters.findIndex((c) => !c.villain)] ?? null;
+    narSel.replaceChildren(...F.characters.map((c, i) => h('option', { value: ids[i], selected: ids[i] === F.narrator }, c.name || `Nhân vật ${i + 1}`)));
+  };
+  const drawChars = () => {
+    chBox.replaceChildren(...F.characters.map((c, i) => {
+      const sel = (key, opts, on) => h('select', { onchange: (e) => { c[key] = e.target.value || undefined; on?.(); } }, opts.map(([v, t]) => h('option', { value: v, selected: (c[key] ?? '') === v }, t)));
+      const voices = Object.entries(META.voices).filter(([, g]) => g === c.gender).map(([v]) => [v, v]);
+      return h('div', { class: 'chr' },
+        h('div', { class: 'hd' }, h('div', { class: `av ${c.villain ? 'v' : ''}` }, (c.name || '?').trim().split(/\s+/).pop()[0]?.toUpperCase() ?? '?'),
+          h('input', { type: 'text', placeholder: 'Tên nhân vật', value: c.name ?? '', style: { maxWidth: '220px', fontWeight: 700 }, oninput: (e) => { c.name = e.target.value; drawNar(); } }),
+          h('input', { type: 'text', placeholder: 'Vai trò trong series (vd: kế toán cẩn thận, hay nhắc mọi người)', value: c.role ?? '', oninput: (e) => (c.role = e.target.value) }),
+          h('button', { type: 'button', class: 'btn sm danger', title: 'Bỏ nhân vật này', onclick: () => { F.characters.splice(i, 1); drawChars(); } }, 'Bỏ')),
+        h('div', { class: 'g' },
+          lab('Giới tính', null, sel('gender', [['nam', 'Nam'], ['nu', 'Nữ']], () => { c.hair = c.gender === 'nu' ? 'buoc' : 'ngan'; delete c.voice; delete c.geminiVoice; if (c.gender !== 'nu') delete c.bottom; drawChars(); })),
+          lab('Trang phục', null, sel('kind', META.kinds.map((k) => [k, KIND[k]]), drawChars)),
+          lab('Kiểu tóc', null, sel('hair', META.hairs[c.gender === 'nu' ? 'nu' : 'nam'].map((k) => [k, HAIR[k] ?? k]))),
+          lab('Giọng đọc', null, sel('voice', [['', 'Tự chọn theo giới tính'], ...voices]))),
+        h('div', { class: 'row' },
+          (c.kind ?? 'misa') !== 'misa' ? h('label', { class: 'ck' }, h('input', { type: 'color', value: c.outfitColor ?? '#7A8AA0', oninput: (e) => (c.outfitColor = e.target.value) }), 'Màu áo') : null,
+          c.gender === 'nu' ? h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: c.bottom === 'vay', onchange: (e) => (c.bottom = e.target.checked ? 'vay' : undefined) }), 'Mặc váy') : null,
+          h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: !!c.glasses, onchange: (e) => (c.glasses = e.target.checked) }), 'Đeo kính'),
+          h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: c.age === 'trung-nien', onchange: (e) => (c.age = e.target.checked ? 'trung-nien' : undefined) }), 'Trung niên'),
+          h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: !!c.villain, onchange: (e) => { c.villain = e.target.checked; drawChars(); } }), 'Vai phản diện')));
+    }));
+    drawNar();
+  };
+  const addChar = (g, extra = {}) => { if (F.characters.length >= 8) return toast('Tối đa 8 nhân vật.', true); F.characters.push({ ...blankChar(g, F.characters.filter((c) => c.gender === g).length), ...extra }); drawChars(); };
+  drawChars();
+  const charWrap = h('div', { class: 'grid' }, chBox,
+    h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn sm', onclick: () => addChar('nam') }, '+ Nhân vật nam'), h('button', { type: 'button', class: 'btn sm', onclick: () => addChar('nu') }, '+ Nhân vật nữ'),
+      h('button', { type: 'button', class: 'btn sm', onclick: () => addChar('nam', { name: 'Kẻ gian', kind: 'hoodie', hair: 'tia', villain: true, role: 'kẻ lừa đảo' }) }, '+ Vai phản diện')),
+    lab('Người dẫn chuyện', 'giọng đọc lời dẫn ngoài cảnh', narSel));
+  const modeSeg = seg('characterMode', Object.entries(MODE).map(([v, [t, s]]) => [v, t, s]));
+  const syncMode = () => (charWrap.style.display = F.characterMode === 'khong' ? 'none' : '');
+  modeSeg.addEventListener('change', syncMode); syncMode();
+  const err = h('div', { class: 'note bad', style: { display: 'none' } });
+  const submit = async () => {
+    err.style.display = 'none';
+    if (!F.name.trim() || !F.idea.trim()) { err.textContent = 'Cần điền tên series và ý tưởng.'; err.style.display = ''; return window.scrollTo({ top: 0 }); }
+    if (F.characterMode !== 'khong' && !F.characters.length) { err.textContent = 'Thêm ít nhất một nhân vật, hoặc chọn "Không dùng nhân vật".'; err.style.display = ''; return; }
+    const nar = F.characters.find((c, i) => (c.id ?? `#${i}`) === F.narrator);
+    const body = { ...F, narrator: nar?.id ?? nar?.name ?? null };
+    try {
+      if (slug) { await api('PUT', `/api/series/${slug}/brief`, body); toast('Đã lưu đề bài.'); location.hash = `#/s/${slug}`; }
+      else {
+        const r = await api('POST', '/api/series', body);
+        if (F.characterMode !== 'khong' && !busy()) await api('POST', `/api/series/${r.slug}/jobs`, { action: 'characters' }).catch(() => {});
+        location.hash = `#/s/${r.slug}`;
+      }
+    } catch (e) { toast(e.message, true); }
+  };
+  const sec = (n, title, desc, ...body) => h('div', { class: 'sec' }, h('div', {}, h('h2', {}, h('span', { class: 'n' }, n), title), h('p', {}, desc)), h('div', { class: 'grid' }, body));
+  app.replaceChildren(
+    h('h1', {}, slug ? `Sửa đề bài — ${bible.name}` : 'Series mới'),
+    h('p', { class: 'lead' }, slug ? 'Sửa xong bấm Lưu. Muốn kế hoạch theo đề bài mới thì bấm "Lập lại kế hoạch" ở trang series.' : 'Chỉ cần tên và ý tưởng là đủ để bắt đầu; các mục khác đã có sẵn lựa chọn mặc định.'),
+    err,
+    h('div', { class: 'card' },
+      sec(1, 'Ý tưởng', 'Series nói về điều gì, cho ai xem.',
+        h('div', { class: 'fg' }, lab('Tên series *', null, txt('name', 'vd: Người MISA cảnh giác')), lab('Kênh', 'tuỳ chọn', txt('channel', '@ten-kenh')),
+          lab('Ý tưởng / chủ đề *', 'càng cụ thể, kế hoạch càng sát', area('idea', 'vd: Giúp nhân viên nhận diện các chiêu lừa đảo qua mạng phổ biến; mỗi tập một tình huống có thật, kết bằng 3 dấu hiệu nhận biết.', 4), 'w2'),
+          lab('Khán giả', null, txt('audience', 'vd: nhân viên văn phòng 22–40 tuổi và người thân')), lab('Nền tảng đăng', null, platBox))),
+      sec(2, 'Quy mô', 'Số tập và độ dài mỗi tập.',
+        h('div', { class: 'fg' }, lab('Số tập', '1–30', txt('episodes', '', { type: 'number', min: 1, max: 30 })), lab('Thời lượng mỗi tập (giây)', '20–180', txt('duration', '', { type: 'number', min: 20, max: 180 })),
+          lab('Khung hình', '9:16 hợp TikTok/Reels/Shorts; cảnh tình huống đẹp nhất ở 9:16', seg('format', META.formats.map((f) => [f, f])), 'w2'))),
+      sec(3, 'Phong cách', 'Cách kể, màu sắc, không khí.',
+        lab('Kiểu kể', null, seg('style', Object.entries(STYLE).map(([v, [t, s]]) => [v, t, s]))),
+        lab('Bộ màu', 'dùng cho tiêu đề, bảng tổng kết, cảnh kết', seg('theme', META.themes.map((t) => [t.id, '', '', h('span', { class: 'sw' }, h('i', { style: { background: t.bg } }, h('u', { style: { background: t.fg } }), h('b', { style: { background: t.accent } })), THEME[t.id] ?? t.id)]))),
+        lab('Bối cảnh ưu tiên', 'chọn nhiều', seg('sets', Object.entries(SETS).map(([v, t]) => [v, t]), true)),
+        h('div', { class: 'fg' }, lab('Giọng điệu', null, txt('tone', 'vd: gần gũi, hơi hài, không doạ dẫm')), lab('Nhạc nền', 'tự sáng tác theo không khí', h('select', { onchange: (e) => (F.music = e.target.value) }, META.moods.map((m) => h('option', { value: m, selected: m === F.music }, MOOD[m] ?? m))))),
+        lab('Thương hiệu', null, seg('logo', [['misa', 'Có logo MISA', 'Trên áo đồng phục và cảnh kết'], ['none', 'Không gắn thương hiệu', 'Nhân vật mặc thường phục']]))),
+      sec(4, 'Nhân vật', 'Nên có cả nam và nữ; mỗi người một giọng đúng giới tính.', lab('Cách dùng nhân vật', null, modeSeg), charWrap),
+      sec(5, 'Kết tập & ghi chú', 'Không bắt buộc.',
+        lab('Lời kêu gọi cuối tập', null, txt('cta', 'vd: Chia sẻ cho người thân; theo dõi để xem tập sau')),
+        lab('Ghi chú thêm cho Claude', 'điều cần tránh, tình huống muốn có, số liệu có nguồn…', area('notes', '', 3)))),
+    h('div', { class: 'sticky' }, h('a', { class: 'btn', href: slug ? `#/s/${slug}` : '#/' }, 'Huỷ'), h('button', { class: 'btn pri', onclick: submit }, slug ? 'Lưu đề bài' : 'Tạo series')));
+};
+
+// ───────── trang một series
+const openSeries = async (slug, keepScroll) => {
+  VIEW = 'series';
+  const y = window.scrollY;
+  const d = (CUR = await api('GET', `/api/series/${slug}`));
+  const eps = d.episodes;
+  const nPlan = d.planned, nScript = eps.filter((e) => e.scenes).length, nFilm = eps.filter((e) => e.mp4).length;
+  const pending = eps.filter((e) => !e.approved);
+  const step = (n, title, sub, state) => h('div', { class: state }, h('b', {}, state === 'done' ? '✓' : n), h('div', {}, h('span', {}, title), h('small', {}, sub)));
+  const file = (rel, t) => `/files/${slug}/${rel}${t ? `?t=${Math.round(t)}` : ''}`;
+
+  const epCard = (e) => {
+    const base = `episodes/${e.id}`;
+    const state = !e.approved ? 'de-xuat' : !e.scenes ? 'duyet' : !e.mp4 ? 'kich-ban' : 'phim';
+    const chip = { 'de-xuat': ['', 'Chờ duyệt kế hoạch'], duyet: ['info', 'Đã duyệt — chưa có kịch bản'], 'kich-ban': ['run', 'Chờ duyệt kịch bản + storyboard'], phim: ['ok', `Đã có phim${e.seconds ? ` · ${e.seconds} giây` : ''}`] }[state];
+    const plan = [e.logline && h('p', {}, e.logline), e.hook && h('p', {}, h('span', { class: 'k' }, 'Mở đầu'), e.hook), e.beats?.length ? h('ol', {}, e.beats.map((x) => h('li', {}, x))) : null, e.visual && h('p', {}, h('span', { class: 'k' }, 'Hình'), e.visual), e.cta && h('p', {}, h('span', { class: 'k' }, 'Kết'), e.cta)];
+    const board = e.board.length ? h('div', { class: 'board' }, e.board.map((f) => h('img', { loading: 'lazy', src: file(`${base}/storyboard/${f}`, e.mtime || Date.now() / 6e4), alt: f, onclick: (ev) => zoom(ev.target.src) }))) : null;
+    const layout = e.issues == null ? null : e.issues.length ? h('div', { class: 'note warn' }, h('b', {}, `Bố cục còn ${e.issues.length} chỗ chồng lấn: `), e.issues.slice(0, 4).join(' · ')) : h('span', { class: 'pill ok' }, '✓ bố cục sạch');
+    const links = h('div', { class: 'row small' }, e.script && h('a', { href: file(`${base}/script.md`), target: '_blank' }, 'Đọc kịch bản'), e.board.length ? h('a', { href: file(`${base}/storyboard/index.html`), target: '_blank' }, 'Storyboard đầy đủ') : null, layout);
+    const fbKey = `${slug}:fix:${e.number}`;
+    const fb = fbBox(fbKey, state === 'phim' ? 'Góp ý cho phim: cảnh nào, câu nào cần sửa… Claude sửa rồi dựng lại.' : 'Góp ý cho kịch bản/storyboard: cảnh nào, câu nào cần sửa…');
+    const fix = h('details', { open: !!DRAFT.get(fbKey) }, h('summary', {}, 'Góp ý để sửa'), h('div', { class: 'grid', style: { gap: '10px' } }, fb, h('div', { class: 'row' }, aiBtn('Sửa theo góp ý', slug, 'fix', e.number, () => fb.value, ''))));
+    let body;
+    if (state === 'de-xuat') body = [plan, h('div', { class: 'row' }, h('button', { class: 'btn pri', onclick: async () => { await api('POST', `/api/series/${slug}/approve`, { episodes: [e.number] }); openSeries(slug, true); } }, 'Duyệt tập này'))];
+    else if (state === 'duyet') {
+      const nk = `${slug}:script:${e.number}`, note = fbBox(nk, 'Lưu ý riêng cho tập này (không bắt buộc)');
+      body = [plan, h('details', { open: !!DRAFT.get(nk) }, h('summary', {}, 'Thêm lưu ý cho tập này'), note), h('div', { class: 'row' }, aiBtn('Viết kịch bản + storyboard', slug, 'script', e.number, () => note.value))];
+    } else if (state === 'kich-ban') body = [board ?? h('div', { class: 'note' }, 'Đã có kịch bản nhưng chưa vẽ storyboard.'), links,
+      h('div', { class: 'row' }, h('button', { class: 'btn pri', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'render', e.number) }, 'Duyệt và dựng phim'), h('span', { class: 'mut small' }, 'Đọc giọng → căn thời gian → trộn âm → xuất MP4, vài phút.')), fix,
+      h('details', {}, h('summary', {}, 'Xem lại kế hoạch tập'), h('div', { class: 'grid', style: { gap: '8px' } }, plan))];
+    else body = [h('div', { class: 'film' },
+        h('video', { controls: true, preload: 'none', poster: e.board[0] ? file(`${base}/storyboard/${e.board[0]}`, e.mtime) : null, class: d.format === '16:9' ? 'wide' : '', src: file(`${base}/out/${e.id}.mp4`, e.mtime) }),
+        h('div', { class: 'grid', style: { gap: '12px' } },
+          e.stale ? h('div', { class: 'note warn' }, 'Kịch bản đã sửa sau lần dựng này — bấm "Dựng lại" để có bản mới.') : null,
+          h('div', { class: 'row' }, h('a', { class: 'btn dark', href: file(`${base}/out/${e.id}.mp4`), download: `${slug}-${e.id}.mp4` }, 'Tải MP4'), e.srt && h('a', { class: 'btn', href: file(`${base}/out/${e.id}.srt`), download: `${slug}-${e.id}.srt` }, 'Phụ đề SRT'),
+            h('button', { class: 'btn', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'render', e.number) }, 'Dựng lại')),
+          links, fix)),
+      board && h('details', {}, h('summary', {}, `Storyboard (${e.board.length} cảnh)`), board)];
+    return h('div', { class: 'card ep', id: e.id }, h('div', { class: 'hd' }, h('div', { class: 'no' }, String(e.number).padStart(2, '0')), h('div', { style: { flex: 1 } }, h('h3', {}, e.title || `Tập ${e.number}`), h('div', { class: 'mut small' }, e.duration ? `khoảng ${e.duration} giây` : '')), h('span', { class: `pill ${chip[0]}` }, chip[1])), body);
+  };
+
+  const planKey = `${slug}:plan:`, planFb = fbBox(planKey, nPlan ? 'Góp ý cho kế hoạch: thêm/bớt tập, đổi góc nhìn, đổi thứ tự…' : 'Lưu ý thêm cho lần lập kế hoạch (không bắt buộc)');
+  const planCard = nPlan
+    ? h('details', { class: 'card', open: !!DRAFT.get(planKey) }, h('summary', {}, 'Lập lại kế hoạch theo góp ý'), h('div', { class: 'grid', style: { gap: '10px' } }, h('p', { class: 'mut small', style: { margin: 0 } }, 'Tập đã duyệt hoặc đã có kịch bản được giữ nguyên, trừ khi góp ý yêu cầu đổi.'), planFb, h('div', { class: 'row' }, aiBtn('Lập lại kế hoạch', slug, 'plan', null, () => planFb.value, ''))))
+    : h('div', { class: 'card grid' }, h('div', {}, h('h2', {}, 'Bước 1 — Lập kế hoạch từng tập'), h('p', { class: 'mut', style: { margin: '4px 0 0' } }, `Claude đọc đề bài và đề xuất ${d.total || ''} tập: tiêu đề, câu mở đầu, các ý chính, hình ảnh, lời kết. Bạn duyệt từng tập trước khi viết kịch bản.`)), planFb, h('div', { class: 'row' }, aiBtn('Lập kế hoạch', slug, 'plan', null, () => planFb.value)));
+
+  const b = d.brief;
+  app.replaceChildren(
+    h('div', { class: 'row' }, h('div', {}, h('h1', {}, d.name), h('div', { class: 'mut' }, [d.channel, `${d.total || eps.length} tập`, d.format, THEME[d.theme] ?? d.theme, `${d.characters} nhân vật`].filter(Boolean).join(' · '))), h('span', { class: 'sp' }), h('a', { class: 'btn', href: `#/s/${slug}/edit` }, 'Sửa đề bài')),
+    h('div', { class: 'steps' },
+      step(1, 'Kế hoạch', nPlan ? `${nPlan} tập · ${nPlan - pending.length} đã duyệt` : 'chưa lập', nPlan && !pending.length ? 'done' : 'cur'),
+      step(2, 'Kịch bản + storyboard', `${nScript} tập`, nScript && nScript >= nPlan ? 'done' : nPlan ? 'cur' : ''),
+      step(3, 'Phim', `${nFilm} tập đã dựng`, nFilm && nFilm >= nPlan ? 'done' : nScript ? 'cur' : '')),
+    h('div', { class: 'cols' },
+      h('div', { class: 'grid' },
+        !nPlan ? planCard : null,
+        pending.length > 1 ? h('div', { class: 'card row' }, h('div', {}, h('b', {}, `${pending.length} tập đang chờ duyệt kế hoạch`), h('div', { class: 'mut small' }, 'Đọc từng tập bên dưới, duyệt riêng hoặc duyệt hết.')), h('span', { class: 'sp' }), h('button', { class: 'btn pri', onclick: async () => { await api('POST', `/api/series/${slug}/approve`, { episodes: pending.map((e) => e.number) }); openSeries(slug, true); } }, 'Duyệt tất cả')) : null,
+        eps.map(epCard),
+        nPlan ? planCard : null),
+      h('div', { class: 'side' },
+        h('div', { class: 'card', id: 'jobbox' }),
+        d.notes ? h('div', { class: 'card' }, h('h3', {}, 'Ghi chú của Claude'), h('div', { class: 'sum small', style: { marginTop: '8px' } }, d.notes)) : null,
+        d.characters ? h('div', { class: 'card grid', style: { gap: '12px' } }, h('div', { class: 'row' }, h('h3', {}, 'Nhân vật'), h('span', { class: 'sp' }), h('button', { class: 'btn sm', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'characters') }, d.charactersPng ? 'Vẽ lại' : 'Vẽ bảng nhân vật')),
+          d.charactersPng ? h('img', { class: 'chars', src: file('characters.png', d.charactersPng), alt: 'Bảng nhân vật', onclick: (ev) => zoom(ev.target.src) }) : h('p', { class: 'mut small', style: { margin: 0 } }, 'Chưa có bảng nhân vật.'),
+          h('div', { class: 'small mut' }, d.bible.characters.map((c) => `${c.name} (${c.gender === 'nu' ? 'nữ' : 'nam'}${c.villain ? ', phản diện' : ''})`).join(' · '))) : null,
+        b ? h('div', { class: 'card' }, h('h3', {}, 'Đề bài'), h('p', { class: 'small', style: { margin: '8px 0 0' } }, b.idea), h('div', { class: 'small mut', style: { marginTop: '8px' } }, [STYLE[b.style]?.[0], `${b.duration} giây/tập`, b.audience, b.platform].filter(Boolean).join(' · '))) : null,
+        h('details', { class: 'card' }, h('summary', {}, 'Làm trong Claude Code thay vì bấm nút'), h('div', { class: 'grid', style: { gap: '8px' } }, h('p', { class: 'small mut', style: { margin: 0 } }, 'Dán câu lệnh này vào Claude Code (mở ở thư mục xưởng). Đổi giai đoạn thành plan, script hoặc fix và thêm số tập.'), h('code', { class: 'cmd' }, cmdText(slug, 'plan')), h('div', {}, h('button', { class: 'btn sm', onclick: () => copy(cmdText(slug, 'plan')) }, 'Chép')))))));
+  jobPanel();
+  if (keepScroll) window.scrollTo(0, y);
+};
+
+// ───────── điều hướng
+const route = async () => {
+  const [, a, b, c] = location.hash.split('/');
+  document.getElementById('nav-home').className = !a ? 'on' : '';
+  document.getElementById('nav-new').className = a === 'new' ? 'on' : '';
+  try {
+    if (!META) META = await api('GET', '/api/meta');
+    if (a === 'new') await formView();
+    else if (a === 's' && b && c === 'edit') await formView(b);
+    else if (a === 's' && b) await openSeries(b);
+    else await home();
+    if (!location.hash.includes('/s/') || c === 'edit') window.scrollTo(0, 0);
+  } catch (e) { app.replaceChildren(h('div', { class: 'card' }, h('h2', {}, 'Không tải được'), h('p', { class: 'mut' }, e.message), h('a', { class: 'btn', href: '#/' }, 'Về danh sách'))); }
+};
+addEventListener('hashchange', route);
+route().then(poll);
+</script>
+</body>
+</html>

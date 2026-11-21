@@ -1,0 +1,392 @@
+[
+ {
+  "group": "38. Unit test cho năm",
+  "src": "source",
+  "want": "expected"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 2026",
+  "want": "năm hai không hai sáu"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 1994",
+  "want": "năm một chín chín tư"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 2025",
+  "want": "năm hai không hai lăm"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 2001",
+  "want": "năm hai lẻ một"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 2004",
+  "want": "năm hai lẻ tư"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 2005",
+  "want": "năm hai lẻ năm"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 2009",
+  "want": "năm hai lẻ chín"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 1903",
+  "want": "năm một chín linh ba"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 1904",
+  "want": "năm một chín linh tư"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 1909",
+  "want": "năm một chín linh chín"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 1804",
+  "want": "năm một tám linh tư"
+ },
+ {
+  "group": "38. Unit test cho năm",
+  "src": "năm 2015",
+  "want": "năm hai không một lăm"
+ },
+ {
+  "group": "39. Unit test cho số văn bản",
+  "src": "source",
+  "want": "expected"
+ },
+ {
+  "group": "39. Unit test cho số văn bản",
+  "src": "117/2025",
+  "want": "một một bảy hai không hai lăm"
+ },
+ {
+  "group": "39. Unit test cho số văn bản",
+  "src": "18/2026/NĐ-CP",
+  "want": "mười tám hai không hai sáu nờ đê xê pê"
+ },
+ {
+  "group": "39. Unit test cho số văn bản",
+  "src": "Số 18/2026/NĐ-CP",
+  "want": "Số mười tám hai không hai sáu nờ đê xê pê"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "source",
+  "want": "expected"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "43.000",
+  "want": "bốn mươi ba nghìn"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "43000",
+  "want": "bốn mươi ba nghìn"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "1.234.567",
+  "want": "một triệu hai trăm ba mươi tư nghìn năm trăm sáu mươi bảy"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "1234567",
+  "want": "một triệu hai trăm ba mươi tư nghìn năm trăm sáu mươi bảy"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "21",
+  "want": "hai mươi mốt"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "24",
+  "want": "hai mươi tư"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "25",
+  "want": "hai mươi lăm"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "104",
+  "want": "một trăm linh tư"
+ },
+ {
+  "group": "40. Unit test cho số lượng",
+  "src": "105",
+  "want": "một trăm linh năm"
+ },
+ {
+  "group": "41. Unit test cho số thập phân",
+  "src": "source",
+  "want": "expected"
+ },
+ {
+  "group": "41. Unit test cho số thập phân",
+  "src": "23,7",
+  "want": "hai ba phẩy bảy"
+ },
+ {
+  "group": "41. Unit test cho số thập phân",
+  "src": "3,5",
+  "want": "ba phẩy năm"
+ },
+ {
+  "group": "41. Unit test cho số thập phân",
+  "src": "0,25",
+  "want": "không phẩy hai năm"
+ },
+ {
+  "group": "41. Unit test cho số thập phân",
+  "src": "12,05",
+  "want": "một hai phẩy không năm"
+ },
+ {
+  "group": "42. Unit test cho ngày tháng",
+  "src": "source",
+  "want": "expected"
+ },
+ {
+  "group": "42. Unit test cho ngày tháng",
+  "src": "03/04/2026",
+  "want": "mùng ba tháng tư năm hai không hai sáu"
+ },
+ {
+  "group": "42. Unit test cho ngày tháng",
+  "src": "ngày 03/04/2026",
+  "want": "ngày mùng ba tháng tư năm hai không hai sáu"
+ },
+ {
+  "group": "42. Unit test cho ngày tháng",
+  "src": "15/04/2026",
+  "want": "mười lăm tháng tư năm hai không hai sáu"
+ },
+ {
+  "group": "42. Unit test cho ngày tháng",
+  "src": "tháng 03/2026",
+  "want": "tháng ba năm hai không hai sáu"
+ },
+ {
+  "group": "43. Unit test cho dấu tăng/giảm",
+  "src": "source",
+  "want": "expected"
+ },
+ {
+  "group": "43. Unit test cho dấu tăng/giảm",
+  "src": "Doanh thu tháng này +20% so với tháng trước.",
+  "want": "Doanh thu tháng này tăng hai mươi phần trăm so với tháng trước."
+ },
+ {
+  "group": "43. Unit test cho dấu tăng/giảm",
+  "src": "Doanh thu tháng này -20% so với tháng trước.",
+  "want": "Doanh thu tháng này giảm hai mươi phần trăm so với tháng trước."
+ },
+ {
+  "group": "43. Unit test cho dấu tăng/giảm",
+  "src": "Biên lợi nhuận +23,7%.",
+  "want": "Biên lợi nhuận tăng hai ba phẩy bảy phần trăm."
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "source",
+  "want": "expected"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "GPBL",
+  "want": "Giải pháp bán lẻ"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "GĐVP",
+  "want": "Giám đốc Văn phòng"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "AMIS",
+  "want": "A mít"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "EMIS",
+  "want": "E mít"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "iGOV",
+  "want": "ai gốp"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "HĐĐT",
+  "want": "Hóa đơn điện tử"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "HDDT",
+  "want": "Hóa đơn điện tử"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "TCT",
+  "want": "Tổng Công ty"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "KSX",
+  "want": "Khối sản xuất"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "QHĐT",
+  "want": "Quan hệ đối tác"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "ĐHCĐ",
+  "want": "Đại hội cổ đông"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "DNG",
+  "want": "Đà Nẵng"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "ĐNG",
+  "want": "Đà Nẵng"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "Jetpay",
+  "want": "Dét Pây"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "MISA Corp",
+  "want": "Tập đoàn MISA"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "MISA JSC",
+  "want": "Công ty Cổ phần MISA"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "TNHH MTV",
+  "want": "Trách nhiệm hữu hạn một thành viên"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "eShop",
+  "want": "I Sóp"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "MShopkeeper",
+  "want": "Em Sóp Kíp pờ"
+ },
+ {
+  "group": "48.1. Unit test bộ quy ước pronunciation nội bộ",
+  "src": "Moneykeeper",
+  "want": "Mắn ni kíp pờ"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "source",
+  "want": "expected"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "CYSEEX",
+  "want": "sai xích"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VINASA",
+  "want": "vi na sa"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "FIFA",
+  "want": "phi pha"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VAA",
+  "want": "vê a a"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VAPAC",
+  "want": "va pắc"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VCCA",
+  "want": "vi xi xi ây"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "NDA",
+  "want": "en đi ây"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VTCA",
+  "want": "vi ti xi ây"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "viNen",
+  "want": "vi nen"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VNABC",
+  "want": "vi en ây bi xi"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VinaSME",
+  "want": "vi na ét em i"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "NCA",
+  "want": "en xi ây"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "HanoiBA",
+  "want": "Hà Nội bi ây"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VNeID",
+  "want": "vi en i ai đi"
+ },
+ {
+  "group": "48.2. Unit test pronunciation tên tổ chức, liên minh, ứng dụng và phần mềm",
+  "src": "VneID",
+  "want": "vi en i ai đi"
+ }
+]

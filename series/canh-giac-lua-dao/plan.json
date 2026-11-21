@@ -1,0 +1,96 @@
+{
+ "brief": {
+  "idea": "Giúp người MISA nhận diện và phòng tránh các thủ đoạn lừa đảo phổ biến hiện nay, gồm cả chiêu mạo danh MISA để lừa khách hàng",
+  "episodes": "5 tập",
+  "duration": "60–75 giây/tập",
+  "style": "Đồ hoạ chuyển động tông tối navy + vàng MISA, nhân vật MISA áo polo vàng dẫn chuyện, mô phỏng điện thoại/tin nhắn",
+  "audience": "Nhân viên MISA (và người thân)",
+  "characterMode": "Đồng nhất: Minh dẫn chuyện cả series, Lan xuất hiện trong tình huống",
+  "platform": "TikTok, Facebook Reels, YouTube Shorts (9:16)"
+ },
+ "episodes": [
+  {
+   "number": 1,
+   "id": "ep01",
+   "title": "5 chiêu lừa đảo người MISA cần biết",
+   "duration": 75,
+   "status": "duyet",
+   "logline": "Điểm nhanh 5 chiêu lừa phổ biến nhất và 3 nguyên tắc vàng để luôn an toàn.",
+   "hook": "“Chỉ một cú chạm, bạn có thể mất sạch tiền trong tài khoản.”",
+   "beats": [
+    "Giả danh công an, thuế, BHXH bắt cài app lạ",
+    "Mạo danh sếp, đồng nghiệp trên Zalo nhờ chuyển tiền gấp",
+    "Tin nhắn giả mạo ngân hàng kèm link giả",
+    "Việc nhẹ lương cao, làm nhiệm vụ online, đầu tư lãi khủng",
+    "Mạo danh MISA để lừa khách hàng",
+    "3 nguyên tắc vàng: Dừng lại – Kiểm tra – Báo ngay"
+   ],
+   "visual": "Minh dẫn chuyện; màn hình cuộc gọi đến, khung chat Zalo-like, thông báo SMS giả, cảnh báo đỏ",
+   "cta": "Chia sẻ cho đồng nghiệp, người thân; giới thiệu tập 2"
+  },
+  {
+   "number": 2,
+   "id": "ep02",
+   "title": "Cuộc gọi từ “cơ quan chức năng”",
+   "duration": 65,
+   "status": "duyet",
+   "logline": "Bóc trần kịch bản giả danh công an/thuế/BHXH: doạ liên quan vụ án → bắt cài app → chiếm điện thoại.",
+   "hook": "“Alo, anh/chị có liên quan đến một đường dây rửa tiền…”",
+   "beats": [
+    "Kịch bản cuộc gọi 4 bước",
+    "Vì sao app lạ chiếm được điện thoại",
+    "Cơ quan nhà nước làm việc thế nào cho đúng",
+    "Lỡ cài rồi: ngắt mạng, gọi ngân hàng khoá tài khoản"
+   ],
+   "cta": "Lưu lại số tổng đài ngân hàng của bạn"
+  },
+  {
+   "number": 3,
+   "id": "ep03",
+   "title": "“Sếp” nhắn Zalo: chuyển gấp giúp anh",
+   "duration": 65,
+   "status": "de-xuat",
+   "logline": "Tài khoản giả, deepfake gọi video — vì sao người MISA cần xác minh qua kênh thứ hai.",
+   "hook": "Lan nhận tin nhắn của “sếp” lúc 17h55 thứ Sáu…",
+   "beats": [
+    "Tình huống Lan gặp phải",
+    "Dấu hiệu: gấp, bí mật, tài khoản lạ",
+    "Deepfake video call ngắn, mờ, mạng chập chờn",
+    "Quy tắc: gọi lại số đã lưu"
+   ],
+   "cta": "Thống nhất ‘mật khẩu gia đình/đội nhóm’"
+  },
+  {
+   "number": 4,
+   "id": "ep04",
+   "title": "Link giả và “tiền dễ”",
+   "duration": 65,
+   "status": "de-xuat",
+   "logline": "Tin nhắn ngân hàng giả, trang web nhái, việc nhẹ lương cao và bẫy nạp tiền nhận hoa hồng.",
+   "hook": "“Tài khoản của quý khách sẽ bị khoá trong 24h…”",
+   "beats": [
+    "Soi đường link: tên miền lạ, ký tự thừa",
+    "Ngân hàng không gửi link yêu cầu đăng nhập",
+    "Bẫy nhiệm vụ: rút nhỏ, nạp lớn",
+    "Đầu tư lãi khủng = dấu hiệu lừa"
+   ],
+   "cta": "Chỉ dùng app ngân hàng chính thức"
+  },
+  {
+   "number": 5,
+   "id": "ep05",
+   "title": "Kẻ gian mạo danh MISA",
+   "duration": 70,
+   "status": "de-xuat",
+   "logline": "Khi khách hàng của chính chúng ta bị lừa bằng tên MISA — người MISA nhận diện và hướng dẫn khách thế nào.",
+   "hook": "“Em gọi từ MISA, phần mềm của anh sắp hết hạn…”",
+   "beats": [
+    "Các kịch bản mạo danh MISA thường gặp",
+    "Email giả đổi số tài khoản nhận tiền",
+    "Kênh liên hệ chính thức của MISA",
+    "Người MISA nhắc khách: xác minh trước khi chuyển tiền"
+   ],
+   "cta": "Chia sẻ cho khách hàng bạn đang chăm sóc"
+  }
+ ]
+}

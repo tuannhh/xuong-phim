@@ -1,0 +1,93 @@
+{
+ "name": "Người MISA cảnh giác",
+ "slug": "canh-giac-lua-dao",
+ "channel": "",
+ "episodes": 5,
+ "format": "9:16",
+ "fps": 30,
+ "engine": "remotion",
+ "theme": {
+  "preset": "misa-vang"
+ },
+ "captions": "pill",
+ "voice": "Hải Đăng",
+ "narrator": "minh",
+ "characterMode": "dong-nhat",
+ "characters": [
+  {
+   "id": "minh",
+   "name": "Minh",
+   "kind": "misa",
+   "gender": "nam",
+   "hair": "ngan",
+   "voice": "Hải Đăng",
+   "geminiVoice": "Charon",
+   "role": "nhân viên MISA, người dẫn chuyện"
+  },
+  {
+   "id": "lan",
+   "name": "Lan",
+   "kind": "misa",
+   "gender": "nu",
+   "hair": "buoc",
+   "voice": "Ngọc Huyền",
+   "geminiVoice": "Kore",
+   "role": "đồng nghiệp trẻ, hay gặp tình huống"
+  },
+  {
+   "id": "thu",
+   "name": "Chị Thu",
+   "kind": "cardigan",
+   "outfitColor": "#B5835A",
+   "bottom": "vay",
+   "gender": "nu",
+   "hair": "bui",
+   "hairColor": "#3A2418",
+   "voice": "Mai Anh",
+   "geminiVoice": "Aoede",
+   "role": "kế toán"
+  },
+  {
+   "id": "quang",
+   "name": "Anh Quang",
+   "kind": "so-mi",
+   "outfitColor": "#DCE8F5",
+   "gender": "nam",
+   "hair": "vuot",
+   "glasses": true,
+   "age": "trung-nien",
+   "voice": "Thiện Minh",
+   "geminiVoice": "Orus",
+   "role": "trưởng phòng"
+  },
+  {
+   "id": "gian",
+   "name": "Kẻ gian",
+   "kind": "hoodie",
+   "gender": "nam",
+   "hair": "tia",
+   "voice": "Quốc Tuấn",
+   "geminiVoice": "Puck",
+   "role": "kẻ lừa đảo (giọng qua điện thoại)",
+   "villain": true
+  }
+ ],
+ "music": {
+  "mood": "tension",
+  "volume": 0.12
+ },
+ "sfx": {
+  "auto": true,
+  "volume": 0.6
+ },
+ "transition": {
+  "type": "slide",
+  "frames": 12
+ },
+ "chrome": {
+  "handle": false,
+  "progress": true,
+  "tag": true
+ },
+ "pronounce": {}
+}

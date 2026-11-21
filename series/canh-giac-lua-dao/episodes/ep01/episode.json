@@ -1,0 +1,372 @@
+{
+ "id": "ep01",
+ "number": 1,
+ "title": "Ba chiêu lừa ai cũng có thể gặp",
+ "logline": "Lan nhận cuộc gọi “công an”, chị Thu nhận tin nhắn “sếp”: Minh chỉ ra từng chiêu và 3 nguyên tắc vàng.",
+ "target": 65,
+ "scenes": [
+  {
+   "id": "s01",
+   "type": "talk",
+   "props": {
+    "cast": [
+     {
+      "id": "lan",
+      "pose": "nghe-may",
+      "expr": "lo-lang"
+     },
+     {
+      "id": "minh",
+      "pose": "dung",
+      "expr": "binh-thuong"
+     }
+    ],
+    "room": "van-phong",
+    "shot": "trung-canh"
+   },
+   "lines": [
+    {
+     "text": "Minh ơi! Có người tự xưng *công an*, bảo em chuyển tiền để xác minh!",
+     "speaker": "lan",
+     "expr": "so",
+     "pose": "nghe-may",
+     "react": {
+      "minh": "ngac-nhien"
+     }
+    },
+    {
+     "text": "Khoan! Đừng chuyển đồng nào. Đó là *chiêu lừa* quen thuộc đấy.",
+     "speaker": "minh",
+     "expr": "gian",
+     "pose": "tay-mo",
+     "react": {
+      "lan": "ngac-nhien"
+     }
+    }
+   ]
+  },
+  {
+   "id": "s02",
+   "type": "hook",
+   "props": {
+    "kicker": "Người MISA cảnh giác",
+    "icon": "shield-alert",
+    "text": "*3 chiêu lừa*\nai cũng có thể gặp"
+   },
+   "character": {
+    "id": "minh",
+    "pose": "chi",
+    "position": "left",
+    "expr": "tu-tin"
+   },
+   "lines": [
+    {
+     "text": "Hôm nay mình kể bạn nghe ba chiêu lừa mà người MISA nào cũng có thể gặp.",
+     "speaker": "minh"
+    }
+   ]
+  },
+  {
+   "id": "s03",
+   "type": "phone",
+   "props": {
+    "mode": "call",
+    "heading": "Chiêu 1: Giả danh *cơ quan chức năng*",
+    "label": "Cuộc gọi đến",
+    "caller": "Cán bộ điều tra",
+    "number": "0899 *** 123",
+    "avatar": "shield"
+   },
+   "lines": [
+    {
+     "text": "Tài khoản của chị liên quan đến một vụ án. Chị phải chuyển tiền vào tài khoản tạm giữ ngay.",
+     "speaker": "gian"
+    }
+   ]
+  },
+  {
+   "id": "s04",
+   "type": "talk",
+   "props": {
+    "cast": [
+     {
+      "id": "lan",
+      "pose": "buon",
+      "expr": "lo-lang"
+     },
+     {
+      "id": "minh",
+      "pose": "giai-thich",
+      "expr": "binh-thuong"
+     }
+    ],
+    "room": "van-phong",
+    "shot": "trung-canh"
+   },
+   "lines": [
+    {
+     "text": "Công an *không bao giờ* gọi điện bắt chuyển tiền hay đọc *mã OTP*.",
+     "speaker": "minh",
+     "pose": "giai-thich",
+     "expr": "binh-thuong"
+    },
+    {
+     "text": "Trời ơi, vậy mà em suýt tin...",
+     "speaker": "lan",
+     "expr": "buon",
+     "pose": "om-dau"
+    },
+    {
+     "text": "Cứ cúp máy, rồi gọi lên số đường dây nóng chính thức để hỏi lại.",
+     "speaker": "minh",
+     "pose": "like",
+     "expr": "cuoi",
+     "react": {
+      "lan": "cuoi"
+     }
+    }
+   ]
+  },
+  {
+   "id": "s05",
+   "type": "talk",
+   "props": {
+    "cast": [
+     {
+      "id": "thu",
+      "pose": "dien-thoai",
+      "expr": "lo-lang"
+     },
+     {
+      "id": "minh",
+      "pose": "dung",
+      "expr": "binh-thuong"
+     }
+    ],
+    "room": "van-phong",
+    "shot": "trung-canh"
+   },
+   "lines": [
+    {
+     "text": "Minh ơi, anh Quang nhắn Zalo bảo chị chuyển gấp *30 triệu* cho đối tác.",
+     "speaker": "thu",
+     "expr": "lo-lang",
+     "pose": "dien-thoai",
+     "react": {
+      "minh": "nghi-ngo"
+     }
+    }
+   ]
+  },
+  {
+   "id": "s06",
+   "type": "chat",
+   "props": {
+    "heading": "Chiêu 2: Mạo danh *sếp, đồng nghiệp*",
+    "name": "Anh Quang - Trưởng phòng",
+    "status": "Đang hoạt động",
+    "messages": [
+     {
+      "from": "them",
+      "text": "Chị ơi, anh đang họp với khách, không nghe máy được."
+     },
+     {
+      "from": "them",
+      "text": "Chị chuyển gấp giúp anh 30 triệu vào tài khoản này nhé.",
+      "warn": true
+     },
+     {
+      "from": "me",
+      "text": "Để chị gọi lại xác nhận với anh đã nhé."
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Tài khoản Zalo có thể bị chiếm hoặc làm giả, tên và ảnh y hệt sếp.",
+     "speaker": "minh"
+    },
+    {
+     "text": "Yêu cầu càng gấp, càng phải gọi lại số quen để xác minh.",
+     "speaker": "minh"
+    }
+   ]
+  },
+  {
+   "id": "s07",
+   "type": "talk",
+   "props": {
+    "cast": [
+     {
+      "id": "thu",
+      "pose": "dung",
+      "expr": "ngac-nhien"
+     },
+     {
+      "id": "quang",
+      "pose": "dung",
+      "expr": "ngac-nhien"
+     },
+     {
+      "id": "minh",
+      "pose": "dung",
+      "expr": "cuoi"
+     }
+    ],
+    "room": "van-phong",
+    "shot": "toan-than"
+   },
+   "lines": [
+    {
+     "text": "Anh có nhắn gì đâu! Nick đó là *giả mạo* đấy.",
+     "speaker": "quang",
+     "expr": "gian",
+     "pose": "chong-nanh",
+     "react": {
+      "thu": "so",
+      "minh": "nghi"
+     }
+    },
+    {
+     "text": "May quá, chị chưa chuyển!",
+     "speaker": "thu",
+     "expr": "vui",
+     "pose": "vui",
+     "react": {
+      "quang": "cuoi",
+      "minh": "vui"
+     }
+    }
+   ]
+  },
+  {
+   "id": "s08",
+   "type": "phone",
+   "props": {
+    "mode": "notify",
+    "heading": "Chiêu 3: Tin nhắn *giả mạo ngân hàng*",
+    "time": "08:15",
+    "notifications": [
+     {
+      "app": "Tin nhắn",
+      "icon": "message-square",
+      "color": "#2563eb",
+      "title": "NGANHANG",
+      "text": "Tài khoản của quý khách sẽ bị khoá sau 24h. Xác thực ngay: nganhang-xacminh.top",
+      "warn": true
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Chiêu ba: tin nhắn giả ngân hàng, dọa khoá tài khoản, kèm đường link lạ.",
+     "speaker": "minh"
+    },
+    {
+     "text": "Ngân hàng không gửi link bắt bạn đăng nhập. Đừng bấm!",
+     "speaker": "minh"
+    }
+   ]
+  },
+  {
+   "id": "s09",
+   "type": "steps",
+   "props": {
+    "heading": "3 nguyên tắc *vàng*",
+    "steps": [
+     {
+      "icon": "hand",
+      "title": "Dừng lại",
+      "text": "Đừng vội trước mọi yêu cầu gấp"
+     },
+     {
+      "icon": "phone-call",
+      "title": "Kiểm tra",
+      "text": "Gọi lại qua kênh chính thức"
+     },
+     {
+      "icon": "shield-alert",
+      "title": "Báo ngay",
+      "text": "Báo quản lý và ngân hàng khi nghi ngờ"
+     }
+    ]
+   },
+   "character": {
+    "id": "lan",
+    "pose": "chi",
+    "position": "left",
+    "expr": "tu-tin"
+   },
+   "lines": [
+    {
+     "text": "Nhớ ba nguyên tắc vàng nhé.",
+     "speaker": "lan"
+    },
+    {
+     "text": "Một, dừng lại.",
+     "speaker": "lan"
+    },
+    {
+     "text": "Hai, kiểm tra qua kênh chính thức.",
+     "speaker": "lan"
+    },
+    {
+     "text": "Ba, báo ngay khi nghi ngờ.",
+     "speaker": "lan"
+    }
+   ],
+   "transition": "wipe"
+  },
+  {
+   "id": "s10",
+   "type": "talk",
+   "props": {
+    "cast": [
+     {
+      "id": "lan",
+      "pose": "vui",
+      "expr": "vui"
+     },
+     {
+      "id": "minh",
+      "pose": "chao",
+      "expr": "vui"
+     },
+     {
+      "id": "thu",
+      "pose": "like",
+      "expr": "cuoi"
+     }
+    ],
+    "room": "van-phong",
+    "shot": "toan-than"
+   },
+   "lines": [
+    {
+     "text": "Người MISA cảnh giác, kẻ gian hết đường! Hẹn gặp bạn ở tập sau.",
+     "speaker": "minh",
+     "expr": "cuoi-lon",
+     "pose": "chao",
+     "react": {
+      "lan": "cuoi-lon",
+      "thu": "vui"
+     }
+    }
+   ],
+   "pad": 0.8,
+   "transition": "fade"
+  },
+  {
+   "id": "s11",
+   "type": "outro",
+   "props": {
+    "logo": "misa",
+    "cta": "Chia sẻ để *cùng cảnh giác*",
+    "handle": "Người MISA cảnh giác",
+    "next": "Cuộc gọi từ “cơ quan chức năng”"
+   },
+   "hold": 2.6,
+   "transition": "fade"
+  }
+ ]
+}

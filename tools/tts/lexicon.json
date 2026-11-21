@@ -1,0 +1,564 @@
+[
+ {
+  "src": "GPBL",
+  "say": "Giải pháp bán lẻ",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "HCSN",
+  "say": "Hành chính sự nghiệp",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "TTKD",
+  "say": "Trung tâm kinh doanh",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "DNV",
+  "say": "Doanh nghiệp vừa",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "DNN",
+  "say": "Doanh nghiệp nhỏ",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "DATW",
+  "say": "Dự án trung ương",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "GĐK",
+  "say": "Giám đốc khối",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "CBN",
+  "say": "Cán bộ nguồn",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "HAN",
+  "say": "Hà Nội",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "CTH",
+  "say": "Cần Thơ",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "DNG",
+  "say": "Đà Nẵng",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "ĐNG",
+  "say": "Đà Nẵng",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "BMT",
+  "say": "Buôn Ma Thuột",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "HCM",
+  "say": "Hồ Chí Minh",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VP",
+  "say": "Văn phòng",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "GĐVP",
+  "say": "Giám đốc Văn phòng",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "GĐ",
+  "say": "Giám đốc",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "BGĐ",
+  "say": "Ban Giám đốc",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "TGĐ",
+  "say": "Tổng Giám đốc",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "BTGĐ",
+  "say": "Ban Tổng Giám đốc",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "HĐQT",
+  "say": "Hội đồng quản trị",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "CT",
+  "say": "Chủ tịch",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "PCT",
+  "say": "Phó Chủ tịch",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "PGĐ",
+  "say": "Phó Giám đốc",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "CVP",
+  "say": "Chánh văn phòng",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "SM",
+  "say": "Ét em",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "AM",
+  "say": "A em",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "EMIS",
+  "say": "E mít",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "AMIS",
+  "say": "A mít",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "iGOV",
+  "say": "ai gốp",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "iHOS",
+  "say": "ai hót",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "Fingov",
+  "say": "Phin góp",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "GP",
+  "say": "Giải pháp",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "HĐĐT",
+  "say": "Hóa đơn điện tử",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "HDDT",
+  "say": "Hóa đơn điện tử",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "MIBI",
+  "say": "Mi Bi",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "TCT",
+  "say": "Tổng Công ty",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "KSX",
+  "say": "Khối sản xuất",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "QHĐT",
+  "say": "Quan hệ đối tác",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "ĐHCĐ",
+  "say": "Đại hội cổ đông",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "DN",
+  "say": "Doanh nghiệp",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "TLHT",
+  "say": "Tỷ lệ hoàn thành",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "HTKH",
+  "say": "Hoàn thành kế hoạch",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "KTDN",
+  "say": "Kế toán doanh nghiệp",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "KHDS",
+  "say": "Kế hoạch doanh số",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "CBNV",
+  "say": "Cán bộ nhân viên",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "BLĐ",
+  "say": "Ban lãnh đạo",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VNR",
+  "say": "Vi en Rì sọt",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "Jetpay",
+  "say": "Dét Pây",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "CTCP",
+  "say": "Công ty Cổ phần",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "TNHH",
+  "say": "Trách nhiệm hữu hạn",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "TNHH MTV",
+  "say": "Trách nhiệm hữu hạn một thành viên",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "eShop",
+  "say": "I Sóp",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "MShopkeeper",
+  "say": "Em Sóp Kíp pờ",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "Moneykeeper",
+  "say": "Mắn ni kíp pờ",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "CYSEEX",
+  "say": "sai xích",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VINASA",
+  "say": "vi na sa",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "FIFA",
+  "say": "phi pha",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VAA",
+  "say": "vê a a",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VAPAC",
+  "say": "va pắc",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VCCA",
+  "say": "vi xi xi ây",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "NDA",
+  "say": "en đi ây",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VTCA",
+  "say": "vi ti xi ây",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "viNen",
+  "say": "vi nen",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VNABC",
+  "say": "vi en ây bi xi",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VinaSME",
+  "say": "vi na ét em i",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "NCA",
+  "say": "en xi ây",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "HanoiBA",
+  "say": "Hà Nội bi ây",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VNeID",
+  "say": "vi en i ai đi",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "VneID",
+  "say": "vi en i ai đi",
+  "note": "VOICE_OFF_TTS_RULES v5 §23 (đã duyệt)"
+ },
+ {
+  "src": "MISA",
+  "say": "mi xa",
+  "note": "quy ước người dùng 2026-11-21: MISA đọc là mi xa"
+ },
+ {
+  "src": "Misa",
+  "say": "mi xa",
+  "note": "quy ước người dùng 2026-11-21: MISA đọc là mi xa"
+ },
+ {
+  "src": "MISA Corp",
+  "say": "Tập đoàn mi xa",
+  "note": "quy ước người dùng 2026-11-21: MISA đọc là mi xa"
+ },
+ {
+  "src": "MISA JSC",
+  "say": "Công ty Cổ phần mi xa",
+  "note": "quy ước người dùng 2026-11-21: MISA đọc là mi xa"
+ },
+ {
+  "src": "Zalo",
+  "say": "Da lô",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "OTP",
+  "say": "ô tê pê",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "link",
+  "say": "linh",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "Link",
+  "say": "Linh",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "app",
+  "say": "áp",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "online",
+  "say": "on lai",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "email",
+  "say": "i meo",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "Email",
+  "say": "I meo",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "Facebook",
+  "say": "Phây búc",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "Messenger",
+  "say": "Mét xen giơ",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "Internet Banking",
+  "say": "In tơ nét banh king",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "banking",
+  "say": "banh king",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "website",
+  "say": "oép sai",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "hacker",
+  "say": "hắc cơ",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "deepfake",
+  "say": "đíp phây",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "video call",
+  "say": "vi đi ô côn",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "video",
+  "say": "vi đi ô",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "QR",
+  "say": "kiu a",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "AI",
+  "say": "ây ai",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "CEO",
+  "say": "xi i âu",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "iPhone",
+  "say": "ai phôn",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "Google",
+  "say": "Gu gồ",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "Shopee",
+  "say": "Sốp pi",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "voucher",
+  "say": "vao chơ",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ }
+]

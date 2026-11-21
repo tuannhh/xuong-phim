@@ -1,0 +1,3 @@
+{"fps":30,"width":1080,"height":1920,"durationInFrames":90,"series":{"name":"Mẫu","slug":"mau"},"episode":{"id":"ep00","number":0,"title":"Mẫu"},
+"theme":{"bg":"#141A2E","bg2":"#1E2742","fg":"#F7F8FB","muted":"#A9B1C6","accent":"#F4D81C","accent2":"#FF5A4F","good":"#3DDC84","bad":"#FF4D4F","card":"#222C49","background":"gradient-blobs","radius":30,"fontDisplay":"Barlow","fontBody":"Google Sans","captionStyle":"pill"},
+"characters":[],"scenes":[{"id":"s1","type":"hook","props":{"text":"Xưởng *series* sẵn sàng"},"from":0,"duration":90,"transition":{"type":"none","frames":0},"beats":[5],"lines":[]}],"captions":[],"audio":null}
