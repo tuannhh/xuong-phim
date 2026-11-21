@@ -27,7 +27,7 @@ export function checks() {
     { id: 'uv', label: 'uv (Python)', ok: !!run('uv', ['--version']), need: true },
     { id: 'ffmpeg', label: 'ffmpeg', ok: !!run('ffmpeg', ['-version']), need: true },
     { id: 'modules', label: 'Thư viện Node', ok: exists('node_modules/remotion') && exists('node_modules/@remotion/renderer'), need: true },
-    { id: 'fonts', label: 'Font', ok: exists('assets/fonts/fonts.json'), need: true },
+    { id: 'fonts', label: 'Font', ok: exists('assets/fonts/fonts.json') && fs.readdirSync(path.join(ROOT, 'assets/fonts')).some((f) => f.endsWith('.woff2')), need: true },
     { id: 'venv', label: 'Môi trường Python âm thanh', ok: exists('.venv'), need: true },
     { id: 'sfx', label: 'Kho SFX', ok: exists('assets/sfx') && fs.readdirSync(path.join(ROOT, 'assets/sfx')).some((f) => f.endsWith('.wav')), need: true },
     { id: 'tts', label: 'Lệnh tts-vi (giọng đọc)', ok: !!run('tts-vi', ['-h']), need: true },
