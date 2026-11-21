@@ -11,8 +11,9 @@ assets/fonts/fonts-inline.json
 series/*/.studio/gop-y.md
 series/*/episodes/*/build-*/
 series/*/episodes/*/voice-*/
-.claude/
+.claude/settings.local.json
 .env
 .env.*
 *.local.json
 tools/tts-vi/config.env
+series/*/.studio/drive.json

@@ -27,3 +27,10 @@
 - `shared/reveal.mjs` (`revealTimes`, `storyTimes`) quyết định khi nào mục hiện ra — dùng chung cho hình **và** SFX để luôn khớp.
 - `timing.mjs` tính thời gian thật theo độ dài voice (`dur.json`), thêm `pad` mỗi cảnh, sinh phụ đề (từ được nói sáng dần, từ nhấn màu vàng), đặt SFX tự động, xuất SRT.
 - `mix.py`: nhạc theo mood (tự hạ khi có lời) + SFX + voice → −14 LUFS; tính độ mở miệng từng nhân vật theo khung hình. Lời dẫn chuyện (dòng không có speaker) không làm nhân vật nhép miệng.
+
+## Đẩy phim lên Google Drive
+
+1. Một lần cho mỗi máy: trang "Google Drive" → dán OAuth client (Desktop app, tạo trong Google Cloud) → "Kết nối" → đăng nhập Google, cho phép quyền Drive.
+2. Mỗi series: form đề bài mục 6 — bật "Tự đẩy lên Google Drive mỗi khi dựng xong phim", đặt tên thư mục (trống = tên series).
+3. Phim nằm ở `Xưởng phim/<thư mục series>/EPNN - <tiêu đề>.mp4` (+ `.srt`). Dựng lại rồi đẩy → **ghi đè cùng file** (link chia sẻ giữ nguyên). File/thư mục bị xoá trên Drive → tự tạo lại. Đổi tài khoản → tạo file mới ở Drive mới.
+4. Trang so `mtime`+`size` của MP4 với `out/drive.json` để báo "Bản trên Drive cũ hơn phim hiện tại".

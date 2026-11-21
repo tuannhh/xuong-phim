@@ -31,3 +31,14 @@
 
 ## 9. Hai bản `tts_vi.py`
 Máy gốc chạy bản `~/tools/tts-vi/`, repo có bản `tools/tts-vi/`. Sửa một bên phải đồng bộ bên kia (xem `07`).
+
+## 10. `pnpm setup` không chạy script "setup" của repo
+**Triệu chứng:** tài liệu cũ ghi `pnpm setup`, chạy xong không cài gì của xưởng.
+**Nguyên nhân:** `setup` là lệnh có sẵn của pnpm (cấu hình PNPM_HOME), được ưu tiên hơn script cùng tên.
+**Xử lý:** cài bằng `bash setup.sh` (hoặc `pnpm run setup`). **Bài học:** không đặt tên script trùng lệnh có sẵn của pnpm/npm (setup, install, add, update…), hoặc luôn gọi bằng `pnpm run`.
+
+## 11. Khung trình duyệt của Claude Desktop đọc `launch.json` theo thư mục của phiên
+Phiên mở ở `~` đọc `~/.claude/launch.json` (có cấu hình `xuong-series`); phiên mở ở thư mục xưởng đọc `.claude/launch.json` của repo (cấu hình `xuong-phim`). Thêm cấu hình tạm để thử phải thêm đúng file, xong thì gỡ.
+
+## 12. Kiểm thử Drive bằng máy chủ giả lập không được ghi vào series thật
+Thử Drive giả lập (`STUDIO_GOOGLE_BASE`) mà dùng series thật sẽ để lại `.studio/drive.json` và `out/drive.json` trỏ tới link giả → trang báo "đã đẩy" sai. Thử trên series tạm và xoá hai file đó sau khi thử.

@@ -10,21 +10,24 @@
 
 ## Cài trên máy mới
 
-Điều kiện: git, Node ≥ 20 + pnpm (`corepack enable`), [uv](https://docs.astral.sh/uv/), ffmpeg, Claude Code CLI (đã `claude` → `/login`).
-
 ```bash
 git clone https://github.com/tuannhh/xuong-phim.git ~/social-series-studio
-cd ~/social-series-studio
-pnpm setup                                  # node_modules, font, venv âm thanh, kho SFX
-bash tools/tts-vi/install.sh                # VieNeu-TTS + lệnh ~/.local/bin/tts-vi
-mkdir -p ~/.claude/skills && ln -sfn "$PWD/skill" ~/.claude/skills/series   # skill /series
-pnpm typecheck && node tools/tts/test.mjs   # kiểm tra
-pnpm web                                    # http://localhost:4710
+cd ~/social-series-studio && bash setup.sh
 ```
 
-- Đặt repo ở `~/social-series-studio` cho khớp tài liệu (đường dẫn khác vẫn chạy — mã dùng đường dẫn tương đối theo `ROOT`).
-- Lần đầu render, Remotion tự tải Chrome headless; lần đầu đọc voice, VieNeu tự tải model từ Hugging Face.
-- `build/`, `out/` không commit → máy mới phải `pnpm ep <dir> all` để có lại MP4 (voice đã commit nên không phải đọc lại).
+`setup.sh` chạy lại bao nhiêu lần cũng được (bước nào có rồi thì bỏ qua):
+1. macOS: Homebrew (thiếu thì chạy bộ cài chính thức — **hỏi mật khẩu máy**, nên người dùng phải tự chạy trong Terminal nếu Claude không chạy được) → `brew install` git, node, pnpm, uv, ffmpeg còn thiếu (Node < 20 cũng cài lại). Linux: apt cho git/ffmpeg/curl, uv qua script chính thức, Node phải có sẵn.
+2. `pnpm install --frozen-lockfile` → `node tools/sync-fonts.mjs` → `uv sync` → kho SFX (nếu chưa có) → `pnpm exec remotion browser ensure` (Chrome headless ~85 MB).
+3. `bash tools/tts-vi/install.sh`: clone VieNeu-TTS về `~/VieNeu-TTS` (ghim 6566468 = 3.8.5), `uv sync`, tạo `tools/tts-vi/config.env` từ mẫu, tạo lệnh `~/.local/bin/tts-vi`, chạy thử (lần đầu tải model Hugging Face). Biến: `VIENEU_DIR`, `VIENEU_REF`, `TTS_BIN_DIR`.
+4. Gắn skill: `~/.claude/skills/series` → `<repo>/skill` (không ghi đè nếu đó là thư mục thật).
+5. Claude Code CLI: có rồi thì bỏ qua, chưa có thì `npm install -g @anthropic-ai/claude-code`. Đăng nhập (`claude` → `/login`) người dùng tự làm.
+6. `node tools/doctor.mjs` in bảng kiểm tra.
+
+Biến bỏ bước: `XUONG_SKIP_TTS=1`, `XUONG_SKIP_SKILL=1`, `XUONG_SKIP_CLAUDE=1`.
+
+**Mở bằng Claude Desktop:** `.claude/settings.json` có hook `SessionStart` chạy `node tools/doctor.mjs --hook`: đủ thì im lặng, thiếu thì báo Claude chạy `bash setup.sh`. `.claude/launch.json` có cấu hình `xuong-phim` để Claude mở trang web trong khung trình duyệt (khi phiên mở đúng thư mục xưởng).
+
+- Lần đầu render, Remotion dùng Chrome đã tải ở bước 2; `build/`, `out/` không commit → máy mới phải dựng lại MP4 (voice đã commit nên không đọc lại).
 - Engine phụ tuỳ chọn: plugin lemo-opuscar (`claude plugin marketplace update lemolab && claude plugin update lemo-opuscar@lemolab`, thư viện ở `~/lemo-opuscar`).
 
 ## Cấu hình
@@ -38,8 +41,10 @@ pnpm web                                    # http://localhost:4710
 | `tools/tts-vi/config.env` | Giọng mặc định, thứ tự engine, đường dẫn file khoá Gemini | Có (install.sh tạo từ mẫu) |
 | File khoá Gemini API / service account | Dự phòng giọng đọc | Không — chỉ cần nếu muốn Gemini |
 | `series/*/.studio/gop-y.md` | Góp ý tạm từ trang web | — |
+| `~/.config/xuong-phim/google.json` | OAuth client + token Google Drive (quyền 600) | Không — chỉ khi dùng Drive |
+| `series/*/.studio/drive.json`, `out/drive.json` | id thư mục/file Drive gắn với tài khoản trên máy này | — |
 
-**Biến môi trường:** `PORT` (trang web, mặc định 4710), `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác), `GEMINI_API_KEY` (ghi đè file khoá), `LEMO_LIB` (thư viện lemo-opuscar).
+**Biến môi trường:** `PORT` (trang web, mặc định 4710), `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác), `GEMINI_API_KEY` (ghi đè file khoá), `LEMO_LIB` (thư viện lemo-opuscar), `XUONG_CONFIG_DIR` (thư mục cấu hình Drive), `STUDIO_GOOGLE_BASE` (chỉ để kiểm thử với máy chủ Google giả lập).
 
 ## Đánh giá Docker / Cloud Run (2026-11-22, chưa thực hiện)
 
@@ -62,4 +67,5 @@ pnpm web                                    # http://localhost:4710
 ## Việc còn treo
 
 - Máy hiện tại: lệnh `tts-vi` vẫn trỏ tới bản cũ `~/tools/tts-vi/` (cùng nội dung với `tools/tts-vi/tts_vi.py` lúc chép 2026-11-22). Sửa một bên phải chép sang bên kia, hoặc chạy `install.sh` để trỏ về repo.
-- Nút AI của trang web chưa chạy thật lần nào: lệnh `claude` trên máy báo "OAuth session expired" (2026-11-22). Cần `claude` → `/login` rồi thử lại.
+- Google Drive mới kiểm thử với máy chủ Google giả lập (OAuth + PKCE, tải lên theo khúc, ghi đè, tạo lại thư mục, làm mới/thu hồi token). Chưa chạy với Google thật vì cần người dùng tạo OAuth client trong Google Cloud.
+- `setup.sh` mới chạy thử trên máy đã có Homebrew/Node/uv/ffmpeg (bước cài các phần mềm đó chưa chạy thật trên máy trắng).

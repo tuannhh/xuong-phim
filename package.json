@@ -5,11 +5,12 @@
   "type": "module",
   "description": "Xưởng sản xuất series phim ngắn cho mạng xã hội: kịch bản → storyboard → voice → chuyển động → SFX → MP4",
   "scripts": {
-    "setup": "pnpm install && node tools/sync-fonts.mjs && uv sync && uv run tools/audio/sfx_bank.py",
+    "setup": "bash setup.sh",
     "ep": "node tools/ep.mjs",
     "series": "node tools/series.mjs",
     "web": "node tools/web/server.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "doctor": "node tools/doctor.mjs"
   },
   "dependencies": {
     "@fontsource/barlow": "5.2.5",

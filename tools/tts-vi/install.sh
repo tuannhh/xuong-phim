@@ -8,7 +8,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 VIENEU_DIR="${VIENEU_DIR:-$HOME/VieNeu-TTS}"
 VIENEU_REF="${VIENEU_REF:-6566468}" # release 3.8.5 — bản đã kiểm chứng với xưởng
-BIN="$HOME/.local/bin"
+BIN="${TTS_BIN_DIR:-$HOME/.local/bin}"
 
 command -v uv >/dev/null || { echo "Thiếu uv — cài: curl -LsSf https://astral.sh/uv/install.sh | sh"; exit 1; }
 command -v git >/dev/null || { echo "Thiếu git"; exit 1; }

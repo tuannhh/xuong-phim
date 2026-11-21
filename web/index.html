@@ -116,7 +116,7 @@ code.cmd{display:block;background:var(--soft);border-radius:9px;padding:9px 11px
 <body>
 <header class="top">
   <a class="brand" href="#/"><i>▶</i>Xưởng series</a>
-  <nav><a href="#/" id="nav-home">Series của tôi</a><a href="#/new" id="nav-new">+ Series mới</a></nav>
+  <nav><a href="#/" id="nav-home">Series của tôi</a><a href="#/new" id="nav-new">+ Series mới</a><a href="#/drive" id="nav-drive">Google Drive</a></nav>
   <a id="jobpill" class="pill" style="display:none;text-decoration:none"></a>
 </header>
 <main id="app"></main>
@@ -166,7 +166,7 @@ const MODE = { 'dong-nhat': ['Một dàn nhân vật xuyên suốt', 'Khán gi�
 const PLATFORMS = ['TikTok', 'Facebook Reels', 'YouTube Shorts', 'YouTube', 'Zalo'];
 
 // ───────── trạng thái chung
-let META = null, JOB = null, LOG = [], CUR = null, VIEW = '';
+let META = null, JOB = null, LOG = [], CUR = null, VIEW = '', DRIVE = null;
 const DRAFT = new Map(); // góp ý đang gõ, giữ qua các lần vẽ lại
 const busy = () => JOB && (JOB.status === 'running' || JOB.status === 'stopping');
 
@@ -195,7 +195,7 @@ const jobPanel = () => {
       run && h('button', { class: 'btn sm danger', onclick: async () => { await api('POST', '/api/job/stop', {}); toast('Đang dừng…'); } }, 'Dừng')),
     h('div', { class: 'small mut', style: { margin: '4px 0 10px' } }, `${JOB.label}${JOB.episode ? ` · tập ${JOB.episode}` : ''}`),
     !run && JOB.hint ? h('div', { class: 'note warn', style: { marginBottom: '10px' } }, JOB.hint) : null,
-    !run && JOB.summary ? h('div', { class: 'note sum', style: { marginBottom: '10px' } }, h('b', {}, 'Claude báo lại: '), JOB.summary) : null,
+    !run && JOB.summary ? h('div', { class: 'note sum', style: { marginBottom: '10px' } }, h('b', {}, ['plan', 'script', 'fix'].includes(JOB.action) ? 'Claude báo lại: ' : 'Kết quả: '), JOB.summary) : null,
     pre].filter(Boolean));
   if (stick) pre.scrollTop = pre.scrollHeight;
 };
@@ -238,10 +238,11 @@ const fbBox = (key, ph) => { const t = h('textarea', { placeholder: ph, value: D
 // ───────── trang danh sách
 const home = async () => {
   VIEW = 'home'; CUR = null;
-  const list = await api('GET', '/api/series');
+  const [list, doc] = await Promise.all([api('GET', '/api/series'), api('GET', '/api/doctor')]);
   app.replaceChildren(
     h('div', { class: 'row', style: { marginBottom: '6px' } }, h('h1', {}, 'Series của tôi'), h('span', { class: 'sp' }), h('a', { class: 'btn pri', href: '#/new' }, '+ Tạo series mới')),
     h('p', { class: 'lead' }, 'Điền đề bài một lần, rồi duyệt ba bước ngay trên trang: kế hoạch từng tập → kịch bản và storyboard → phim hoàn chỉnh.'),
+    doc.list.some((c) => !c.ok) ? h('div', { class: `note ${doc.ok ? 'warn' : 'bad'}`, style: { marginBottom: '18px' } }, h('b', {}, doc.ok ? 'Còn thiếu (không bắt buộc): ' : 'Máy chưa cài đủ: '), doc.list.filter((c) => !c.ok).map((c) => c.label).join(', '), '. Mở Terminal ở thư mục xưởng và chạy ', h('code', {}, 'bash setup.sh'), ' (hoặc nhờ Claude Code chạy giúp).') : null,
     list.length
       ? h('div', { class: 'list' }, list.map((s) => h('a', { class: 'card', href: `#/s/${s.slug}` },
           h('div', {}, h('h2', {}, s.name), h('div', { class: 'mut small' }, [s.channel, `${s.total || s.planned || 0} tập`, s.format, THEME[s.theme] ?? s.theme].filter(Boolean).join(' · '))),
@@ -261,7 +262,7 @@ const formView = async (slug) => {
     name: bible.name ?? '', channel: bible.channel ?? '', idea: b.idea ?? '', audience: b.audience ?? '', platform: b.platform ?? 'TikTok, Facebook Reels, YouTube Shorts',
     episodes: b.episodes ?? bible.episodes ?? 5, duration: b.duration ?? 60, format: b.format ?? bible.format ?? '9:16', theme: b.theme ?? bible.theme?.preset ?? 'misa-vang',
     style: b.style ?? 'tinh-huong', sets: b.sets ?? ['van-phong', 'nha'], tone: b.tone ?? '', music: b.music ?? bible.music?.mood ?? 'tension',
-    characterMode: b.characterMode ?? bible.characterMode ?? 'dong-nhat', logo: b.logo ?? 'misa', cta: b.cta ?? '', notes: b.notes ?? '',
+    characterMode: b.characterMode ?? bible.characterMode ?? 'dong-nhat', logo: b.logo ?? 'misa', cta: b.cta ?? '', notes: b.notes ?? '', driveAuto: b.driveAuto ?? false, driveFolder: b.driveFolder ?? '',
     characters: structuredClone(bible.characters ?? [{ ...blankChar('nam', 0), role: 'nhân viên MISA, người dẫn chuyện' }, { ...blankChar('nu', 0), role: 'đồng nghiệp, hay gặp tình huống' }]),
     narrator: b.narrator ?? bible.narrator ?? null,
   };
@@ -358,8 +359,61 @@ const formView = async (slug) => {
       sec(4, 'Nhân vật', 'Nên có cả nam và nữ; mỗi người một giọng đúng giới tính.', lab('Cách dùng nhân vật', null, modeSeg), charWrap),
       sec(5, 'Kết tập & ghi chú', 'Không bắt buộc.',
         lab('Lời kêu gọi cuối tập', null, txt('cta', 'vd: Chia sẻ cho người thân; theo dõi để xem tập sau')),
-        lab('Ghi chú thêm cho Claude', 'điều cần tránh, tình huống muốn có, số liệu có nguồn…', area('notes', '', 3)))),
+        lab('Ghi chú thêm cho Claude', 'điều cần tránh, tình huống muốn có, số liệu có nguồn…', area('notes', '', 3))),
+      sec(6, 'Xuất phim lên Google Drive', 'Phim thành phẩm (MP4 + phụ đề) tự đẩy vào Drive của bạn.',
+        h('div', { class: `note ${DRIVE.connected ? '' : 'warn'}`, style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
+          DRIVE.connected ? ['Đã kết nối Google Drive', DRIVE.account ? h('b', {}, ` ${DRIVE.account}`) : null] : DRIVE.configured ? 'Chưa kết nối Google Drive.' : 'Chưa thiết lập Google Drive (làm một lần cho máy này).',
+          h('span', { class: 'sp' }),
+          DRIVE.connected ? null : DRIVE.configured ? h('button', { type: 'button', class: 'btn sm pri', onclick: () => driveConnect(location.hash) }, 'Kết nối Google Drive') : h('a', { class: 'btn sm', href: '#/drive' }, 'Thiết lập Google Drive')),
+        h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: F.driveAuto, onchange: (e) => (F.driveAuto = e.target.checked) }), 'Tự đẩy lên Google Drive mỗi khi dựng xong phim'),
+        lab('Thư mục trên Drive', `trong thư mục "${DRIVE.root}"; để trống = tên series`, txt('driveFolder', F.name || 'tên series')))),
     h('div', { class: 'sticky' }, h('a', { class: 'btn', href: slug ? `#/s/${slug}` : '#/' }, 'Huỷ'), h('button', { class: 'btn pri', onclick: submit }, slug ? 'Lưu đề bài' : 'Tạo series')));
+};
+
+// ───────── Google Drive
+const driveConnect = async (back) => {
+  try { const { url } = await api('POST', '/api/drive/connect', { back: (back || '#/drive').split('?')[0] }); location.href = url; }
+  catch (e) { toast(e.message, true); }
+};
+const driveRow = (e) => {
+  const d = e.drive, slug = CUR.slug;
+  const push = (label, cls = '') => DRIVE.connected
+    ? h('button', { class: `btn sm ${cls}`, 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'upload', e.number) }, label)
+    : h('a', { class: 'btn sm', href: '#/drive' }, 'Kết nối Google Drive để đẩy phim');
+  return h('div', { class: 'row small' }, h('b', {}, 'Google Drive:'),
+    d?.link && !d.stale ? [h('a', { href: d.link, target: '_blank', rel: 'noopener' }, 'Mở trên Drive'), h('span', { class: 'mut' }, `đã đẩy ${new Date(d.uploadedAt).toLocaleString('vi-VN')}`), push('Đẩy lại')]
+      : d?.link ? [h('span', { class: 'pill run' }, 'Bản trên Drive cũ hơn phim hiện tại'), push('Đẩy bản mới', 'pri'), h('a', { href: d.link, target: '_blank', rel: 'noopener' }, 'bản cũ')]
+      : [h('span', { class: 'mut' }, 'chưa đẩy'), push('Đẩy lên Drive', 'pri')]);
+};
+const driveView = async () => {
+  VIEW = 'drive'; CUR = null;
+  DRIVE = await api('GET', '/api/drive');
+  const D = DRIVE;
+  const step = (n, ...kids) => h('li', { style: { marginBottom: '8px' } }, ...kids);
+  const jsonBox = h('textarea', { rows: 5, placeholder: 'Dán nguyên nội dung file client_secret_….json vào đây', style: { fontFamily: 'ui-monospace,Menlo,monospace', fontSize: '12.5px' } });
+  const saveClient = async () => {
+    try { DRIVE = await api('PUT', '/api/drive/client', { json: jsonBox.value }); toast('Đã lưu OAuth client.'); driveView(); }
+    catch (e) { toast(e.message, true); }
+  };
+  const setup = h('div', { class: 'card grid' },
+    h('h2', {}, D.configured ? 'Đổi OAuth client' : 'Bước 1 — Tạo OAuth client (làm một lần)'),
+    h('ol', { style: { margin: 0, paddingLeft: '20px' } },
+      step(1, 'Mở ', h('a', { href: 'https://console.cloud.google.com/apis/library/drive.googleapis.com', target: '_blank', rel: 'noopener' }, 'Google Cloud Console → Google Drive API'), ', chọn hoặc tạo một project, bấm ', h('b', {}, 'Enable'), '.'),
+      step(2, 'Vào ', h('a', { href: 'https://console.cloud.google.com/auth/audience', target: '_blank', rel: 'noopener' }, 'Google Auth Platform → Audience'), ': nếu tài khoản thuộc Google Workspace công ty chọn ', h('b', {}, 'Internal'), '; nếu là Gmail cá nhân chọn ', h('b', {}, 'External'), ' và thêm email của bạn vào ', h('b', {}, 'Test users'), '.'),
+      step(3, 'Vào ', h('a', { href: 'https://console.cloud.google.com/auth/clients', target: '_blank', rel: 'noopener' }, 'Clients'), ' → ', h('b', {}, 'Create client'), ' → Application type ', h('b', {}, 'Desktop app'), ' → Create → ', h('b', {}, 'Download JSON'), '.'),
+      step(4, 'Mở file JSON vừa tải, chép toàn bộ nội dung, dán vào ô dưới rồi bấm Lưu.')),
+    jsonBox,
+    h('div', { class: 'row' }, h('button', { class: 'btn pri', onclick: saveClient }, 'Lưu OAuth client'), D.configured ? h('button', { class: 'btn danger', onclick: async () => { if (!confirm('Xoá OAuth client và ngắt kết nối Google Drive trên máy này?')) return; DRIVE = await api('DELETE', '/api/drive/client'); driveView(); } }, 'Xoá client') : null),
+    h('p', { class: 'mut small', style: { margin: 0 } }, 'Client và token lưu ở ~/.config/xuong-phim/google.json trên máy này (không nằm trong repo, không gửi lên GitHub). Xưởng chỉ xin quyền "drive.file": chỉ thấy các file do xưởng tạo, không đọc được file khác trong Drive của bạn.'));
+  const connect = h('div', { class: 'card grid' },
+    h('div', { class: 'row' }, h('h2', {}, D.connected ? 'Đã kết nối Google Drive' : 'Bước 2 — Kết nối tài khoản Google'), h('span', { class: 'sp' }), D.connected ? h('span', { class: 'pill ok' }, h('span', { class: 'dot' }), D.account ?? 'đã kết nối') : null),
+    D.connected
+      ? [h('p', { style: { margin: 0 } }, 'Phim đẩy lên nằm trong thư mục ', h('b', {}, `${D.root}/<tên series>`), ' trên Drive. Bật "Tự đẩy lên Google Drive" trong đề bài của series để mỗi lần dựng xong là tự đẩy; hoặc bấm "Đẩy lên Drive" ở từng phim.'),
+         h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => driveConnect('#/drive') }, 'Kết nối lại / đổi tài khoản'), h('button', { class: 'btn danger', onclick: async () => { DRIVE = await api('POST', '/api/drive/disconnect', {}); toast('Đã ngắt kết nối.'); driveView(); } }, 'Ngắt kết nối'))]
+      : [h('p', { class: 'mut', style: { margin: 0 } }, D.configured ? 'Bấm nút, đăng nhập Google và cho phép quyền Google Drive. Xong trình duyệt tự quay lại trang này.' : 'Làm bước 1 trước.'),
+         h('div', {}, h('button', { class: 'btn pri', disabled: !D.configured, onclick: () => driveConnect('#/drive') }, 'Kết nối Google Drive'))]);
+  app.replaceChildren(h('h1', {}, 'Google Drive'), h('p', { class: 'lead' }, 'Kết nối một lần cho máy này; sau đó phim thành phẩm có thể tự đẩy lên Drive của bạn.'),
+    h('div', { class: 'grid', style: { maxWidth: '820px' } }, D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
 };
 
 // ───────── trang một series
@@ -398,7 +452,7 @@ const openSeries = async (slug, keepScroll) => {
           e.stale ? h('div', { class: 'note warn' }, 'Kịch bản đã sửa sau lần dựng này — bấm "Dựng lại" để có bản mới.') : null,
           h('div', { class: 'row' }, h('a', { class: 'btn dark', href: file(`${base}/out/${e.id}.mp4`), download: `${slug}-${e.id}.mp4` }, 'Tải MP4'), e.srt && h('a', { class: 'btn', href: file(`${base}/out/${e.id}.srt`), download: `${slug}-${e.id}.srt` }, 'Phụ đề SRT'),
             h('button', { class: 'btn', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'render', e.number) }, 'Dựng lại')),
-          links, fix)),
+          driveRow(e), links, fix)),
       board && h('details', {}, h('summary', {}, `Storyboard (${e.board.length} cảnh)`), board)];
     return h('div', { class: 'card ep', id: e.id }, h('div', { class: 'hd' }, h('div', { class: 'no' }, String(e.number).padStart(2, '0')), h('div', { style: { flex: 1 } }, h('h3', {}, e.title || `Tập ${e.number}`), h('div', { class: 'mut small' }, e.duration ? `khoảng ${e.duration} giây` : '')), h('span', { class: `pill ${chip[0]}` }, chip[1])), body);
   };
@@ -435,16 +489,24 @@ const openSeries = async (slug, keepScroll) => {
 
 // ───────── điều hướng
 const route = async () => {
-  const [, a, b, c] = location.hash.split('/');
+  const [hpath, hq] = location.hash.split('?');
+  const [, a, b, c] = hpath.split('/');
+  const qs = new URLSearchParams(hq ?? '');
+  if (qs.get('drive') === 'ok') toast('Đã kết nối Google Drive.');
+  if (qs.get('drive_err')) toast(qs.get('drive_err'), true);
+  if (hq) history.replaceState(null, '', hpath || '#/');
   document.getElementById('nav-home').className = !a ? 'on' : '';
   document.getElementById('nav-new').className = a === 'new' ? 'on' : '';
+  document.getElementById('nav-drive').className = a === 'drive' ? 'on' : '';
   try {
     if (!META) META = await api('GET', '/api/meta');
-    if (a === 'new') await formView();
+    DRIVE = await api('GET', '/api/drive');
+    if (a === 'drive') await driveView();
+    else if (a === 'new') await formView();
     else if (a === 's' && b && c === 'edit') await formView(b);
     else if (a === 's' && b) await openSeries(b);
     else await home();
-    if (!location.hash.includes('/s/') || c === 'edit') window.scrollTo(0, 0);
+    if (a !== 's' || c === 'edit') window.scrollTo(0, 0);
   } catch (e) { app.replaceChildren(h('div', { class: 'card' }, h('h2', {}, 'Không tải được'), h('p', { class: 'mut' }, e.message), h('a', { class: 'btn', href: '#/' }, 'Về danh sách'))); }
 };
 addEventListener('hashchange', route);

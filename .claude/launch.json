@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "xuong-phim", "runtimeExecutable": "node", "runtimeArgs": ["tools/web/server.mjs"], "port": 4710 }
+  ]
+}

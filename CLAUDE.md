@@ -10,7 +10,7 @@ Tri thức dự án theo quy chuẩn MISA Backend: `memory-bank/` (đọc `memor
 - `episode.json` là nguồn duy nhất của một tập; script.md, storyboard, build/ đều sinh lại được.
 - Không bịa số liệu; số liệu phải có nguồn.
 - Logo MISA (`assets/brand/`) là tài sản thương hiệu MISA: giữ nguyên hình, không đổi màu trừ bản một màu trên nền tối. LUÔN dùng bản đầy đủ có khẩu hiệu "Tin cậy – Tiện ích – Tận tình" (component `MisaLogo`), không dùng bản chỉ có chữ MISA.
-- Không tự đăng video lên mạng xã hội.
+- Không tự đăng video lên mạng xã hội. Đẩy lên Google Drive của chính người dùng chỉ khi họ bấm nút hoặc bật "tự đẩy" cho series.
 - Được gọi từ trang web (câu lệnh có "Chế độ form"): không hỏi lại, không Artifact/SendUserFile/commit, làm đúng một giai đoạn (`plan` / `script <n>` / `fix <n>`) rồi dừng; giả định ghi vào `series/<slug>/.studio/ghi-chu.md`.
 - Font: Barlow (tiêu đề) + Google Sans (nội dung). Không để chữ đè chữ / đè nhân vật — storyboard phải báo `✓ bố cục`.
 - Nhân vật vẽ dáng người thật, đầy đặn, đầu–thân cân đối; khuỷu tay gần thân, không giơ hai tay quá đầu (người dùng chê dáng còm nhom, tay chân lòng khòng). Phim tình huống dùng cảnh `story` (bối cảnh nhiều lớp, máy quay, nhãn bật).
@@ -19,7 +19,8 @@ Tri thức dự án theo quy chuẩn MISA Backend: `memory-bank/` (đọc `memor
 ## Lệnh
 ```
 pnpm web                                     # trang web tại máy http://localhost:4710 — form đề bài + 3 bước duyệt
-pnpm setup                                   # cài lần đầu: node_modules, font, venv Python, kho SFX
+bash setup.sh                                # cài lần đầu / máy mới: tự cài mọi phần mềm + thư viện còn thiếu
+pnpm doctor                                  # kiểm tra máy đã cài đủ chưa
 pnpm series new <slug> "Tên"                 # khung series
 pnpm series plan <slug>                      # plan.html để duyệt
 pnpm series characters <slug>                # bảng nhân vật
@@ -34,5 +35,6 @@ node tools/tts/test.mjs                      # kiểm thử bộ chuẩn hoá l�
 ## Mã nguồn
 - `remotion/` — composition `Episode` (props = build/timed.json), `kit/` (theme, nền, phụ đề, nhân vật MISA, logo), `scenes/` (template), `custom/` (cảnh riêng từng tập).
 - `shared/reveal.mjs` — lịch hiện mục, dùng chung cho hình và SFX (sửa một chỗ).
-- `tools/web/server.mjs` + `web/index.html` — trang web tại máy (không phụ thuộc thư viện): form ghi `brief.json` + `bible.json`; nút sáng tác gọi `claude -p` theo mục "Chế độ form" của skill; nút dựng phim chạy thẳng `tools/ep.mjs … all`. Chỉ nghe 127.0.0.1, mỗi lúc một việc.
+- `tools/web/server.mjs` + `web/index.html` — trang web tại máy (không phụ thuộc thư viện): form ghi `brief.json` + `bible.json`; nút sáng tác gọi `claude -p` theo mục "Chế độ form" của skill; nút dựng phim chạy thẳng `tools/ep.mjs … all`. Chỉ nghe 127.0.0.1, mỗi lúc một việc. `tools/web/drive.mjs` — kết nối Google Drive (OAuth máy tính + PKCE, quyền drive.file; client/token ở `~/.config/xuong-phim/google.json`, ngoài repo).
+- `setup.sh` + `tools/doctor.mjs` — cài/kiểm tra máy; hook SessionStart ở `.claude/settings.json` báo Claude khi máy chưa cài đủ.
 - `tools/` — timing.mjs, render.mjs, ep.mjs, series.mjs; `tools/audio/` — sfx_bank.py, music.py, mix.py (uv).

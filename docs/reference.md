@@ -180,9 +180,11 @@ Bắc: Hải Đăng (nam, mặc định), Mai Anh (nữ, tin tức), Trúc Ly (n
 | "Duyệt tập này" / "Duyệt tất cả" | `plan.json`: `status: "duyet"` | máy chủ |
 | "Viết kịch bản + storyboard" | giai đoạn `script <n>` → `episode.json`, `script.md`, `storyboard/` | `claude -p` |
 | "Sửa theo góp ý" | góp ý ghi vào `.studio/gop-y.md` → giai đoạn `fix <n>` (đã có MP4 thì dựng lại luôn) | `claude -p` |
-| "Duyệt và dựng phim" / "Dựng lại" | `node tools/ep.mjs <dir> all` → `out/epNN.mp4` + `.srt` | máy chủ, không cần Claude |
+| "Duyệt và dựng phim" / "Dựng lại" | `node tools/ep.mjs <dir> all` → `out/epNN.mp4` + `.srt`; series bật `driveAuto` → tự đẩy lên Drive sau khi dựng | máy chủ, không cần Claude |
+| Trang "Google Drive" | dán OAuth client (Desktop app) → "Kết nối" → đăng nhập Google; lưu ở `~/.config/xuong-phim/google.json` | máy chủ (`tools/web/drive.mjs`) |
+| "Đẩy lên Drive" / "Đẩy bản mới" | tải MP4 + SRT lên `Xưởng phim/<thư mục series>/` (ghi đè cùng file, giữ link); kết quả ở `out/drive.json` | máy chủ |
 
-- `brief.json`: `name, channel, idea, audience, platform, episodes, duration, format, theme, style (tinh-huong|thong-tin|ket-hop), sets[], tone, music, characterMode, narrator, logo (misa|none), cta, notes`.
+- `brief.json`: `name, channel, idea, audience, platform, episodes, duration, format, theme, style (tinh-huong|thong-tin|ket-hop), sets[], tone, music, characterMode, narrator, logo (misa|none), cta, notes, driveAuto, driveFolder`.
 - Các nút "AI" cần lệnh `claude` đã đăng nhập trên máy (`claude` → `/login`). Chưa đăng nhập thì trang báo rõ; khi đó dán câu lệnh ở mục "Làm trong Claude Code thay vì bấm nút" vào Claude Code.
 - Biến môi trường: `PORT`, `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác).
 - An toàn: chỉ nghe `127.0.0.1`; lệnh ghi phải có header `x-xuong` và cùng nguồn; `claude -p` chạy với quyền `acceptEdits` + danh sách lệnh cho phép (pnpm ep/series, node tools/, ffmpeg, ffprobe).

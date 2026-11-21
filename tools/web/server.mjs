@@ -10,6 +10,8 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { FORMATS, PRESETS, ROOT, readJSON, writeJSON } from '../lib.mjs';
 import { VIENEU } from '../voices.mjs';
+import * as drive from './drive.mjs';
+import { checks as doctorChecks } from '../doctor.mjs';
 
 const PORT = +(process.env.PORT ?? 4710);
 const SERIES = path.join(ROOT, 'series');
@@ -66,6 +68,7 @@ const episodeState = (slug, e) => {
     seconds: timed ? +(timed.durationInFrames / timed.fps).toFixed(1) : null,
     stale: mp4 && newer('episode.json', `out/${id}.mp4`), // kịch bản đã sửa sau lần dựng gần nhất
     mtime: mp4 ? fs.statSync(path.join(ed, `out/${id}.mp4`)).mtimeMs : 0,
+    drive: mp4 ? drive.episodeDrive(ed, id) : null,
   };
 };
 const seriesInfo = (slug, full = false) => {
@@ -112,7 +115,8 @@ const saveBrief = (slug, f, isNew) => {
     episodes: Math.max(1, Math.min(30, +f.episodes || 5)), duration: Math.max(20, Math.min(180, +f.duration || 60)), format: FORMATS[f.format] ? f.format : '9:16',
     theme: PRESETS[f.theme] ? f.theme : 'misa-vang', style: ['tinh-huong', 'thong-tin', 'ket-hop'].includes(f.style) ? f.style : 'tinh-huong',
     sets: (f.sets ?? []).filter((s) => ['van-phong', 'nha', 'hang-o'].includes(s)), tone: String(f.tone ?? ''), music: String(f.music ?? 'tension'),
-    characterMode: mode, narrator, logo: f.logo === 'none' ? 'none' : 'misa', cta: String(f.cta ?? ''), notes: String(f.notes ?? ''), updated: new Date().toISOString(),
+    characterMode: mode, narrator, logo: f.logo === 'none' ? 'none' : 'misa', cta: String(f.cta ?? ''), notes: String(f.notes ?? ''),
+    driveAuto: !!f.driveAuto, driveFolder: String(f.driveFolder ?? '').replace(/[\\/]+/g, ' ').trim().slice(0, 80), updated: new Date().toISOString(),
   };
   writeJSON(path.join(dir, 'brief.json'), brief);
   const old = readJSON(path.join(dir, 'bible.json'), {});
@@ -132,7 +136,7 @@ const saveBrief = (slug, f, isNew) => {
 // ───────── công việc chạy nền (mỗi lúc một việc)
 let job = null;
 let seq = 0;
-const LABEL = { plan: 'Lập kế hoạch', script: 'Viết kịch bản + storyboard', fix: 'Sửa theo góp ý', render: 'Dựng phim', characters: 'Vẽ bảng nhân vật' };
+const LABEL = { plan: 'Lập kế hoạch', script: 'Viết kịch bản + storyboard', fix: 'Sửa theo góp ý', render: 'Dựng phim', characters: 'Vẽ bảng nhân vật', upload: 'Đẩy lên Google Drive' };
 const logLine = (j, s) => {
   for (const part of String(s).split(/\r?\n|\r/)) {
     const t = part.replace(/\s+$/, '');
@@ -142,6 +146,13 @@ const logLine = (j, s) => {
     else j.log.push(t);
   }
   if (j.log.length > 1500) j.log.splice(0, j.log.length - 1500);
+};
+// việc nối tiếp khi bước chính xong (vd tự đẩy lên Drive sau khi dựng phim) — chạy trong cùng một việc để trang theo dõi liền mạch
+const runAfter = async (j, code) => {
+  if (code === 0 && !j.failed && j.status === 'running' && j.after) {
+    try { await j.after(j); } catch (e) { j.failed = true; logLine(j, `✗ ${e.message}`); if (e instanceof drive.DriveError) j.hint = e.message; }
+  }
+  finish(j, code);
 };
 const finish = (j, code) => {
   j.status = j.status === 'stopping' ? 'stopped' : code === 0 && !j.failed ? 'done' : 'error';
@@ -154,12 +165,12 @@ const pipeLines = (stream, onLine) => {
   stream.on('data', (c) => { buf += c; const parts = buf.split(/\r\n|\n|\r/); buf = parts.pop(); parts.forEach(onLine); });
   stream.on('end', () => buf && onLine(buf));
 };
-export const startJob = (meta, cmd, args, { claude = false } = {}) => {
+export const startJob = (meta, cmd, args, { claude = false, after = null } = {}) => {
   const env = { ...process.env, FORCE_COLOR: '0' };
   // trang được mở từ trong một phiên Claude (vd ứng dụng desktop) → bỏ biến của phiên đó để `claude -p` dùng đăng nhập riêng của máy
   if (claude && (env.CLAUDECODE || env.CLAUDE_CODE_ENTRYPOINT)) for (const k of Object.keys(env)) if ((/^CLAUDE/.test(k) && k !== 'CLAUDE_CONFIG_DIR') || k === 'ANTHROPIC_BASE_URL') delete env[k];
   const child = spawn(cmd, args, { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
-  const j = (job = { id: ++seq, ...meta, label: LABEL[meta.action] ?? meta.action, status: 'running', log: [], started: Date.now(), ended: 0, child, summary: '', hint: '', failed: false });
+  const j = (job = { id: ++seq, ...meta, label: LABEL[meta.action] ?? meta.action, status: 'running', log: [], started: Date.now(), ended: 0, child, after, abort: new AbortController(), summary: '', hint: '', failed: false });
   logLine(j, `▶ ${j.label}${meta.episode ? ` · tập ${meta.episode}` : ''}${claude ? ' — Claude đang làm (thường mất vài phút)…' : '…'}`);
   if (claude)
     pipeLines(child.stdout, (line) => {
@@ -184,8 +195,38 @@ export const startJob = (meta, cmd, args, { claude = false } = {}) => {
   else pipeLines(child.stdout, (l) => logLine(j, l));
   pipeLines(child.stderr, (l) => !/HF_TOKEN|unauthenticated requests/.test(l) && logLine(j, l));
   child.on('error', (e) => { logLine(j, `✗ ${e.message}`); finish(j, 1); });
-  child.on('close', (code) => j.status === 'running' || j.status === 'stopping' ? finish(j, code) : null);
+  child.on('close', (code) => j.status === 'running' || j.status === 'stopping' ? runAfter(j, code) : null);
   return j;
+};
+// việc chạy ngay trong máy chủ (không mở tiến trình con), vd tải lên Drive
+const startTask = (meta, fn) => {
+  const j = (job = { id: ++seq, ...meta, label: LABEL[meta.action] ?? meta.action, status: 'running', log: [], started: Date.now(), ended: 0, child: null, after: null, abort: new AbortController(), summary: '', hint: '', failed: false });
+  logLine(j, `▶ ${j.label}${meta.episode ? ` · tập ${meta.episode}` : ''}…`);
+  fn(j).then(() => finish(j, 0), (e) => {
+    if (j.status !== 'stopping') { logLine(j, `✗ ${e.message}`); if (e instanceof drive.DriveError) j.hint = e.message; }
+    finish(j, 1);
+  });
+  return j;
+};
+// đẩy một tập lên Drive (dùng cho nút "Đẩy lên Drive" và cho việc tự đẩy sau khi dựng)
+const uploadStep = (slug, n) => async (j) => {
+  const dir = seriesDir(slug), id = epId(n), ed = path.join(dir, 'episodes', id);
+  const brief = readJSON(path.join(dir, 'brief.json'), {}), bible = readJSON(path.join(dir, 'bible.json'), {});
+  const ep = readJSON(path.join(ed, 'episode.json'), {});
+  logLine(j, '— Đẩy phim lên Google Drive —');
+  await drive.uploadEpisode({ seriesDir: dir, epDir: ed, id, title: ep.title, folderName: brief.driveFolder || bible.name || slug, signal: j.abort.signal, log: (s) => logLine(j, s) });
+  j.summary = 'Đã đẩy phim lên Google Drive.';
+};
+// tự đẩy khi series bật "tự đẩy" và đã kết nối, và MP4 vừa đổi (chỉ khi có MP4 mới)
+const autoUpload = (slug, n) => {
+  const dir = seriesDir(slug), id = epId(n), mp4 = path.join(dir, 'episodes', id, 'out', `${id}.mp4`);
+  const before = fs.existsSync(mp4) ? fs.statSync(mp4).mtimeMs : 0;
+  return async (j) => {
+    if (!readJSON(path.join(dir, 'brief.json'), {}).driveAuto) return;
+    if (!fs.existsSync(mp4) || fs.statSync(mp4).mtimeMs === before) return;
+    if (!drive.status().connected) return void logLine(j, '! Series bật tự đẩy lên Google Drive nhưng máy chưa kết nối Drive — bỏ qua.');
+    await uploadStep(slug, n)(j);
+  };
 };
 export const jobView = (j, from = 0) => j && { id: j.id, action: j.action, label: j.label, slug: j.slug, episode: j.episode ?? null, status: j.status, started: j.started, ended: j.ended, summary: j.summary, hint: j.hint, total: j.log.length, log: j.log.slice(from) };
 const claudeArgs = (prompt) => ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits',
@@ -232,8 +273,27 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { slug });
     }
     if (req.method === 'POST' && p === '/api/job/stop') {
-      if (job?.status === 'running') { job.status = 'stopping'; job.child.kill('SIGTERM'); }
+      if (job?.status === 'running') { job.status = 'stopping'; job.child?.kill('SIGTERM'); job.abort?.abort(); }
       return send(res, 200, { ok: true });
+    }
+    if (p === '/api/doctor' && req.method === 'GET') return send(res, 200, doctorChecks());
+    if (p.startsWith('/api/drive')) {
+      const back = (b) => `http://localhost:${PORT}/${b}`;
+      if (req.method === 'GET' && p === '/api/drive') return send(res, 200, drive.status());
+      if (req.method === 'GET' && p === '/api/drive/callback') {
+        let to;
+        try { to = await drive.handleCallback(url.searchParams); to += `${to.includes('?') ? '&' : '?'}drive=ok`; }
+        catch (e) { to = `${e.back ?? '#/drive'}${(e.back ?? '').includes('?') ? '&' : '?'}drive_err=${encodeURIComponent(e.message)}`; }
+        res.writeHead(302, { location: back(to), 'cache-control': 'no-store' });
+        return res.end();
+      }
+      try {
+        if (req.method === 'PUT' && p === '/api/drive/client') { drive.saveClient(await readBody(req)); return send(res, 200, drive.status()); }
+        if (req.method === 'DELETE' && p === '/api/drive/client') { await drive.disconnect(); drive.forgetClient(); return send(res, 200, drive.status()); }
+        if (req.method === 'POST' && p === '/api/drive/connect') { const b = await readBody(req); return send(res, 200, { url: drive.authUrl(PORT, b.back) }); }
+        if (req.method === 'POST' && p === '/api/drive/disconnect') { await drive.disconnect(); return send(res, 200, drive.status()); }
+      } catch (e) { if (e instanceof drive.DriveError) return fail(res, 400, e.message); throw e; }
+      return fail(res, 404, 'không có');
     }
     const m = /^\/api\/series\/([^/]+)(\/[a-z-]+)?$/.exec(p);
     if (m) {
@@ -255,20 +315,25 @@ const server = http.createServer(async (req, res) => {
         const b = await readBody(req);
         const n = b.episode ? Math.floor(+b.episode) : null;
         const fb = String(b.feedback ?? '').trim();
-        if (['script', 'fix', 'render'].includes(b.action) && !(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
+        if (['script', 'fix', 'render', 'upload'].includes(b.action) && !(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
         if (['plan', 'script', 'fix'].includes(b.action)) {
           if (!CLAUDE) return fail(res, 400, 'Máy chưa có lệnh `claude` — dán câu lệnh thay thế vào Claude Code.');
           if (b.action === 'fix' && !fb) return fail(res, 400, 'Cần ghi góp ý.');
           fs.mkdirSync(path.join(dir, '.studio'), { recursive: true });
           const fbFile = path.join(dir, '.studio/gop-y.md');
           if (fb) fs.writeFileSync(fbFile, `# Góp ý (${b.action}${n ? ` · tập ${n}` : ''}) — ${new Date().toLocaleString('vi-VN')}\n\n${fb}\n`); else fs.rmSync(fbFile, { force: true });
-          const j = startJob({ action: b.action, slug, episode: n }, CLAUDE, claudeArgs(promptFor(b.action, slug, n, !!fb)), { claude: true });
+          const j = startJob({ action: b.action, slug, episode: n }, CLAUDE, claudeArgs(promptFor(b.action, slug, n, !!fb)), { claude: true, after: b.action === 'fix' ? autoUpload(slug, n) : null });
           return send(res, 200, { job: jobView(j) });
         }
         if (b.action === 'render') {
           const ed = path.join('series', slug, 'episodes', epId(n));
           if (!fs.existsSync(path.join(ROOT, ed, 'episode.json'))) return fail(res, 400, 'Tập này chưa có kịch bản.');
-          return send(res, 200, { job: jobView(startJob({ action: 'render', slug, episode: n }, process.execPath, ['tools/ep.mjs', ed, 'all'])) });
+          return send(res, 200, { job: jobView(startJob({ action: 'render', slug, episode: n }, process.execPath, ['tools/ep.mjs', ed, 'all'], { after: autoUpload(slug, n) })) });
+        }
+        if (b.action === 'upload') {
+          if (!drive.status().connected) return fail(res, 400, 'Chưa kết nối Google Drive — vào trang Google Drive để kết nối.');
+          if (!fs.existsSync(path.join(dir, 'episodes', epId(n), 'out', `${epId(n)}.mp4`))) return fail(res, 400, 'Tập này chưa có MP4.');
+          return send(res, 200, { job: jobView(startTask({ action: 'upload', slug, episode: n }, uploadStep(slug, n))) });
         }
         if (b.action === 'characters') {
           if (!(readJSON(path.join(dir, 'bible.json')).characters ?? []).length) return fail(res, 400, 'Series chưa có nhân vật.');

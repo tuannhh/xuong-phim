@@ -79,6 +79,8 @@ Khi được gọi kiểu này:
 | `script <n>` | Mục 2 bước 1–3 cho tập n: `pnpm series ep` (nếu chưa có khung) → viết `episode.json` → `check` sạch → `script` → `storyboard` báo `✓ bố cục`; tự xem ảnh storyboard và sửa cho đạt | có `script.md` + storyboard sạch — KHÔNG đọc voice, KHÔNG render |
 | `fix <n>` | Đọc `gop-y.md`, sửa `episode.json` (chỉ phần bị góp ý), `check` → `script` → `storyboard`. Nếu tập đã có `out/epNN.mp4` thì chạy tiếp `pnpm ep <dir> all` để ra bản mới (voice chỉ đọc lại câu đổi) | storyboard sạch (và MP4 mới nếu trước đó đã có MP4) |
 
+Đẩy phim lên Google Drive do máy chủ làm (nút trên trang hoặc `driveAuto` của series) — Claude không tự gọi Drive.
+
 Câu trả lời cuối cùng: tối đa 6 dòng tiếng Việt, câu đầy đủ — đã làm gì, giả định đã đặt, điều người dùng nên xem kỹ khi duyệt. Trang hiện nguyên văn đoạn này cho người dùng.
 
 Gọi `/series <slug>` trong chat mà series đã có `brief.json` → dùng nó làm brief, bỏ bước hỏi ở mục 0 (phần còn lại theo quy trình thường, có Artifact/SendUserFile).

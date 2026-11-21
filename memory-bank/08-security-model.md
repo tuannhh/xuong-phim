@@ -24,3 +24,11 @@
 - Quyền: `--permission-mode acceptEdits` + `--allowedTools` giới hạn: Read, Write, Edit, Glob, Grep, Skill, `pnpm ep|series|typecheck`, `node tools/…`, `ffmpeg`, `ffprobe`, `ls`, `cat`, `mkdir`.
 - Chạy trong thư mục xưởng; nhận góp ý qua file (`.studio/gop-y.md`), không ghép thẳng góp ý vào dòng lệnh.
 - Khi trang được mở từ trong một phiên Claude Code (ứng dụng desktop), máy chủ bỏ các biến `CLAUDE*`/`ANTHROPIC_BASE_URL` của phiên đó để `claude -p` dùng đăng nhập riêng của máy.
+
+## Google Drive
+
+- Quyền xin duy nhất: `https://www.googleapis.com/auth/drive.file` — xưởng chỉ thấy/sửa file do chính nó tạo, không đọc được file khác trong Drive.
+- OAuth kiểu ứng dụng máy tính: redirect loopback `http://127.0.0.1:<PORT>/api/drive/callback`, `state` ngẫu nhiên dùng một lần (hạn 10 phút) + PKCE S256. Callback là GET nhưng an toàn vì phải khớp `state`.
+- Client secret + refresh token lưu `~/.config/xuong-phim/google.json` (thư mục 700, file 600, ghi nguyên tử), ngoài repo; API chỉ trả về `configured/connected/account`.
+- Chỉ tải lên file trong `series/<slug>/episodes/epNN/out/` (đường dẫn do máy chủ tự ghép, không nhận đường dẫn từ trình duyệt). Ngắt kết nối = gọi revoke của Google + xoá token.
+- Refresh token bị thu hồi/hết hạn (`invalid_grant`) → xoá token, báo người dùng kết nối lại. Ứng dụng OAuth để chế độ "Testing" với tài khoản ngoài tổ chức thì refresh token hết hạn sau 7 ngày — dùng "Internal" (Workspace) hoặc publish ứng dụng (quyền drive.file không cần Google thẩm định).

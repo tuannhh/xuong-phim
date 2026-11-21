@@ -1,0 +1,25 @@
+{
+ "name": "Người MISA cảnh giác",
+ "channel": "",
+ "idea": "Giúp người MISA nhận diện và phòng tránh các thủ đoạn lừa đảo phổ biến hiện nay, gồm cả chiêu mạo danh MISA để lừa khách hàng",
+ "audience": "Nhân viên MISA (và người thân, khách hàng)",
+ "platform": "TikTok, Facebook Reels, YouTube Shorts",
+ "episodes": 5,
+ "duration": 65,
+ "format": "9:16",
+ "theme": "misa-vang",
+ "style": "ket-hop",
+ "sets": [
+  "van-phong",
+  "nha",
+  "hang-o"
+ ],
+ "tone": "Gần gũi, cảnh giác nhưng không gây hoảng sợ",
+ "music": "tension",
+ "characterMode": "dong-nhat",
+ "narrator": "minh",
+ "logo": "misa",
+ "cta": "Chia sẻ cho đồng nghiệp, người thân, khách hàng",
+ "notes": "brief.json dựng lại từ plan.json cũ và các tập đã làm (series tạo trước khi có form).",
+ "updated": "2026-11-22T00:00:00.000Z"
+}

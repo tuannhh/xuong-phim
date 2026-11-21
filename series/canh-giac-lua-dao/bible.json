@@ -89,5 +89,10 @@
   "progress": true,
   "tag": true
  },
- "pronounce": {}
+ "pronounce": {
+  "Deepfake": "đíp phếch",
+  "BHXH": "bảo hiểm xã hội",
+  "SMS": "ét em ét",
+  "CCCD": "căn cước công dân"
+ }
 }

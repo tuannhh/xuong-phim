@@ -16,14 +16,22 @@ Chỉ nghe `127.0.0.1`; từ chối Host khác `localhost`/`127.0.0.1`. Mọi y�
 | POST | `/api/series/<slug>/approve` | `{ episodes: [n…] }` → `status: "duyet"` |
 | POST | `/api/series/<slug>/jobs` | `{ action, episode?, feedback? }` — chạy một việc nền (409 nếu đang có việc) |
 | GET | `/api/job?from=<n>` | Việc gần nhất + log từ dòng n |
-| POST | `/api/job/stop` | Dừng việc đang chạy (SIGTERM) |
+| POST | `/api/job/stop` | Dừng việc đang chạy (SIGTERM tiến trình con / huỷ tải lên) |
+| GET | `/api/doctor` | Kết quả `tools/doctor.mjs` (máy cài đủ chưa) |
+| GET | `/api/drive` | `{configured, connected, account, root}` — không lộ client secret/token |
+| PUT | `/api/drive/client` | `{json}` (nội dung file client JSON kiểu Desktop app) hoặc `{clientId, clientSecret}` |
+| DELETE | `/api/drive/client` | Thu hồi token + xoá client |
+| POST | `/api/drive/connect` | `{back}` → `{url}` trang đồng ý Google (state + PKCE, hạn 10 phút) |
+| GET | `/api/drive/callback` | Google chuyển về (redirect `http://127.0.0.1:<PORT>/api/drive/callback`); kiểm `state`, đổi code lấy token, chuyển trình duyệt về `http://localhost:<PORT>/<back>?drive=ok` (hoặc `drive_err=`) |
+| POST | `/api/drive/disconnect` | Thu hồi refresh token, xoá token |
 
-`action`: `plan` / `script` / `fix` → `claude -p` (cần lệnh claude); `render` → `node tools/ep.mjs <dir> all`; `characters` → `node tools/series.mjs characters <slug>`.
+`action`: `plan` / `script` / `fix` → `claude -p` (cần lệnh claude); `render` → `node tools/ep.mjs <dir> all`; `characters` → `node tools/series.mjs characters <slug>`; `upload` → đẩy MP4 + SRT của tập lên Drive (cần đã kết nối). `render` và `fix` có bước nối tiếp: nếu series bật `driveAuto`, đã kết nối và MP4 vừa đổi → tự đẩy lên Drive trong cùng việc.
 
 ## B. Lệnh dòng lệnh
 
 ```
-pnpm setup                         cài lần đầu (node_modules, font, venv Python, kho SFX)
+bash setup.sh                      cài máy mới / bổ sung phần còn thiếu (= pnpm run setup)
+pnpm doctor                        kiểm tra máy (--hook: cho hook Claude; --json)
 pnpm web                           trang web tại máy
 pnpm series new <slug> "Tên"       khung series
 pnpm series plan <slug>            plan.html

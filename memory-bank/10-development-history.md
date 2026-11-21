@@ -10,3 +10,6 @@
 | 2026-11-22 | Cảnh `story` (bối cảnh nhiều lớp, máy quay, nhãn bật, màn hình điện thoại) + Tập 4 "Thả tim nhận tiền?" | Không gian và chữ động ấn tượng hơn; chỉ cần một bản VieNeu. Chủ dự án: "Rất tốt rồi đấy!" |
 | 2026-11-22 | Trang web tại máy (`pnpm web`) + "Chế độ form" trong skill | Mỗi lần dùng chỉ cần điền form và duyệt trên trang |
 | 2026-11-22 | Memory-bank theo quy chuẩn MISA Backend; đưa `tts-vi` vào repo kèm `install.sh`; đẩy lên GitHub `xuong-phim` (riêng tư) | Kéo về máy khác dùng được |
+| 2026-11-22 | `setup.sh` tự cài mọi phần mềm/thư viện (Homebrew, Node, pnpm, uv, ffmpeg, VieNeu, Chrome headless, skill, Claude CLI) + `tools/doctor.mjs` + hook SessionStart báo Claude khi máy thiếu | Chủ dự án dùng trên Claude Desktop, muốn clone về máy khác là tự cài đủ |
+| 2026-11-22 | Kết nối Google Drive trên trang web: OAuth máy tính + PKCE, quyền drive.file, đẩy MP4 + SRT theo nút hoặc tự đẩy sau khi dựng | Phim thành phẩm đưa thẳng lên Drive của người dùng |
+| 2026-11-22 | Bỏ hướng Docker/Cloud Run | Chủ dự án chọn dùng trên Claude Desktop |

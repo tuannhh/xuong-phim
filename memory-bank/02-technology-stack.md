@@ -11,6 +11,8 @@
 | Chuẩn hoá lời đọc | `tools/tts/normalize.mjs` + `lexicon.json` (bộ luật VOICE_OFF_TTS_RULES v5) | Số, tiền, viết tắt, tên riêng đọc đúng (MISA → "mi xa") |
 | Ghép/kiểm tra | ffmpeg / ffprobe | Trích khung, đo độ dài, ghép ảnh storyboard |
 | Trang web tại máy | Node `http` thuần + 1 file HTML/JS thuần | Không thêm thư viện; công cụ cá nhân |
+| Google Drive | REST API Drive v3 qua `fetch` (OAuth máy tính + PKCE, resumable upload) — `tools/web/drive.mjs` | Không cần SDK; quyền nhỏ nhất `drive.file` |
+| Cài đặt | `setup.sh` (Homebrew/apt) + `tools/doctor.mjs` + hook SessionStart | Clone về máy mới chạy một lệnh là đủ |
 | Sáng tác tự động | Claude Code CLI (`claude -p`) + skill `series` | Viết kế hoạch/kịch bản cần LLM |
 | Engine phụ (tuỳ chọn) | lemo-opuscar (plugin Claude), HyperFrames 0.9.19 | Phong cách nghệ thuật; HyperFrames chưa kiểm chứng |
 
@@ -39,7 +41,9 @@
 |---|---|
 | `remotion/` | `Episode.tsx` (composition), `kit/` (nhân vật, bối cảnh, phụ đề, logo, theme), `scenes/` (template cảnh), `custom/` (cảnh riêng) |
 | `shared/reveal.mjs` | Lịch hiện mục — dùng chung cho hình và SFX |
-| `tools/` | `ep.mjs`, `series.mjs`, `timing.mjs`, `render.mjs`, `voices.mjs`, `lib.mjs`, `tts/`, `tts-vi/`, `audio/`, `web/` |
+| `setup.sh` | Cài máy mới (mọi phần mềm + thư viện) |
+| `.claude/` | `settings.json` (hook SessionStart → `doctor.mjs --hook`), `launch.json` (khởi động trang web trong Claude Desktop) |
+| `tools/` | `ep.mjs`, `series.mjs`, `timing.mjs`, `render.mjs`, `voices.mjs`, `lib.mjs`, `doctor.mjs`, `tts/`, `tts-vi/`, `audio/`, `web/` (`server.mjs`, `drive.mjs`) |
 | `web/index.html` | Giao diện trang web tại máy |
 | `skill/` | Skill `/series` (symlink vào `~/.claude/skills/series`) |
 | `assets/` | `brand/` (logo MISA gốc), `fonts/` (sinh bởi `sync-fonts`), `sfx/` (sinh bởi `sfx_bank.py`) |
