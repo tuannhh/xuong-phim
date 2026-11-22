@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Xưởng series</title>
+<title>Xưởng phim</title>
 <style>
 :root{--bg:#F6F4EE;--panel:#fff;--soft:#F0EDE3;--ink:#171A22;--mut:#646A78;--line:#E2DED1;--y:#F4D81C;--yd:#C9AE00;--red:#D92D20;--ok:#15884B;--warn:#B45309;--blue:#2457C5;--sh:0 1px 2px rgba(20,24,38,.06),0 6px 22px rgba(20,24,38,.06)}
 @media (prefers-color-scheme:dark){:root{--bg:#0F1117;--panel:#181B23;--soft:#20242E;--ink:#ECEEF3;--mut:#9AA0AD;--line:#2B303B;--yd:#F4D81C;--red:#FF6B5E;--ok:#3DDC84;--warn:#F5B454;--blue:#8AB0FF;--sh:none}}
@@ -14,7 +14,21 @@ button,input,select,textarea{font:inherit;color:inherit}
 a{color:var(--blue)}
 header.top{position:sticky;top:0;z-index:20;background:#141826;color:#fff;display:flex;align-items:center;gap:18px;padding:0 20px;height:56px}
 header.top .brand{font-weight:800;font-size:18px;letter-spacing:.01em;color:#fff;text-decoration:none;display:flex;align-items:center;gap:10px}
-header.top .brand i{width:26px;height:26px;border-radius:8px;background:var(--y);display:grid;place-items:center;color:#141826;font-style:normal;font-size:15px}
+.logo-plate{background:#fff;height:40px;padding:3px 14px 3px 8px;display:flex;align-items:center;border-radius:6px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.logo-plate img{height:34px;display:block}
+header.top .brand b{font-weight:800}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;cursor:pointer;color:var(--mut);font-size:13.5px;transition:border-color .12s,background .12s}
+.drop:hover,.drop.on{border-color:var(--yd);background:#FFFBE0;color:var(--ink)}
+@media (prefers-color-scheme:dark){.drop:hover,.drop.on{background:#2A2710}}
+.frow{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:var(--panel);font-size:13.5px}
+.frow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.mrow{display:grid;grid-template-columns:auto minmax(0,2fr) minmax(0,1fr) auto;gap:8px;align-items:center}
+@media (max-width:700px){.mrow{grid-template-columns:1fr}}
+code.path{background:var(--soft);border-radius:7px;padding:2px 7px;font:12.5px/1.5 ui-monospace,Menlo,monospace;word-break:break-all}
+.lnrow{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:start;border-top:1px solid var(--line);padding-top:12px}
+.lnrow img{width:96px;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;background:#000}
+.lnrow .ph{width:96px;height:96px;border-radius:8px;background:var(--soft);display:grid;place-items:center;color:var(--mut);font-size:12px}
+.lnrow textarea{min-height:48px}
 header.top nav{display:flex;gap:4px;flex:1}
 header.top nav a{color:#C9CEDB;text-decoration:none;padding:7px 12px;border-radius:9px;font-weight:600;font-size:14px}
 header.top nav a.on,header.top nav a:hover{background:#262C40;color:#fff}
@@ -115,8 +129,8 @@ code.cmd{display:block;background:var(--soft);border-radius:9px;padding:9px 11px
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="#/"><i>▶</i>Xưởng series</a>
-  <nav><a href="#/" id="nav-home">Series của tôi</a><a href="#/new" id="nav-new">+ Series mới</a><a href="#/drive" id="nav-drive">Google Drive</a></nav>
+  <a class="brand" href="#/" title="Xưởng phim"><span class="logo-plate"><img src="/api/brand/misa-logo.svg" alt="MISA — Tin cậy, Tiện ích, Tận tình"></span><b>Xưởng phim</b></a>
+  <nav><a href="#/" id="nav-home">Series của tôi</a><a href="#/new" id="nav-new">+ Series mới</a><a href="#/settings" id="nav-settings">Thiết lập</a></nav>
   <a id="jobpill" class="pill" style="display:none;text-decoration:none"></a>
 </header>
 <main id="app"></main>
@@ -164,6 +178,18 @@ const STYLE = { 'tinh-huong': ['Phim tình huống', 'Nhân vật diễn trong b
 const SETS = { 'van-phong': 'Văn phòng', nha: 'Ở nhà', 'hang-o': 'Sào huyệt kẻ gian' };
 const MODE = { 'dong-nhat': ['Một dàn nhân vật xuyên suốt', 'Khán giả quen mặt qua từng tập'], 'moi-tap': ['Mỗi tập nhân vật khác', 'Claude tự đặt nhân vật cho từng tập'], khong: ['Không dùng nhân vật', 'Chỉ đồ hoạ và giọng dẫn'] };
 const PLATFORMS = ['TikTok', 'Facebook Reels', 'YouTube Shorts', 'YouTube', 'Zalo'];
+const SRC = { claude: ['Claude tự tìm và viết', 'Mặc định — Claude tự tìm hiểu chủ đề, số liệu có nguồn'], 'ket-hop': ['Kết hợp', 'Tư liệu của bạn là nguồn chính, Claude tìm thêm để bổ sung'], 'tu-lieu': ['Chỉ tư liệu của tôi', 'Claude chỉ chọn lọc, sắp xếp và ghép từ tư liệu bạn đưa vào'] };
+const OK_EXT = /\.(pdf|docx?|pptx|xlsx|csv|txt|md|jpe?g|png|webp|gif|bmp)$/i;
+const ACCEPT = '.pdf,.doc,.docx,.pptx,.xlsx,.csv,.txt,.md,.jpg,.jpeg,.png,.webp,.gif,.bmp';
+const fmtSize = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
+const uploadFile = async (slug, file) => {
+  const r = await fetch(`/api/series/${slug}/upload?name=${encodeURIComponent(file.name)}`, { method: 'POST', headers: { 'x-xuong': '1' }, body: file });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `Lỗi ${r.status}`);
+  return j;
+};
+const lab2 = (title, hint, field) => h(field.matches?.('input,select,textarea') ? 'label' : 'div', { class: 'f' }, h('span', {}, title, hint ? h('span', { class: 'h' }, ` — ${hint}`) : null), field);
+const openOutput = async (slug) => { try { const r = await api('POST', '/api/open-output', { slug }); toast(`Đã mở: ${r.dir}`); } catch (e) { toast(e.message, true); } };
 
 // ───────── trạng thái chung
 let META = null, JOB = null, LOG = [], CUR = null, VIEW = '', DRIVE = null;
@@ -238,11 +264,12 @@ const fbBox = (key, ph) => { const t = h('textarea', { placeholder: ph, value: D
 // ───────── trang danh sách
 const home = async () => {
   VIEW = 'home'; CUR = null;
-  const [list, doc] = await Promise.all([api('GET', '/api/series'), api('GET', '/api/doctor')]);
+  const [list, doc, S] = await Promise.all([api('GET', '/api/series'), api('GET', '/api/doctor'), api('GET', '/api/settings')]);
   app.replaceChildren(
     h('div', { class: 'row', style: { marginBottom: '6px' } }, h('h1', {}, 'Series của tôi'), h('span', { class: 'sp' }), h('a', { class: 'btn pri', href: '#/new' }, '+ Tạo series mới')),
     h('p', { class: 'lead' }, 'Điền đề bài một lần, rồi duyệt ba bước ngay trên trang: kế hoạch từng tập → kịch bản và storyboard → phim hoàn chỉnh.'),
-    doc.list.some((c) => !c.ok) ? h('div', { class: `note ${doc.ok ? 'warn' : 'bad'}`, style: { marginBottom: '18px' } }, h('b', {}, doc.ok ? 'Còn thiếu (không bắt buộc): ' : 'Máy chưa cài đủ: '), doc.list.filter((c) => !c.ok).map((c) => c.label).join(', '), '. Mở Terminal ở thư mục xưởng và chạy ', h('code', {}, 'bash setup.sh'), ' (hoặc nhờ Claude Code chạy giúp).') : null,
+    h('div', { class: 'row small', style: { margin: '-10px 0 18px' } }, h('span', { class: 'mut' }, 'Phim thành phẩm lưu ở'), h('code', { class: 'path' }, S.outputDir), S.canOpen ? h('button', { class: 'btn sm', onclick: () => openOutput() }, 'Mở thư mục') : null, h('a', { class: 'small', href: '#/settings' }, 'Đổi')),
+    doc.list.some((c) => !c.ok) ? h('div', { class: `note ${doc.ok ? 'warn' : 'bad'}`, style: { marginBottom: '18px' } }, h('b', {}, doc.ok ? 'Còn thiếu (không bắt buộc): ' : 'Máy chưa cài đủ: '), doc.list.filter((c) => !c.ok).map((c) => c.label).join(', '), '. Mở Terminal ở thư mục xưởng và chạy ', h('code', {}, 'bash setup.sh'), ' (hoặc nhờ Claude Code chạy giúp).') :'',
     list.length
       ? h('div', { class: 'list' }, list.map((s) => h('a', { class: 'card', href: `#/s/${s.slug}` },
           h('div', {}, h('h2', {}, s.name), h('div', { class: 'mut small' }, [s.channel, `${s.total || s.planned || 0} tập`, s.format, THEME[s.theme] ?? s.theme].filter(Boolean).join(' · '))),
@@ -263,6 +290,7 @@ const formView = async (slug) => {
     episodes: b.episodes ?? bible.episodes ?? 5, duration: b.duration ?? 60, format: b.format ?? bible.format ?? '9:16', theme: b.theme ?? bible.theme?.preset ?? 'misa-vang',
     style: b.style ?? 'tinh-huong', sets: b.sets ?? ['van-phong', 'nha'], tone: b.tone ?? '', music: b.music ?? bible.music?.mood ?? 'tension',
     characterMode: b.characterMode ?? bible.characterMode ?? 'dong-nhat', logo: b.logo ?? 'misa', cta: b.cta ?? '', notes: b.notes ?? '', driveAuto: b.driveAuto ?? false, driveFolder: b.driveFolder ?? '',
+    sourceMode: b.sourceMode ?? 'claude', materials: structuredClone(b.materials ?? []),
     characters: structuredClone(bible.characters ?? [{ ...blankChar('nam', 0), role: 'nhân viên MISA, người dẫn chuyện' }, { ...blankChar('nu', 0), role: 'đồng nghiệp, hay gặp tình huống' }]),
     narrator: b.narrator ?? bible.narrator ?? null,
   };
@@ -321,17 +349,64 @@ const formView = async (slug) => {
   const modeSeg = seg('characterMode', Object.entries(MODE).map(([v, [t, s]]) => [v, t, s]));
   const syncMode = () => (charWrap.style.display = F.characterMode === 'khong' ? 'none' : '');
   modeSeg.addEventListener('change', syncMode); syncMode();
+  // ── nguồn nội dung + tư liệu
+  const files = { server: src?.materials?.uploads ?? [], queued: [] };
+  const fileList = h('div', { class: 'grid', style: { gap: '6px' } });
+  const drawFiles = () => fileList.replaceChildren(
+    ...files.server.map((f) => h('div', { class: 'frow' }, h('span', { class: 'nm', title: f.name }, f.name), h('span', { class: 'mut small' }, fmtSize(f.size)),
+      h('button', { type: 'button', class: 'btn sm danger', onclick: async () => { if (!confirm(`Bỏ file "${f.name}" khỏi tư liệu?`)) return; try { files.server = (await api('DELETE', `/api/series/${slug}/upload?name=${encodeURIComponent(f.name)}`)).uploads; drawFiles(); } catch (e) { toast(e.message, true); } } }, 'Bỏ'))),
+    ...files.queued.map((f, i) => h('div', { class: 'frow' }, h('span', { class: 'nm', title: f.name }, f.name), h('span', { class: 'mut small' }, `${fmtSize(f.size)} · tải lên khi tạo series`),
+      h('button', { type: 'button', class: 'btn sm danger', onclick: () => { files.queued.splice(i, 1); drawFiles(); } }, 'Bỏ'))));
+  const addFiles = async (list) => {
+    for (const f of list) {
+      if (!OK_EXT.test(f.name)) { toast(`Chưa đọc được loại file này: ${f.name}`, true); continue; }
+      if (f.size > 300e6) { toast(`File quá 300 MB: ${f.name}`, true); continue; }
+      if (!slug) { files.queued.push(f); continue; }
+      try { toast(`Đang tải lên ${f.name}…`); await uploadFile(slug, f); } catch (e) { toast(`${f.name}: ${e.message}`, true); }
+    }
+    if (slug) files.server = (await api('GET', `/api/series/${slug}`)).materials.uploads;
+    drawFiles();
+  };
+  const picker = h('input', { type: 'file', multiple: true, accept: ACCEPT, style: { display: 'none' }, onchange: (e) => { addFiles([...e.target.files]); e.target.value = ''; } });
+  const drop = h('div', { class: 'drop', role: 'button', tabindex: '0', onclick: () => picker.click(), onkeydown: (e) => (e.key === 'Enter' || e.key === ' ') && picker.click(),
+    ondragover: (e) => { e.preventDefault(); drop.classList.add('on'); }, ondragleave: () => drop.classList.remove('on'),
+    ondrop: (e) => { e.preventDefault(); drop.classList.remove('on'); addFiles([...e.dataTransfer.files]); } },
+    h('b', {}, 'Kéo thả file vào đây hoặc bấm để chọn'), h('br'), 'Word, PDF, PowerPoint, Excel, ảnh (JPG/PNG/WEBP) — tối đa 300 MB mỗi file');
+  drawFiles();
+  const refBox = h('div', { class: 'grid', style: { gap: '8px' } });
+  const drawRefs = () => refBox.replaceChildren(...F.materials.map((m, i) => h('div', { class: 'mrow' },
+    h('span', { class: `pill ${m.type === 'drive' ? 'info' : ''}` }, m.type === 'drive' ? 'Google Drive' : 'Trên máy'),
+    h('input', { type: 'text', value: m.ref, placeholder: m.type === 'drive' ? 'https://drive.google.com/… (file hoặc thư mục)' : META.docker ? '/Users/ten/Documents/tu-lieu (nằm trong thư mục đã gắn)' : '/Users/ten/Documents/tu-lieu hoặc ~/Desktop/bao-cao.pdf', oninput: (e) => (m.ref = e.target.value) }),
+    h('input', { type: 'text', value: m.note ?? '', placeholder: 'Ghi chú: lấy phần nào (tuỳ chọn)', oninput: (e) => (m.note = e.target.value) }),
+    h('button', { type: 'button', class: 'btn sm danger', onclick: () => { F.materials.splice(i, 1); drawRefs(); } }, 'Bỏ'))));
+  drawRefs();
+  const addRef = (type) => { if (F.materials.length >= 20) return toast('Tối đa 20 đường dẫn.', true); F.materials.push({ type, ref: '', note: '' }); drawRefs(); refBox.lastElementChild?.querySelector('input')?.focus(); };
+  const driveHint = DRIVE.canRead ? h('span', { class: 'mut small' }, `Đọc được cả file riêng tư trong Drive của ${DRIVE.account ?? 'tài khoản đã kết nối'}.`)
+    : h('span', { class: 'mut small' }, 'Link chia sẻ "Bất kỳ ai có đường liên kết" tải được ngay. File/thư mục riêng tư: ',
+      DRIVE.configured ? h('a', { href: '#', onclick: (e) => { e.preventDefault(); driveConnect(location.hash, true); } }, 'cho phép xưởng đọc Drive') : h('a', { href: '#/settings' }, 'thiết lập Google Drive'), '.');
+  const matBox = h('div', { class: 'grid' },
+    lab('File đính kèm', 'lưu cùng series, không đưa lên GitHub', h('div', { class: 'grid', style: { gap: '8px' } }, drop, picker, fileList)),
+    lab('Link Google Drive và đường dẫn trên máy', null, h('div', { class: 'grid', style: { gap: '8px' } }, refBox,
+      h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn sm', onclick: () => addRef('drive') }, '+ Link Google Drive'), h('button', { type: 'button', class: 'btn sm', onclick: () => addRef('local') }, '+ Đường dẫn trên máy')),
+      driveHint, META.docker ? h('span', { class: 'mut small' }, 'Đang chạy trong Docker: chỉ đọc được thư mục đã gắn qua TU_LIEU_DIR trong file .env (mặc định thư mục Documents).') : null)),
+    h('div', { class: 'note small' }, 'Trước mỗi lần viết, xưởng đọc tư liệu (chữ, bảng, ảnh trong Word/PDF/PowerPoint), Claude chọn phần hợp với kịch bản. Ảnh trong tư liệu có thể đưa thẳng vào phim (cảnh ảnh tư liệu).'));
+  const srcSeg = seg('sourceMode', Object.entries(SRC).map(([v, [t, sub]]) => [v, t, sub]));
+  const syncSrc = () => (matBox.style.display = F.sourceMode === 'claude' ? 'none' : '');
+  srcSeg.addEventListener('change', syncSrc); syncSrc();
   const err = h('div', { class: 'note bad', style: { display: 'none' } });
   const submit = async () => {
     err.style.display = 'none';
     if (!F.name.trim() || !F.idea.trim()) { err.textContent = 'Cần điền tên series và ý tưởng.'; err.style.display = ''; return window.scrollTo({ top: 0 }); }
     if (F.characterMode !== 'khong' && !F.characters.length) { err.textContent = 'Thêm ít nhất một nhân vật, hoặc chọn "Không dùng nhân vật".'; err.style.display = ''; return; }
+    F.materials = F.materials.filter((m) => m.ref.trim());
+    if (F.sourceMode === 'tu-lieu' && !F.materials.length && !files.server.length && !files.queued.length) { err.textContent = 'Đã chọn "Chỉ tư liệu của tôi" — thêm file, link Drive hoặc đường dẫn trên máy.'; err.style.display = ''; return window.scrollTo({ top: 0 }); }
     const nar = F.characters.find((c, i) => (c.id ?? `#${i}`) === F.narrator);
     const body = { ...F, narrator: nar?.id ?? nar?.name ?? null };
     try {
       if (slug) { await api('PUT', `/api/series/${slug}/brief`, body); toast('Đã lưu đề bài.'); location.hash = `#/s/${slug}`; }
       else {
         const r = await api('POST', '/api/series', body);
+        for (const f of files.queued) { try { toast(`Đang tải lên ${f.name}…`); await uploadFile(r.slug, f); } catch (e) { toast(`${f.name}: ${e.message}`, true); } }
         if (F.characterMode !== 'khong' && !busy()) await api('POST', `/api/series/${r.slug}/jobs`, { action: 'characters' }).catch(() => {});
         location.hash = `#/s/${r.slug}`;
       }
@@ -347,52 +422,61 @@ const formView = async (slug) => {
         h('div', { class: 'fg' }, lab('Tên series *', null, txt('name', 'vd: Người MISA cảnh giác')), lab('Kênh', 'tuỳ chọn', txt('channel', '@ten-kenh')),
           lab('Ý tưởng / chủ đề *', 'càng cụ thể, kế hoạch càng sát', area('idea', 'vd: Giúp nhân viên nhận diện các chiêu lừa đảo qua mạng phổ biến; mỗi tập một tình huống có thật, kết bằng 3 dấu hiệu nhận biết.', 4), 'w2'),
           lab('Khán giả', null, txt('audience', 'vd: nhân viên văn phòng 22–40 tuổi và người thân')), lab('Nền tảng đăng', null, platBox))),
-      sec(2, 'Quy mô', 'Số tập và độ dài mỗi tập.',
+      sec(2, 'Nguồn nội dung', 'Claude tự tìm, hay dựa trên tư liệu của bạn — để phim sát nhu cầu thật.',
+        lab('Nội dung và hình ảnh lấy từ đâu', null, srcSeg), matBox),
+      sec(3, 'Quy mô', 'Số tập và độ dài mỗi tập.',
         h('div', { class: 'fg' }, lab('Số tập', '1–30', txt('episodes', '', { type: 'number', min: 1, max: 30 })), lab('Thời lượng mỗi tập (giây)', '20–180', txt('duration', '', { type: 'number', min: 20, max: 180 })),
           lab('Khung hình', '9:16 hợp TikTok/Reels/Shorts; cảnh tình huống đẹp nhất ở 9:16', seg('format', META.formats.map((f) => [f, f])), 'w2'))),
-      sec(3, 'Phong cách', 'Cách kể, màu sắc, không khí.',
+      sec(4, 'Phong cách', 'Cách kể, màu sắc, không khí.',
         lab('Kiểu kể', null, seg('style', Object.entries(STYLE).map(([v, [t, s]]) => [v, t, s]))),
         lab('Bộ màu', 'dùng cho tiêu đề, bảng tổng kết, cảnh kết', seg('theme', META.themes.map((t) => [t.id, '', '', h('span', { class: 'sw' }, h('i', { style: { background: t.bg } }, h('u', { style: { background: t.fg } }), h('b', { style: { background: t.accent } })), THEME[t.id] ?? t.id)]))),
         lab('Bối cảnh ưu tiên', 'chọn nhiều', seg('sets', Object.entries(SETS).map(([v, t]) => [v, t]), true)),
         h('div', { class: 'fg' }, lab('Giọng điệu', null, txt('tone', 'vd: gần gũi, hơi hài, không doạ dẫm')), lab('Nhạc nền', 'tự sáng tác theo không khí', h('select', { onchange: (e) => (F.music = e.target.value) }, META.moods.map((m) => h('option', { value: m, selected: m === F.music }, MOOD[m] ?? m))))),
         lab('Thương hiệu', null, seg('logo', [['misa', 'Có logo MISA', 'Trên áo đồng phục và cảnh kết'], ['none', 'Không gắn thương hiệu', 'Nhân vật mặc thường phục']]))),
-      sec(4, 'Nhân vật', 'Nên có cả nam và nữ; mỗi người một giọng đúng giới tính.', lab('Cách dùng nhân vật', null, modeSeg), charWrap),
-      sec(5, 'Kết tập & ghi chú', 'Không bắt buộc.',
+      sec(5, 'Nhân vật', 'Nên có cả nam và nữ; mỗi người một giọng đúng giới tính.', lab('Cách dùng nhân vật', null, modeSeg), charWrap),
+      sec(6, 'Kết tập & ghi chú', 'Không bắt buộc.',
         lab('Lời kêu gọi cuối tập', null, txt('cta', 'vd: Chia sẻ cho người thân; theo dõi để xem tập sau')),
         lab('Ghi chú thêm cho Claude', 'điều cần tránh, tình huống muốn có, số liệu có nguồn…', area('notes', '', 3))),
-      sec(6, 'Xuất phim lên Google Drive', 'Phim thành phẩm (MP4 + phụ đề) tự đẩy vào Drive của bạn.',
+      sec(7, 'Xuất phim lên Google Drive', 'Phim thành phẩm (MP4 + phụ đề) tự đẩy vào Drive của bạn.',
         h('div', { class: `note ${DRIVE.connected ? '' : 'warn'}`, style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
           DRIVE.connected ? ['Đã kết nối Google Drive', DRIVE.account ? h('b', {}, ` ${DRIVE.account}`) : null] : DRIVE.configured ? 'Chưa kết nối Google Drive.' : 'Chưa thiết lập Google Drive (làm một lần cho máy này).',
           h('span', { class: 'sp' }),
-          DRIVE.connected ? null : DRIVE.configured ? h('button', { type: 'button', class: 'btn sm pri', onclick: () => driveConnect(location.hash) }, 'Kết nối Google Drive') : h('a', { class: 'btn sm', href: '#/drive' }, 'Thiết lập Google Drive')),
+          DRIVE.connected ? null : DRIVE.configured ? h('button', { type: 'button', class: 'btn sm pri', onclick: () => driveConnect(location.hash) }, 'Kết nối Google Drive') : h('a', { class: 'btn sm', href: '#/settings' }, 'Thiết lập Google Drive')),
         h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: F.driveAuto, onchange: (e) => (F.driveAuto = e.target.checked) }), 'Tự đẩy lên Google Drive mỗi khi dựng xong phim'),
         lab('Thư mục trên Drive', `trong thư mục "${DRIVE.root}"; để trống = tên series`, txt('driveFolder', F.name || 'tên series')))),
     h('div', { class: 'sticky' }, h('a', { class: 'btn', href: slug ? `#/s/${slug}` : '#/' }, 'Huỷ'), h('button', { class: 'btn pri', onclick: submit }, slug ? 'Lưu đề bài' : 'Tạo series')));
 };
 
 // ───────── Google Drive
-const driveConnect = async (back) => {
-  try { const { url } = await api('POST', '/api/drive/connect', { back: (back || '#/drive').split('?')[0] }); location.href = url; }
+const driveConnect = async (back, read = false) => {
+  try { const { url } = await api('POST', '/api/drive/connect', { back: (back || '#/settings').split('?')[0], read }); location.href = url; }
   catch (e) { toast(e.message, true); }
 };
 const driveRow = (e) => {
   const d = e.drive, slug = CUR.slug;
   const push = (label, cls = '') => DRIVE.connected
     ? h('button', { class: `btn sm ${cls}`, 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'upload', e.number) }, label)
-    : h('a', { class: 'btn sm', href: '#/drive' }, 'Kết nối Google Drive để đẩy phim');
+    : h('a', { class: 'btn sm', href: '#/settings' }, 'Kết nối Google Drive để đẩy phim');
   return h('div', { class: 'row small' }, h('b', {}, 'Google Drive:'),
     d?.link && !d.stale ? [h('a', { href: d.link, target: '_blank', rel: 'noopener' }, 'Mở trên Drive'), h('span', { class: 'mut' }, `đã đẩy ${new Date(d.uploadedAt).toLocaleString('vi-VN')}`), push('Đẩy lại')]
       : d?.link ? [h('span', { class: 'pill run' }, 'Bản trên Drive cũ hơn phim hiện tại'), push('Đẩy bản mới', 'pri'), h('a', { href: d.link, target: '_blank', rel: 'noopener' }, 'bản cũ')]
       : [h('span', { class: 'mut' }, 'chưa đẩy'), push('Đẩy lên Drive', 'pri')]);
 };
-const driveView = async () => {
-  VIEW = 'drive'; CUR = null;
-  DRIVE = await api('GET', '/api/drive');
-  const D = DRIVE;
+const settingsView = async () => {
+  VIEW = 'settings'; CUR = null;
+  const [D, S] = await Promise.all([api('GET', '/api/drive'), api('GET', '/api/settings')]);
+  DRIVE = D;
+  const dirBox = h('input', { type: 'text', value: S.outputDir, disabled: S.locked });
+  const saveDir = async () => { try { const r = await api('PUT', '/api/settings', { outputDir: dirBox.value }); dirBox.value = r.outputDir; toast('Đã đổi thư mục xuất. Phim dựng từ giờ được chép vào đây; phim cũ: bấm "Dựng lại" hoặc chạy pnpm series export <series>.'); } catch (e) { toast(e.message, true); } };
+  const outCard = h('div', { class: 'card grid' },
+    h('h2', {}, 'Thư mục phim thành phẩm'),
+    h('p', { class: 'mut', style: { margin: 0 } }, 'Mỗi lần dựng xong, xưởng chép MP4 + phụ đề về một chỗ cho dễ tìm: ', h('code', { class: 'path' }, '<thư mục>/<tên series>/EP01 - <tiêu đề>.mp4'), '. Bản gốc vẫn nằm trong thư mục series của xưởng.'),
+    lab2('Thư mục', S.locked ? 'đang chạy trong Docker — đổi bằng XUONG_OUTPUT_DIR trong file .env' : `mặc định: ${S.defaultOutputDir}`, dirBox),
+    h('div', { class: 'row' }, S.locked ? null : h('button', { class: 'btn pri', onclick: saveDir }, 'Lưu'), S.canOpen ? h('button', { class: 'btn', onclick: () => openOutput() }, 'Mở thư mục') : null));
   const step = (n, ...kids) => h('li', { style: { marginBottom: '8px' } }, ...kids);
   const jsonBox = h('textarea', { rows: 5, placeholder: 'Dán nguyên nội dung file client_secret_….json vào đây', style: { fontFamily: 'ui-monospace,Menlo,monospace', fontSize: '12.5px' } });
   const saveClient = async () => {
-    try { DRIVE = await api('PUT', '/api/drive/client', { json: jsonBox.value }); toast('Đã lưu OAuth client.'); driveView(); }
+    try { DRIVE = await api('PUT', '/api/drive/client', { json: jsonBox.value }); toast('Đã lưu OAuth client.'); settingsView(); }
     catch (e) { toast(e.message, true); }
   };
   const setup = h('div', { class: 'card grid' },
@@ -403,17 +487,32 @@ const driveView = async () => {
       step(3, 'Vào ', h('a', { href: 'https://console.cloud.google.com/auth/clients', target: '_blank', rel: 'noopener' }, 'Clients'), ' → ', h('b', {}, 'Create client'), ' → Application type ', h('b', {}, 'Desktop app'), ' → Create → ', h('b', {}, 'Download JSON'), '.'),
       step(4, 'Mở file JSON vừa tải, chép toàn bộ nội dung, dán vào ô dưới rồi bấm Lưu.')),
     jsonBox,
-    h('div', { class: 'row' }, h('button', { class: 'btn pri', onclick: saveClient }, 'Lưu OAuth client'), D.configured ? h('button', { class: 'btn danger', onclick: async () => { if (!confirm('Xoá OAuth client và ngắt kết nối Google Drive trên máy này?')) return; DRIVE = await api('DELETE', '/api/drive/client'); driveView(); } }, 'Xoá client') : null),
-    h('p', { class: 'mut small', style: { margin: 0 } }, 'Client và token lưu ở ~/.config/xuong-phim/google.json trên máy này (không nằm trong repo, không gửi lên GitHub). Xưởng chỉ xin quyền "drive.file": chỉ thấy các file do xưởng tạo, không đọc được file khác trong Drive của bạn.'));
+    h('div', { class: 'row' }, h('button', { class: 'btn pri', onclick: saveClient }, 'Lưu OAuth client'), D.configured ? h('button', { class: 'btn danger', onclick: async () => { if (!confirm('Xoá OAuth client và ngắt kết nối Google Drive trên máy này?')) return; DRIVE = await api('DELETE', '/api/drive/client'); settingsView(); } }, 'Xoá client') : null),
+    h('p', { class: 'mut small', style: { margin: 0 } }, 'Client và token lưu ở ~/.config/xuong-phim/google.json trên máy này (không nằm trong repo, không gửi lên GitHub). Mặc định xưởng chỉ xin quyền "drive.file" (chỉ thấy file do xưởng tạo). Quyền chỉ-đọc Drive chỉ xin khi bạn bấm "Cho phép đọc tư liệu trên Drive".'));
   const connect = h('div', { class: 'card grid' },
     h('div', { class: 'row' }, h('h2', {}, D.connected ? 'Đã kết nối Google Drive' : 'Bước 2 — Kết nối tài khoản Google'), h('span', { class: 'sp' }), D.connected ? h('span', { class: 'pill ok' }, h('span', { class: 'dot' }), D.account ?? 'đã kết nối') : null),
     D.connected
       ? [h('p', { style: { margin: 0 } }, 'Phim đẩy lên nằm trong thư mục ', h('b', {}, `${D.root}/<tên series>`), ' trên Drive. Bật "Tự đẩy lên Google Drive" trong đề bài của series để mỗi lần dựng xong là tự đẩy; hoặc bấm "Đẩy lên Drive" ở từng phim.'),
-         h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => driveConnect('#/drive') }, 'Kết nối lại / đổi tài khoản'), h('button', { class: 'btn danger', onclick: async () => { DRIVE = await api('POST', '/api/drive/disconnect', {}); toast('Đã ngắt kết nối.'); driveView(); } }, 'Ngắt kết nối'))]
+         h('div', { class: `note ${D.canRead ? '' : 'warn'}` }, D.canRead ? 'Xưởng được đọc tư liệu trong Drive (chỉ đọc) — dán link file/thư mục vào mục "Nguồn nội dung" của đề bài.' : 'Xưởng chưa được đọc file trong Drive: chỉ tải được tư liệu có link chia sẻ công khai. Muốn dùng file/thư mục riêng tư làm tư liệu, bấm "Cho phép đọc tư liệu trên Drive" (quyền chỉ đọc).'),
+         h('div', { class: 'row' }, D.canRead ? null : h('button', { class: 'btn pri', onclick: () => driveConnect('#/settings', true) }, 'Cho phép đọc tư liệu trên Drive'), h('button', { class: 'btn', onclick: () => driveConnect('#/settings') }, 'Kết nối lại / đổi tài khoản'), h('button', { class: 'btn danger', onclick: async () => { DRIVE = await api('POST', '/api/drive/disconnect', {}); toast('Đã ngắt kết nối.'); settingsView(); } }, 'Ngắt kết nối'))]
       : [h('p', { class: 'mut', style: { margin: 0 } }, D.configured ? 'Bấm nút, đăng nhập Google và cho phép quyền Google Drive. Xong trình duyệt tự quay lại trang này.' : 'Làm bước 1 trước.'),
-         h('div', {}, h('button', { class: 'btn pri', disabled: !D.configured, onclick: () => driveConnect('#/drive') }, 'Kết nối Google Drive'))]);
-  app.replaceChildren(h('h1', {}, 'Google Drive'), h('p', { class: 'lead' }, 'Kết nối một lần cho máy này; sau đó phim thành phẩm có thể tự đẩy lên Drive của bạn.'),
-    h('div', { class: 'grid', style: { maxWidth: '820px' } }, D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
+         h('div', { class: 'row' }, h('button', { class: 'btn pri', disabled: !D.configured, onclick: () => driveConnect('#/settings') }, 'Kết nối Google Drive'), h('button', { class: 'btn', disabled: !D.configured, onclick: () => driveConnect('#/settings', true) }, 'Kết nối + cho phép đọc tư liệu'))]);
+  app.replaceChildren(h('h1', {}, 'Thiết lập'), h('p', { class: 'lead' }, 'Nơi lưu phim trên máy và kết nối Google Drive (đẩy phim lên, lấy tư liệu về).'),
+    h('div', { class: 'grid', style: { maxWidth: '820px' } }, outCard, h('h2', { style: { margin: '10px 0 0' } }, 'Google Drive'), D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
+};
+
+// thẻ "Nguồn nội dung" ở cột phải trang series
+const matCard = (b, M) => {
+  const mode = b.sourceMode ?? 'claude';
+  const P = M?.prepared;
+  return h('div', { class: 'card grid', style: { gap: '8px' } }, h('div', { class: 'row' }, h('h3', {}, 'Nguồn nội dung'), h('span', { class: 'sp' }), h('a', { class: 'small', href: `#/s/${CUR.slug}/edit` }, 'Sửa')),
+    h('div', {}, h('span', { class: `pill ${mode === 'claude' ? '' : 'info'}` }, SRC[mode]?.[0] ?? mode)),
+    mode === 'claude' ? h('p', { class: 'mut small', style: { margin: 0 } }, 'Claude tự tìm hiểu chủ đề; số liệu phải có nguồn.') : [
+      h('div', { class: 'small' }, `${M.uploads.length} file đính kèm · ${(b.materials ?? []).filter((m) => m.type === 'drive').length} link Drive · ${(b.materials ?? []).filter((m) => m.type === 'local').length} đường dẫn trên máy`),
+      M.uploads.length ? h('div', { class: 'mut small' }, M.uploads.map((f) => f.name).join(' · ')) : null,
+      P ? h('div', { class: 'small' }, `Lần đọc gần nhất: ${P.sources} nguồn, ${P.images} ảnh, ${P.chars.toLocaleString('vi-VN')} ký tự.`) : h('div', { class: 'mut small' }, 'Tư liệu được đọc mỗi khi bấm nút cho Claude viết.'),
+      P?.errors?.length ? h('div', { class: 'note warn small' }, h('b', {}, 'Không đọc được: '), P.errors.join(' · ')) : null,
+      P?.notes?.length ? h('div', { class: 'note small' }, P.notes.join(' · ')) : null]);
 };
 
 // ───────── trang một series
@@ -426,6 +525,50 @@ const openSeries = async (slug, keepScroll) => {
   const pending = eps.filter((e) => !e.approved);
   const step = (n, title, sub, state) => h('div', { class: state }, h('b', {}, state === 'done' ? '✓' : n), h('div', {}, h('span', {}, title), h('small', {}, sub)));
   const file = (rel, t) => `/files/${slug}/${rel}${t ? `?t=${Math.round(t)}` : ''}`;
+
+  // sửa lời thoại ngay trên trang → lưu episode.json → vẽ lại storyboard
+  const linesEditor = (e, base) => {
+    const box = h('div', { class: 'grid', style: { gap: '12px' } }, h('p', { class: 'mut small', style: { margin: 0 } }, 'Đang tải lời thoại…'));
+    const dk = (sc, li) => `${slug}:lines:${e.number}:${sc}:${li}`;
+    const det = h('details', { open: [...DRAFT.keys()].some((k) => k.startsWith(`${slug}:lines:${e.number}:`)) }, h('summary', {}, 'Sửa lời thoại'), box);
+    let loaded = false;
+    const load = async () => {
+      if (!det.open || loaded) return;
+      loaded = true;
+      try {
+        const { scenes } = await api('GET', `/api/series/${slug}/lines?episode=${e.number}`);
+        const rows = scenes.map((sc, si) => {
+          const img = e.board.find((f) => f.endsWith(`-${sc.id}.jpg`));
+          return h('div', { class: 'lnrow' },
+            img ? h('img', { loading: 'lazy', src: file(`${base}/storyboard/${img}`, e.mtime || Date.now() / 6e4), alt: sc.id, onclick: (ev) => zoom(ev.target.src) }) : h('div', { class: 'ph' }, sc.id),
+            h('div', { class: 'grid', style: { gap: '8px' } }, h('div', { class: 'mut small' }, `Cảnh ${si + 1} · ${sc.id}`),
+              sc.lines.length ? sc.lines.map((l, li) => { const k = dk(sc.id, li); return h('label', { class: 'f' }, h('span', {}, l.speaker ?? 'Lời dẫn', DRAFT.has(k) ? h('span', { class: 'h' }, ' — đã sửa, chưa lưu') : null), h('textarea', { rows: 2, value: DRAFT.get(k) ?? l.text, oninput: (ev) => (ev.target.value === l.text ? DRAFT.delete(k) : DRAFT.set(k, ev.target.value)) })); })
+                : h('span', { class: 'mut small' }, '(cảnh không lời)')));
+        });
+        const save = async () => {
+          const pre = `${slug}:lines:${e.number}:`;
+          const edits = [...DRAFT.entries()].filter(([k]) => k.startsWith(pre)).map(([k, text]) => { const [sc, li] = k.slice(pre.length).split(':'); return { scene: sc, line: +li, text }; });
+          if (!edits.length) return toast('Chưa sửa câu nào.');
+          try {
+            const r = await api('PUT', `/api/series/${slug}/lines?episode=${e.number}`, { edits });
+            for (const k of [...DRAFT.keys()]) if (k.startsWith(pre)) DRAFT.delete(k);
+            if (!r.changed) return toast('Không có câu nào thay đổi.');
+            toast(`Đã lưu ${r.changed} câu.`);
+            if (busy()) toast('Đã lưu. Đang có việc khác chạy — xong việc đó hãy bấm "Vẽ lại storyboard".');
+            else runJob(slug, 'storyboard', e.number);
+          } catch (err) { toast(err.message, true); }
+        };
+        box.replaceChildren(h('p', { class: 'mut small', style: { margin: 0 } }, 'Sửa chữ từng câu rồi bấm Lưu. ', h('code', {}, '*từ*'), ' = tô màu nhấn trên màn hình. Lưu xong xưởng kiểm tra và vẽ lại storyboard; khi dựng phim, giọng chỉ đọc lại những câu đã đổi. Muốn đổi cảnh, hình, nhân vật thì dùng "Góp ý để sửa".'),
+          ...rows, h('div', { class: 'row' }, h('button', { class: 'btn pri', 'data-job': 1, disabled: busy(), onclick: save }, 'Lưu lời thoại và vẽ lại storyboard'), h('button', { class: 'btn', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'storyboard', e.number) }, 'Vẽ lại storyboard')));
+      } catch (err) { loaded = false; box.replaceChildren(h('div', { class: 'note bad' }, err.message)); }
+    };
+    det.addEventListener('toggle', load);
+    if (det.open) setTimeout(load);
+    return det;
+  };
+  const exportRow = (e) => h('div', { class: 'row small' }, h('b', {}, 'Trên máy:'),
+    e.export ? [h('code', { class: 'path' }, e.export.path), e.export.stale ? h('span', { class: 'pill run' }, 'bản cũ — bấm Dựng lại để cập nhật') : null] : h('span', { class: 'mut' }, 'chưa chép ra thư mục phim — bấm "Dựng lại"'),
+    META.docker ? null : h('button', { class: 'btn sm', onclick: () => openOutput(slug) }, 'Mở thư mục'));
 
   const epCard = (e) => {
     const base = `episodes/${e.id}`;
@@ -443,7 +586,7 @@ const openSeries = async (slug, keepScroll) => {
     else if (state === 'duyet') {
       const nk = `${slug}:script:${e.number}`, note = fbBox(nk, 'Lưu ý riêng cho tập này (không bắt buộc)');
       body = [plan, h('details', { open: !!DRAFT.get(nk) }, h('summary', {}, 'Thêm lưu ý cho tập này'), note), h('div', { class: 'row' }, aiBtn('Viết kịch bản + storyboard', slug, 'script', e.number, () => note.value))];
-    } else if (state === 'kich-ban') body = [board ?? h('div', { class: 'note' }, 'Đã có kịch bản nhưng chưa vẽ storyboard.'), links,
+    } else if (state === 'kich-ban') body = [board ?? h('div', { class: 'note' }, 'Đã có kịch bản nhưng chưa vẽ storyboard.'), links, linesEditor(e, base),
       h('div', { class: 'row' }, h('button', { class: 'btn pri', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'render', e.number) }, 'Duyệt và dựng phim'), h('span', { class: 'mut small' }, 'Đọc giọng → căn thời gian → trộn âm → xuất MP4, vài phút.')), fix,
       h('details', {}, h('summary', {}, 'Xem lại kế hoạch tập'), h('div', { class: 'grid', style: { gap: '8px' } }, plan))];
     else body = [h('div', { class: 'film' },
@@ -452,7 +595,7 @@ const openSeries = async (slug, keepScroll) => {
           e.stale ? h('div', { class: 'note warn' }, 'Kịch bản đã sửa sau lần dựng này — bấm "Dựng lại" để có bản mới.') : null,
           h('div', { class: 'row' }, h('a', { class: 'btn dark', href: file(`${base}/out/${e.id}.mp4`), download: `${slug}-${e.id}.mp4` }, 'Tải MP4'), e.srt && h('a', { class: 'btn', href: file(`${base}/out/${e.id}.srt`), download: `${slug}-${e.id}.srt` }, 'Phụ đề SRT'),
             h('button', { class: 'btn', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'render', e.number) }, 'Dựng lại')),
-          driveRow(e), links, fix)),
+          exportRow(e), driveRow(e), links, linesEditor(e, base), fix)),
       board && h('details', {}, h('summary', {}, `Storyboard (${e.board.length} cảnh)`), board)];
     return h('div', { class: 'card ep', id: e.id }, h('div', { class: 'hd' }, h('div', { class: 'no' }, String(e.number).padStart(2, '0')), h('div', { style: { flex: 1 } }, h('h3', {}, e.title || `Tập ${e.number}`), h('div', { class: 'mut small' }, e.duration ? `khoảng ${e.duration} giây` : '')), h('span', { class: `pill ${chip[0]}` }, chip[1])), body);
   };
@@ -464,7 +607,7 @@ const openSeries = async (slug, keepScroll) => {
 
   const b = d.brief;
   app.replaceChildren(
-    h('div', { class: 'row' }, h('div', {}, h('h1', {}, d.name), h('div', { class: 'mut' }, [d.channel, `${d.total || eps.length} tập`, d.format, THEME[d.theme] ?? d.theme, `${d.characters} nhân vật`].filter(Boolean).join(' · '))), h('span', { class: 'sp' }), h('a', { class: 'btn', href: `#/s/${slug}/edit` }, 'Sửa đề bài')),
+    h('div', { class: 'row' }, h('div', {}, h('h1', {}, d.name), h('div', { class: 'mut' }, [d.channel, `${d.total || eps.length} tập`, d.format, THEME[d.theme] ?? d.theme, `${d.characters} nhân vật`].filter(Boolean).join(' · '))), h('span', { class: 'sp' }), META.docker ? null : h('button', { class: 'btn', onclick: () => openOutput(slug), title: d.outputDir }, 'Mở thư mục phim'), h('a', { class: 'btn', href: `#/s/${slug}/edit` }, 'Sửa đề bài')),
     h('div', { class: 'steps' },
       step(1, 'Kế hoạch', nPlan ? `${nPlan} tập · ${nPlan - pending.length} đã duyệt` : 'chưa lập', nPlan && !pending.length ? 'done' : 'cur'),
       step(2, 'Kịch bản + storyboard', `${nScript} tập`, nScript && nScript >= nPlan ? 'done' : nPlan ? 'cur' : ''),
@@ -481,6 +624,7 @@ const openSeries = async (slug, keepScroll) => {
         d.characters ? h('div', { class: 'card grid', style: { gap: '12px' } }, h('div', { class: 'row' }, h('h3', {}, 'Nhân vật'), h('span', { class: 'sp' }), h('button', { class: 'btn sm', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'characters') }, d.charactersPng ? 'Vẽ lại' : 'Vẽ bảng nhân vật')),
           d.charactersPng ? h('img', { class: 'chars', src: file('characters.png', d.charactersPng), alt: 'Bảng nhân vật', onclick: (ev) => zoom(ev.target.src) }) : h('p', { class: 'mut small', style: { margin: 0 } }, 'Chưa có bảng nhân vật.'),
           h('div', { class: 'small mut' }, d.bible.characters.map((c) => `${c.name} (${c.gender === 'nu' ? 'nữ' : 'nam'}${c.villain ? ', phản diện' : ''})`).join(' · '))) : null,
+        b ? matCard(b, d.materials) : null,
         b ? h('div', { class: 'card' }, h('h3', {}, 'Đề bài'), h('p', { class: 'small', style: { margin: '8px 0 0' } }, b.idea), h('div', { class: 'small mut', style: { marginTop: '8px' } }, [STYLE[b.style]?.[0], `${b.duration} giây/tập`, b.audience, b.platform].filter(Boolean).join(' · '))) : null,
         h('details', { class: 'card' }, h('summary', {}, 'Làm trong Claude Code thay vì bấm nút'), h('div', { class: 'grid', style: { gap: '8px' } }, h('p', { class: 'small mut', style: { margin: 0 } }, 'Dán câu lệnh này vào Claude Code (mở ở thư mục xưởng). Đổi giai đoạn thành plan, script hoặc fix và thêm số tập.'), h('code', { class: 'cmd' }, cmdText(slug, 'plan')), h('div', {}, h('button', { class: 'btn sm', onclick: () => copy(cmdText(slug, 'plan')) }, 'Chép')))))));
   jobPanel();
@@ -497,11 +641,11 @@ const route = async () => {
   if (hq) history.replaceState(null, '', hpath || '#/');
   document.getElementById('nav-home').className = !a ? 'on' : '';
   document.getElementById('nav-new').className = a === 'new' ? 'on' : '';
-  document.getElementById('nav-drive').className = a === 'drive' ? 'on' : '';
+  document.getElementById('nav-settings').className = a === 'settings' || a === 'drive' ? 'on' : '';
   try {
     if (!META) META = await api('GET', '/api/meta');
     DRIVE = await api('GET', '/api/drive');
-    if (a === 'drive') await driveView();
+    if (a === 'settings' || a === 'drive') await settingsView();
     else if (a === 'new') await formView();
     else if (a === 's' && b && c === 'edit') await formView(b);
     else if (a === 's' && b) await openSeries(b);

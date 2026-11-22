@@ -7,6 +7,8 @@
 | Font | @fontsource Barlow / Google Sans / JetBrains Mono (OFL) | Đủ dấu tiếng Việt, đóng gói offline |
 | Công cụ dòng lệnh | Node.js (đang dùng 24.x), pnpm 9 | Cùng ngôn ngữ với Remotion |
 | Âm thanh | Python ≥ 3.11 qua `uv` (numpy, scipy, soundfile) | Tự tổng hợp nhạc/SFX, trộn và chuẩn hoá −14 LUFS |
+| Đọc tư liệu | Cùng môi trường uv: pypdf, python-docx, python-pptx, openpyxl, Pillow (`tools/materials/extract.py`); `.doc` cũ qua `textutil` (chỉ macOS) | Biến Word/PDF/PPTX/XLSX/ảnh thành văn bản + ảnh cho Claude chọn lọc |
+| Docker | node:24-bookworm-slim + thư viện Chrome headless + ffmpeg + uv 0.13.9 + VieNeu (ghim 6566468) + Claude CLI | Chạy cả xưởng không cần cài từng phần mềm |
 | Lời đọc | `tts-vi` (mã ở `tools/tts-vi/`) → VieNeu-TTS 3.8.5 (local) → Gemini TTS | Miễn phí, offline; Gemini khi VieNeu lỗi |
 | Chuẩn hoá lời đọc | `tools/tts/normalize.mjs` + `lexicon.json` (bộ luật VOICE_OFF_TTS_RULES v5) | Số, tiền, viết tắt, tên riêng đọc đúng (MISA → "mi xa") |
 | Ghép/kiểm tra | ffmpeg / ffprobe | Trích khung, đo độ dài, ghép ảnh storyboard |

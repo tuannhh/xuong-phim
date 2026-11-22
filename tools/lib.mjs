@@ -7,6 +7,16 @@ import { normalize, seriesLexicon } from './tts/normalize.mjs';
 import crypto from 'node:crypto';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// Chép cả thư mục bằng copyFileSync từng file. KHÔNG dùng fs.cpSync: bản native của Node 24 hỏng trên thư mục
+// gắn từ macOS vào Docker (tạo file quyền chỉ-ghi rồi báo EACCES) — xem memory-bank/09 bẫy 16.
+export function copyDir(src, dst) {
+  fs.mkdirSync(dst, { recursive: true });
+  for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    const a = path.join(src, e.name), b = path.join(dst, e.name);
+    if (e.isDirectory()) copyDir(a, b);
+    else if (e.isFile()) fs.copyFileSync(a, b);
+  }
+}
 export const readJSON = (p, fb) => (fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : fb);
 export const writeJSON = (p, v) => {
   fs.mkdirSync(path.dirname(p), { recursive: true });

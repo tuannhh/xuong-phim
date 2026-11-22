@@ -18,3 +18,12 @@
 - Không dùng số liệu thống kê nào. Số căn cước, đường link "dichvucong-gov.app", tên tài khoản Zalo đều là hư cấu (căn cước che bớt số).
 - Nội dung "cơ quan thật làm việc qua giấy mời/giấy triệu tập, làm việc trực tiếp, không bắt cài ứng dụng hay chuyển tiền qua điện thoại" lấy theo khuyến cáo chung của Bộ Công an; không ghi số tổng đài cụ thể nào (CTA chỉ nhắc "lưu sẵn số tổng đài ngân hàng của bạn").
 - Đã rút lời đọc cho vừa khoảng 65 giây (bản đầu ước tính 73 giây).
+
+# Ghi chú — kịch bản tập 5 (22/11/2026)
+
+**Giả định đã đặt**
+- Chưa có kênh liên hệ chính thức của MISA (tổng đài/website/email) → kịch bản **không ghi số hay địa chỉ cụ thể nào**, chỉ khuyên "gọi lại người chăm sóc hoặc số in trên hợp đồng". Muốn hiện tổng đài thật ở cảnh kết thì gửi qua góp ý.
+- Nhân vật phụ mới: **Chị Hạnh** (nữ, chủ cửa hàng dùng phần mềm MISA, áo thun xanh ngọc, giọng Trúc Ly / Gemini Leda), khai trong `episode.characters` cùng Minh, Lan, Kẻ gian. Cửa hàng dùng bối cảnh `nha` ban ngày, có nhãn "Cửa hàng chị Hạnh".
+- Chị Hạnh **chưa chuyển tiền**: thấy bị hối thúc nên gọi hỏi Lan. Không dùng số liệu thống kê; số tiền 3.500.000đ, tên "TRAN VAN B", email "ketoan@rnisa-cskh.online" đều là hư cấu (minh hoạ mẹo chữ "rn" giả chữ "m").
+- Lời khuyên "chỉ cho điều khiển máy khi chính mình gọi lên" viết theo hướng thận trọng, không khẳng định MISA không bao giờ hỗ trợ từ xa (vì hỗ trợ thật có thể dùng cách này). Nên xác nhận lại với bộ phận chăm sóc khách hàng.
+- Là tập cuối nên cảnh kết không có "tập sau"; bảng tổng kết nhắc lại 3 bước Dừng lại – Kiểm tra – Báo ngay của cả series. Thời lượng ước tính 71,6 giây (mục tiêu 70).

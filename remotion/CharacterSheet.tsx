@@ -11,7 +11,9 @@ const DEFAULT: CharacterSpec[] = [
 ];
 export const SHEET = { rowH: 760, labelW: 190, cell: 170 };
 
-export const CharacterSheet: React.FC<{ characters?: CharacterSpec[]; mouth?: number }> = ({ characters = DEFAULT, mouth = 0 }) => {
+// `faces` (vd [1, -1]): bảng KIỂM TRA HƯỚNG CỬ CHỈ — thay hai hàng tư thế/biểu cảm bằng mỗi hướng một hàng tư thế,
+// nhân vật quay về người nghe ở bên phải (1) / bên trái (−1). Tay đưa ra phải luôn ở phía người nghe, không mở ra sau lưng.
+export const CharacterSheet: React.FC<{ characters?: CharacterSpec[]; mouth?: number; faces?: number[] }> = ({ characters = DEFAULT, mouth = 0, faces }) => {
   useFonts();
   const f = useCurrentFrame();
   const cell = (key: string, label: string, el: React.ReactNode) => (
@@ -28,10 +30,18 @@ export const CharacterSheet: React.FC<{ characters?: CharacterSpec[]; mouth?: nu
             {c.name}
             <div style={{ fontSize: 17, fontWeight: 400, color: '#555', lineHeight: 1.5 }}>{c.gender === 'nu' ? 'nữ' : 'nam'} · {c.kind ?? 'misa'} · tóc {c.hair ?? ''}<br />{c.voice ?? ''}</div>
           </div>
-          <div>
-            <div style={{ display: 'flex', flexWrap: 'nowrap' }}>{POSE_LIST.map((p) => cell(p, p, <Person spec={c} pose={p} height={340} frame={f} mouth={mouth} />))}</div>
-            <div style={{ display: 'flex', flexWrap: 'nowrap', marginTop: 10 }}>{EXPR_LIST.map((e) => cell(e, e, <div style={{ marginTop: 14, marginLeft: -215 }}><Person spec={c} pose="dung" expr={e} height={1200} frame={f} mouth={0} /></div>))}</div>
-          </div>
+          {faces?.length ? (
+            <div>
+              {faces.map((d, i) => (
+                <div key={d} style={{ display: 'flex', flexWrap: 'nowrap', marginTop: i ? 10 : 0 }}>{POSE_LIST.map((p) => cell(p, `${d > 0 ? '→' : '←'} ${p}`, <Person spec={c} pose={p} height={340} frame={f} mouth={mouth} face={d} look={d * 0.8} turn={d * 0.32} />))}</div>
+              ))}
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: 'flex', flexWrap: 'nowrap' }}>{POSE_LIST.map((p) => cell(p, p, <Person spec={c} pose={p} height={340} frame={f} mouth={mouth} />))}</div>
+              <div style={{ display: 'flex', flexWrap: 'nowrap', marginTop: 10 }}>{EXPR_LIST.map((e) => cell(e, e, <div style={{ marginTop: 14, marginLeft: -215 }}><Person spec={c} pose="dung" expr={e} height={1200} frame={f} mouth={0} /></div>))}</div>
+            </div>
+          )}
         </div>
       ))}
     </AbsoluteFill>

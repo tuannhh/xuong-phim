@@ -31,7 +31,7 @@ Cần đủ (hỏi gọn một lần những gì còn thiếu, có gợi ý mặ
 1. `pnpm series new <slug> "Tên series"` → sửa `series/<slug>/brief.md`, `bible.json`, `plan.json`.
 2. `bible.json`: theme, giọng, `narrator` (id nhân vật dẫn chuyện để nhép miệng), `characters`, nhạc (mood), chuyển cảnh, `episodes` = tổng số tập.
 3. `plan.json` → `episodes[]`: `number, id, title, logline, hook, beats[], visual, cta, duration, status:"de-xuat"`. Mỗi tập một góc riêng, có móc nối sang tập sau.
-4. Có nhân vật → `pnpm series characters <slug>` (bảng mọi tư thế).
+4. Có nhân vật → `pnpm series characters <slug>` (bảng mọi tư thế). Hướng cử chỉ do máy tự xoay về phía bạn diễn (xem docs/reference.md) — soát storyboard: không nhân vật nào quay mặt một phía mà tay mở ra phía ngược lại.
 5. `pnpm series plan <slug>` → `plan.html`. Đăng thành Artifact (riêng tư) để người dùng xem cả trên điện thoại, kèm tóm tắt ngắn trong chat.
 6. Hỏi: duyệt tập nào (một vài tập / tất cả), sửa gì. Đánh dấu `status:"duyet"`.
 
@@ -44,7 +44,7 @@ Với mỗi tập được duyệt (nhiều tập → có thể chia subagent/so
    - Chữ trên màn hình ngắn hơn lời đọc; nhấn bằng `*từ*`.
    - Đổi template liên tục (không 3 cảnh liền cùng kiểu). Phim có tình huống → kể bằng **cảnh `story`** (bối cảnh nhiều lớp văn phòng/nhà/ổ lừa đảo, đổi cỡ cảnh toan/can, nhãn bật, chèn màn hình điện thoại, bảng tổng kết — xem `docs/reference.md`); đổi `shot`/`set`/`screen` liên tục để không cảnh nào đứng yên quá 2 câu. `talk` và các template thông tin dùng xen khi cần.
    - Viết tên riêng/viết tắt bình thường (MISA, GĐ, 2026…): bước voice tự chuẩn hoá lời đọc; xem `voice/loi-doc.md`.
-   - Hình chỉ là **code/vector**: template có sẵn, icon Lucide, SVG tự vẽ (`figure`), cảnh custom. KHÔNG tạo ảnh/video bằng AI.
+   - Hình chỉ là **code/vector**: template có sẵn, icon Lucide, SVG tự vẽ (`figure`), cảnh custom — cộng **ảnh thật trong tư liệu người dùng đưa vào** (cảnh `photo`, xem mục "Tư liệu"). KHÔNG tạo ảnh/video bằng AI.
    - Không bịa số liệu. Dùng `stat` chỉ khi có nguồn thật (ghi `source`).
 2. `pnpm ep <dir> check` → `pnpm ep <dir> script` (script.md) → `pnpm ep <dir> storyboard` (ảnh mỗi cảnh + index.html, thời lượng ước lượng).
 3. Bước storyboard tự báo chồng lấn (`✓ bố cục…` hoặc danh sách lỗi) — phải sạch. Rồi tự xem (ghép ảnh bằng ffmpeg `tile`): logo, vùng an toàn, nhân vật có chen nhau không. Sửa rồi mới đưa.
@@ -68,7 +68,7 @@ Người dùng có thể làm việc qua trang web tại máy: `pnpm web` → ht
 Khi được gọi kiểu này:
 - **Không có ai trả lời.** Không hỏi lại, không AskUserQuestion, không đăng Artifact, không SendUserFile, không commit, không mở trình duyệt. Thiếu thông tin → lấy mặc định ở mục 0 và ghi giả định vào `series/<slug>/.studio/ghi-chu.md` (trang hiện file này).
 - **Chỉ làm đúng giai đoạn được giao rồi dừng.** Không tự làm sang điểm duyệt kế tiếp.
-- Đề bài là `brief.json`: `idea, audience, platform, episodes, duration, format, theme, style, sets[], tone, music, characterMode, narrator, logo, cta, notes`. `bible.json` đã có sẵn nhân vật, giọng, bộ màu do người dùng chọn — **không đổi** nhân vật/giọng/bộ màu họ đã khai; chỉ bổ sung phần còn thiếu (`geminiVoice`, `pronounce`, nhân vật phụ thật sự cần cho một tập thì khai trong `episode.characters`).
+- Đề bài là `brief.json`: `idea, audience, platform, episodes, duration, format, theme, style, sets[], tone, music, characterMode, narrator, logo, cta, notes, sourceMode, materials[]`. `bible.json` đã có sẵn nhân vật, giọng, bộ màu do người dùng chọn — **không đổi** nhân vật/giọng/bộ màu họ đã khai; chỉ bổ sung phần còn thiếu (`geminiVoice`, `pronounce`, nhân vật phụ thật sự cần cho một tập thì khai trong `episode.characters`).
 - `brief.style`: `tinh-huong` → kể bằng cảnh `story` là chính; `thong-tin` → template thông tin (title, list, stat, compare, talk…); `ket-hop` → mở bằng tình huống `story`, chốt bằng template thông tin. `brief.sets` là bối cảnh ưu tiên. `brief.logo: "none"` → nhân vật không mặc đồng phục MISA, cảnh kết không gắn logo MISA.
 - `characterMode: "moi-tap"` → mỗi tập khai dàn nhân vật riêng trong `episode.characters` (vẫn có nam có nữ, giọng đúng giới); `khong` → không dùng nhân vật, lời đọc là giọng dẫn `bible.voice`.
 - Có `series/<slug>/.studio/gop-y.md` → đó là góp ý mới nhất của người dùng, làm theo.
@@ -76,8 +76,25 @@ Khi được gọi kiểu này:
 | Giai đoạn | Việc phải làm | Dừng khi |
 |---|---|---|
 | `plan` | Mục 1 bước 2–5: viết `plan.json` (`brief` tóm tắt + đủ `brief.episodes` tập, `status:"de-xuat"`); giữ nguyên tập đã `duyet` hoặc đã có `episode.json` trừ khi góp ý yêu cầu đổi; `pnpm series plan <slug>` | có `plan.json` đủ tập — KHÔNG viết `episode.json` |
-| `script <n>` | Mục 2 bước 1–3 cho tập n: `pnpm series ep` (nếu chưa có khung) → viết `episode.json` → `check` sạch → `script` → `storyboard` báo `✓ bố cục`; tự xem ảnh storyboard và sửa cho đạt | có `script.md` + storyboard sạch — KHÔNG đọc voice, KHÔNG render |
+| `script <n>` | (Có tư liệu → đọc theo mục "Tư liệu" trước.) Mục 2 bước 1–3 cho tập n: `pnpm series ep` (nếu chưa có khung) → viết `episode.json` → `check` sạch → `script` → `storyboard` báo `✓ bố cục`; tự xem ảnh storyboard và sửa cho đạt | có `script.md` + storyboard sạch — KHÔNG đọc voice, KHÔNG render |
 | `fix <n>` | Đọc `gop-y.md`, sửa `episode.json` (chỉ phần bị góp ý), `check` → `script` → `storyboard`. Nếu tập đã có `out/epNN.mp4` thì chạy tiếp `pnpm ep <dir> all` để ra bản mới (voice chỉ đọc lại câu đổi) | storyboard sạch (và MP4 mới nếu trước đó đã có MP4) |
+
+## Tư liệu người dùng (`brief.sourceMode`)
+
+Người dùng chọn nguồn nội dung + hình ảnh trong form:
+
+| `sourceMode` | Cách làm |
+|---|---|
+| `claude` (mặc định) | Claude tự tìm hiểu chủ đề (WebSearch/WebFetch khi cần số liệu, sự kiện); số liệu phải có nguồn thật. |
+| `ket-hop` | Tư liệu người dùng là **nguồn chính**: nội dung cụ thể (tình huống, số liệu, quy trình, tên chương trình) lấy từ tư liệu trước; Claude tìm thêm chỉ để bổ sung chỗ tư liệu thiếu, ghi nguồn. |
+| `tu-lieu` | **Chỉ dùng tư liệu**: mọi sự kiện, số liệu, trích dẫn, quy trình phải có trong tư liệu. Được viết lời dẫn, chuyển ý, tình huống minh hoạ cho điều tư liệu nói; không thêm thông tin mới. Không tìm trên mạng. Tư liệu không đủ cho số tập yêu cầu → làm ít tập hơn nhưng chắc, ghi lý do vào `ghi-chu.md`. |
+
+Khi `sourceMode` khác `claude`, máy chủ đã gom và đọc sẵn tư liệu (file tải lên, đường dẫn trên máy, link Drive) vào `series/<slug>/.studio/tu-lieu/`:
+1. Đọc `index.md` trước: danh sách nguồn, file văn bản `text/NN-*.md` (chữ + bảng trong Word/PDF/PowerPoint/Excel), ảnh `images/NN-*-K.jpg` kèm kích thước. `brief.materials[].note` cho biết người dùng muốn lấy phần nào của nguồn nào.
+2. Đọc các file văn bản liên quan; chọn đúng phần hợp với tập đang làm — không nhồi cả tài liệu. PDF bản scan (index ghi "không có lớp chữ") → đọc thẳng file gốc bằng Read. Có skill đọc pdf/docx/pptx/xlsx thì được dùng khi cần đọc sâu hơn.
+3. Viết lại cho **nói** (câu ngắn, tự nhiên); không chép nguyên đoạn dài. Trích nguyên văn chỉ khi ngắn và ghi người nói/nguồn.
+4. **Ảnh tư liệu**: xem ảnh (Read) rồi chọn ảnh rõ, đúng nội dung tập; chép vào `episodes/epNN/assets/<tên-ngắn>.jpg` (`cp`) và dùng cảnh `photo` (`ratio` = cao/rộng theo index; nhiều ảnh → `images[]`, mỗi ảnh một câu thoại; `source` ghi nguồn). Không dùng ảnh lộ thông tin nhạy cảm (số CCCD, số tài khoản, mật khẩu, tin nhắn riêng có số điện thoại) — ảnh kiểu đó vẽ lại bằng cảnh `chat`/`phone`. Ảnh xen với cảnh `story`/thông tin, không để 2 cảnh `photo` liền nhau.
+5. Ghi vào `ghi-chu.md`: tập nào dùng nguồn nào (tên file + trang/trang chiếu), phần nào tư liệu thiếu phải bỏ hoặc (chế độ `ket-hop`) bổ sung từ đâu.
 
 Đẩy phim lên Google Drive do máy chủ làm (nút trên trang hoặc `driveAuto` của series) — Claude không tự gọi Drive.
 

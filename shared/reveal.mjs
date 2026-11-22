@@ -27,6 +27,7 @@ export function revealItems(scene) {
     case 'chart': return { items: p.bars || [], sfx: 'tick' };
     case 'alert': return { items: (p.items || []).map(() => ({})), sfx: 'tick' };
     case 'chat': return { items: p.messages || [], sfx: (it) => (it.from === 'me' ? 'send' : 'bubble') };
+    case 'photo': return (p.images || []).length > 1 ? { items: p.images, sfx: 'whoosh-soft' } : null;
     case 'phone': return p.mode === 'notify' ? { items: p.notifications || [], sfx: 'notify' } : null;
     case 'kinetic': return { items: (p.phrases || scene.lines.map(() => ({}))).map(() => ({})), sfx: 'tick' };
     case 'compare': {

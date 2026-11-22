@@ -119,10 +119,14 @@ export const Story: React.FC<SceneProps> = ({ scene }) => {
           const others = placed.filter((o) => o.id !== a.id);
           const target = speaker && speaker.id !== a.id ? speaker.wx : others.length ? others.reduce((m, o) => (Math.abs(o.wx - a.wx) < Math.abs(m.wx - a.wx) ? o : m)).wx : a.wx;
           const look = Math.max(-1, Math.min(1, (target - a.wx) / 300));
+          // hướng cử chỉ cố định cả cảnh: quay về bạn diễn gần nhất; một mình lệch một bên → cử chỉ một tay quay vào giữa
+          const mate = others.length ? others.reduce((m, o) => (Math.abs(o.wx - a.wx) < Math.abs(m.wx - a.wx) ? o : m)).wx : null;
+          const face = mate == null ? 0 : Math.sign(mate - a.wx);
+          const aim = mate == null && Math.abs(a.wx - WORLD.W / 2) > WORLD.W * 0.12 ? Math.sign(WORLD.W / 2 - a.wx) : 0;
           return (
             <React.Fragment key={a.id}>
               <div style={{ position: 'absolute', left: (a.wx - 300 * k) * u, top: (DESK - HIPU * k) * u }}>
-                <Person spec={spec} pose={st.pose} poseFrom={st.poseFrom} poseT={poseT} expr={st.expr} mouth={mouth} frame={scene.from + f} look={look} turn={look * 0.4} height={1200 * k * u} flip={a.flip} />
+                <Person spec={spec} pose={st.pose} poseFrom={st.poseFrom} poseT={poseT} expr={st.expr} mouth={mouth} frame={scene.from + f} look={look} turn={look * 0.4} height={1200 * k * u} flip={a.flip} face={face} aim={aim} />
               </div>
               {/* hộp phần thân nhìn thấy (đầu → mép bàn) cho bộ soát bố cục */}
               {!scr && <div data-person={a.id} data-exact style={{ position: 'absolute', left: (a.wx - 160 * k) * u, top: (DESK - (HIPU + 8) * k) * u, width: 320 * k * u, height: (HIPU + 8) * k * u }} />}

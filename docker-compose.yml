@@ -1,0 +1,30 @@
+# Chạy xưởng trong Docker:  docker compose up -d --build   → http://localhost:4710
+# Đổi thư mục bằng file .env cạnh file này (không commit), ví dụ:
+#   XUONG_OUTPUT_DIR=/Users/ten/Movies/Xưởng phim     # nơi gom phim thành phẩm trên máy thật
+#   TU_LIEU_DIR=/Users/ten/Documents                  # thư mục chứa tư liệu (gắn chỉ-đọc, cùng đường dẫn như máy thật)
+#   CLAUDE_CODE_OAUTH_TOKEN=...                      # từ lệnh `claude setup-token` (nút AI); hoặc ANTHROPIC_API_KEY
+#   GEMINI_API_KEY=...                               # giọng Gemini dự phòng (tuỳ chọn)
+services:
+  xuong-phim:
+    build: .
+    image: xuong-phim:local
+    container_name: xuong-phim
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:4710:4710"        # chỉ máy này truy cập được
+    shm_size: "1gb"                  # Chrome headless cần /dev/shm lớn
+    environment:
+      XUONG_OUTPUT_HOST_PATH: ${XUONG_OUTPUT_DIR:-${HOME}/Movies/Xưởng phim}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - ./series:/app/series
+      - ${XUONG_OUTPUT_DIR:-${HOME}/Movies/Xưởng phim}:/data/output
+      - ${TU_LIEU_DIR:-${HOME}/Documents}:${TU_LIEU_DIR:-${HOME}/Documents}:ro
+      - xuong-config:/data/config
+      - xuong-cache:/data/cache
+volumes:
+  xuong-config:
+  xuong-cache:

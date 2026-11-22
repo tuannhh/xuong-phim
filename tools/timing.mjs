@@ -80,6 +80,7 @@ export function buildTiming(epArg) {
       if (s.type === 'phone' && (p.mode ?? 'call') === 'call') for (let t = T; t < duration - fps; t += fps * 2.2) cue(from + t, 'ring', 0.45);
       if (s.type === 'outro') cue(from + T + 10, 'chime', 0.7);
       if (s.type === 'figure' && p.draw !== false) cue(from + 2, 'draw', 0.5);
+      if (s.type === 'photo') cue(from + 2, 'camera', 0.35);
       if (s.type === 'story') {
         const pops = p.pops ?? [];
         storyTimes(scene, pops, fps).forEach((a, k) => cue(from + a, STORY_SFX.pop[pops[k].kind ?? 'tag'] ?? 'pop', pops[k].kind === 'big' ? 0.8 : 0.65));

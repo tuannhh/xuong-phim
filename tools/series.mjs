@@ -3,8 +3,10 @@
 //   new <slug> "Tên series"   tạo khung series/<slug>/ (brief.md, bible.json, plan.json)
 //   plan <slug>               sinh plan.html — trang duyệt kế hoạch sơ bộ (bộ nhận diện + dàn ý từng tập)
 //   characters <slug>         vẽ bảng nhân vật (mọi tư thế) → characters.png
+//   characters <slug> --huong vẽ bảng kiểm tra hướng cử chỉ (mọi tư thế khi quay sang phải / sang trái) → characters-huong.png
 //   ep <slug> <số>            tạo khung thư mục tập epNN/ với episode.json mẫu
 //   status <slug>             tình trạng từng tập
+//   export <slug>             chép mọi phim đã dựng vào thư mục xuất chung (tools/output.mjs)
 //   styles                    cập nhật danh mục phong cách lemo-opuscar → docs/lemo-styles.md
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,7 +16,7 @@ import { buildLemoStyles } from './lemo-styles.mjs';
 
 const [, , cmd, slug, ...args] = process.argv;
 if (cmd === 'styles') { console.log(`lemo-opuscar: ${buildLemoStyles()} phong cách → docs/lemo-styles.md`); process.exit(0); }
-if (!cmd || !slug) die('cách dùng: node tools/series.mjs <new|plan|characters|ep|status> <slug> …');
+if (!cmd || !slug) die('cách dùng: node tools/series.mjs <new|plan|characters|ep|status|export> <slug> …');
 const dir = path.join(ROOT, 'series', slug);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const STATUS = { 'de-xuat': 'Đề xuất', duyet: 'Đã duyệt', 'kich-ban': 'Có kịch bản', storyboard: 'Có storyboard', voice: 'Đã đọc voice', xong: 'Đã xuất MP4' };
@@ -45,8 +47,14 @@ if (cmd === 'new') {
   const bible = readJSON(path.join(dir, 'bible.json'));
   if (!bible?.characters?.length) die('bible.characters trống');
   const { renderCharacterSheet } = await import('./render.mjs');
-  const out = await renderCharacterSheet(dir, bible.characters);
+  const out = await renderCharacterSheet(dir, bible.characters, process.argv.includes('--huong') ? { faces: [1, -1] } : {});
   console.log(`nhân vật: ${path.relative(process.cwd(), out)}`);
+} else if (cmd === 'export') {
+  const { exportEpisode, displayPath, seriesOutputDir } = await import('./output.mjs');
+  const eps = fs.existsSync(path.join(dir, 'episodes')) ? fs.readdirSync(path.join(dir, 'episodes')).filter((d) => /^ep\d+$/.test(d)).sort() : [];
+  let n = 0;
+  for (const id of eps) { const d = exportEpisode(dir, id); if (d) { n++; console.log(`  ${id} → ${displayPath(d)}`); } }
+  console.log(`xuất: ${n} phim → ${displayPath(seriesOutputDir(readJSON(path.join(dir, 'bible.json'), {}).name ?? slug))}`);
 } else if (cmd === 'status') {
   const plan = readJSON(path.join(dir, 'plan.json'), { episodes: [] });
   for (const e of plan.episodes) {

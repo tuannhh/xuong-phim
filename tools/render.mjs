@@ -3,16 +3,16 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
-import { ROOT, dirs, readJSON } from './lib.mjs';
+import { ROOT, copyDir, dirs, readJSON } from './lib.mjs';
 
 // Thư mục public riêng cho mỗi tập: font, logo, SFX dùng chung + assets/ và mix.wav của tập.
 export function preparePublic(epDir) {
   const pub = path.join(epDir, dirs().build, 'public');
   fs.rmSync(pub, { recursive: true, force: true });
   fs.mkdirSync(pub, { recursive: true });
-  fs.cpSync(path.join(ROOT, 'assets/fonts'), path.join(pub, 'fonts'), { recursive: true });
-  fs.cpSync(path.join(ROOT, 'assets/brand'), path.join(pub, 'brand'), { recursive: true });
-  if (fs.existsSync(path.join(epDir, 'assets'))) fs.cpSync(path.join(epDir, 'assets'), path.join(pub, 'assets'), { recursive: true });
+  copyDir(path.join(ROOT, 'assets/fonts'), path.join(pub, 'fonts'));
+  copyDir(path.join(ROOT, 'assets/brand'), path.join(pub, 'brand'));
+  if (fs.existsSync(path.join(epDir, 'assets'))) copyDir(path.join(epDir, 'assets'), path.join(pub, 'assets'));
   const mix = path.join(epDir, dirs().build, 'mix.wav');
   if (fs.existsSync(mix)) fs.copyFileSync(mix, path.join(pub, 'mix.wav'));
   return pub;
@@ -43,6 +43,11 @@ export function storyboardFrames(timed) {
   });
 }
 
+// Dòng tiến độ: ở terminal ghi đè tại chỗ (`\r`); khi bị gọi từ trang web (stdout là pipe) mỗi mốc một dòng để hiện ngay.
+const TTY = !!process.stdout.isTTY;
+const progressLine = (t) => process.stdout.write(TTY ? `\r${t}` : `${t}\n`);
+const progressDone = () => TTY && process.stdout.write('\n');
+
 export async function renderStoryboard(epDir) {
   const props = loadProps(epDir, { still: true });
   const serveUrl = await make(epDir, preparePublic(epDir));
@@ -61,9 +66,9 @@ export async function renderStoryboard(epDir) {
       onBrowserLog: (l) => { const m = l.text.match(/^LAYOUT (.*)$/); if (m) layout[sid] = JSON.parse(m[1]).issues; },
     });
     files.push(path.basename(file));
-    process.stdout.write(`\r  ảnh ${i + 1}/${frames.length}`);
+    progressLine(`  ảnh ${i + 1}/${frames.length}`);
   }
-  process.stdout.write('\n');
+  progressDone();
   fs.writeFileSync(path.join(out, 'layout.json'), JSON.stringify(layout, null, 1));
   const bad = Object.entries(layout).filter(([, v]) => v.length);
   if (bad.length) { console.log(`  ⚠ bố cục: ${bad.length} cảnh có chồng lấn/tràn:`); for (const [k, v] of bad) for (const x of v) console.log(`    ${k}: ${x}`); }
@@ -86,27 +91,30 @@ export async function renderVideo(epDir, { preview = false } = {}) {
     crf: preview ? 28 : 18, scale: preview ? 0.5 : 1, audioBitrate: '192k', pixelFormat: 'yuv420p',
     concurrency: Math.max(2, Math.min(4, Math.floor((await import('node:os')).cpus().length / 2))),
     timeoutInMilliseconds: 120000,
-    onProgress: ({ progress }) => {
-      const p = Math.floor(progress * 100);
-      if (p !== last && p % 5 === 0) { last = p; process.stdout.write(`\r  render ${p}%`); }
+    // In mỗi khi qua một mốc 5% (tiến độ hay nhảy cóc 36 → 38 → 41: so "đúng bội số 5" sẽ bỏ lỡ mốc và đứng yên mãi — bẫy 20).
+    // Kèm số khung đã vẽ để người xem biết máy vẫn chạy. Trang web đọc stdout theo dòng → xuống dòng `\n` (in `\r` thì trang chậm một nhịp).
+    onProgress: ({ progress, renderedFrames }) => {
+      const p = Math.floor(progress * 100), b = p - (p % 5);
+      if (b > last) { last = b; progressLine(`  render ${p}% · khung ${renderedFrames}/${comp.durationInFrames}`); }
     },
   });
-  process.stdout.write('\n');
+  progressDone();
   console.log(`  xong ${((Date.now() - t) / 1000).toFixed(0)}s → ${path.relative(process.cwd(), output)}`);
   return output;
 }
 
 // Bảng nhân vật của series (mọi tư thế) → <series>/characters.png
-export async function renderCharacterSheet(seriesDir, characters) {
+// opts.faces (vd [1, -1]) → bảng kiểm tra hướng cử chỉ: characters-huong.png
+export async function renderCharacterSheet(seriesDir, characters, opts = {}) {
   const pub = path.join(seriesDir, '.build/public');
   fs.rmSync(pub, { recursive: true, force: true });
   fs.mkdirSync(pub, { recursive: true });
-  fs.cpSync(path.join(ROOT, 'assets/fonts'), path.join(pub, 'fonts'), { recursive: true });
+  copyDir(path.join(ROOT, 'assets/fonts'), path.join(pub, 'fonts'));
   const serveUrl = await bundle({ entryPoint: path.join(ROOT, 'remotion/index.ts'), publicDir: pub, outDir: path.join(seriesDir, '.build/bundle') });
-  const inputProps = { characters };
+  const inputProps = opts.faces ? { characters, faces: opts.faces } : { characters };
   const comp = await selectComposition({ serveUrl, id: 'CharacterSheet', inputProps });
   const height = 60 + characters.length * 760;
-  const output = path.join(seriesDir, 'characters.png');
+  const output = path.join(seriesDir, opts.faces ? 'characters-huong.png' : 'characters.png');
   await renderStill({ composition: { ...comp, height }, serveUrl, inputProps, frame: 10, output });
   return output;
 }

@@ -17,3 +17,11 @@ series/*/episodes/*/voice-*/
 *.local.json
 tools/tts-vi/config.env
 series/*/.studio/drive.json
+# tư liệu riêng của người dùng (file tải lên, bản tải từ Drive, bản đọc) — không đưa lên GitHub
+series/*/tu-lieu/
+series/*/.studio/tu-lieu/
+# đường dẫn thư mục xuất trên từng máy
+series/*/episodes/*/out/export.json
+!.env.example
+# bảng soát hướng cử chỉ (sinh lại được)
+series/*/characters-huong.png

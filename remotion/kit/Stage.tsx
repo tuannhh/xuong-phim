@@ -60,11 +60,16 @@ export const Stage: React.FC<{ scene: TimedScene; cast: CastMember[]; shot?: Fra
         const others = placed.filter((p) => p.id !== m.id);
         const target = speakerX != null && cur?.speaker !== m.id ? speakerX : others.length ? others.reduce((a, b) => (Math.abs(b.cx - pl.cx) < Math.abs(a.cx - pl.cx) ? b : a)).cx : pl.cx;
         const look = Math.max(-1, Math.min(1, (target - pl.cx) / (W * 0.25)));
+        // hướng cử chỉ (cố định cả cảnh, không đổi theo người nói để tay không giật): có bạn diễn → quay về người gần nhất;
+        // đứng một mình lệch một bên → cử chỉ một tay quay vào giữa khung hình
+        const mate = others.length ? others.reduce((a, b) => (Math.abs(b.cx - pl.cx) < Math.abs(a.cx - pl.cx) ? b : a)).cx : null;
+        const face = mate == null ? 0 : Math.sign(mate - pl.cx);
+        const aim = mate == null && Math.abs(pl.cx - W / 2) > W * 0.12 ? Math.sign(W / 2 - pl.cx) : 0;
         const enter = m.enter === false || !enterAll || ep.still ? 1 : springAt(f, i * 4, fps, 14);
         const h = 1200 * pl.k;
         return (
           <div key={m.id} data-person={m.id} style={{ position: 'absolute', left: pl.cx - 300 * pl.k, top: zoneTop - FRAMING[shot][0] * pl.k + (1 - enter) * 160 * pl.k, opacity: Math.min(1, enter * 1.4) }}>
-            <Person spec={spec} pose={st.pose} poseFrom={st.poseFrom} poseT={poseT} expr={st.expr} mouth={mouth} frame={scene.from + f} look={look} turn={m.turn ?? look * 0.4} height={h} flip={m.flip} />
+            <Person spec={spec} pose={st.pose} poseFrom={st.poseFrom} poseT={poseT} expr={st.expr} mouth={mouth} frame={scene.from + f} look={look} turn={m.turn ?? look * 0.4} height={h} flip={m.flip} face={face} aim={aim} />
           </div>
         );
       })}

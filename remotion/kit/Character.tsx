@@ -330,31 +330,52 @@ type ArmDef = { t: V; e?: V; bend?: 'out' | 'down'; hand?: Hand }; // khuỷu m�
 type Legs = 'stand' | 'wide' | 'walk';
 type PoseDef = { L: ArmDef; R: ArmDef; expr: string; legs?: Legs; front?: 'L' | 'R'; look?: [number, number]; shrug?: number; lean?: number; head?: number };
 const HANG: ArmDef = { t: [0.05, 0.993], hand: 'relax' };
-// Nguyên tắc: khuỷu tay luôn ở gần thân (không chĩa ngang ra ngoài), cử chỉ nằm ở cẳng tay + bàn tay; không giơ hai tay quá đầu.
-const LOW: V = [0.09, 0.5]; // khuỷu buông cạnh sườn
+// Nguyên tắc: khuỷu tay ở gần thân (không chĩa ngang ra ngoài), cử chỉ nằm ở cẳng tay + bàn tay; không giơ hai tay quá đầu.
+// Tay mở ra ngoài thì cả cánh tay cùng đưa ra (bắp tay nghiêng ~20°, góc khuỷu rộng), không ghim bắp tay thẳng đứng rồi bẻ cẳng tay ngang — trông như gãy khuỷu.
+const LOW: V = [0.09, 0.5]; // khuỷu buông cạnh sườn (tay gập vào trong / tay nghỉ)
+const OUT: V = [0.17, 0.46]; // khuỷu hơi đưa ra ngoài — dùng cho tay MỞ RA phía ngoài (bẫy 18: đừng ghim khuỷu sát sườn rồi bẻ cẳng tay ngang ra)
 export const POSES: Record<string, PoseDef> = {
   dung: { L: HANG, R: HANG, expr: 'cuoi' },
   chao: { L: HANG, R: { e: [0.2, 0.46], t: [0.33, 0.03], hand: 'open' }, expr: 'vui' },
   chi: { L: HANG, R: { e: [0.3, 0.4], t: [0.74, 0.22], hand: 'point' }, expr: 'cuoi', head: 3 },
-  'tay-mo': { L: HANG, R: { e: LOW, t: [0.4, 0.36], hand: 'palm' }, expr: 'cuoi' },
-  'giai-thich': { L: { e: LOW, t: [0.3, 0.4], hand: 'palm' }, R: { e: LOW, t: [0.38, 0.31], hand: 'palm' }, expr: 'binh-thuong' },
+  'tay-mo': { L: HANG, R: { e: OUT, t: [0.5, 0.42], hand: 'palm' }, expr: 'cuoi' },
+  'giai-thich': { L: { e: [0.16, 0.47], t: [0.42, 0.5], hand: 'palm' }, R: { e: OUT, t: [0.48, 0.4], hand: 'palm' }, expr: 'binh-thuong' },
   nghi: { L: { e: [0.03, 0.5], t: [-0.38, 0.5], hand: 'fist' }, R: { e: [-0.06, 0.4], t: [-0.25, -0.02], hand: 'fist' }, expr: 'nghi', front: 'R', head: -4 },
   vui: { L: HANG, R: { e: [0.16, 0.45], t: [0.27, 0.02], hand: 'fist' }, expr: 'vui', shrug: 4, head: -3 },
-  'ngac-nhien': { L: { e: LOW, t: [0.3, 0.3], hand: 'open' }, R: { e: [0.05, 0.5], t: [-0.2, 0.2], hand: 'open' }, expr: 'ngac-nhien', lean: -1.5, shrug: 6, front: 'R' },
+  'ngac-nhien': { L: { e: OUT, t: [0.42, 0.36], hand: 'open' }, R: { e: [0.05, 0.5], t: [-0.2, 0.2], hand: 'open' }, expr: 'ngac-nhien', lean: -1.5, shrug: 6, front: 'R' },
   'khoanh-tay': { L: { e: [-0.02, 0.47], t: [-0.47, 0.4], hand: 'fist' }, R: { e: [-0.02, 0.47], t: [-0.47, 0.46], hand: 'fist' }, expr: 'tu-tin', front: 'R' },
   buon: { L: { t: [0.02, 0.996], hand: 'relax' }, R: { t: [0.02, 0.996], hand: 'relax' }, expr: 'buon', shrug: -7, head: 7 },
   'dien-thoai': { L: HANG, R: { e: [0.05, 0.49], t: [-0.14, 0.2], hand: 'phone' }, expr: 'binh-thuong', look: [0, 1], head: 8, front: 'R' },
   'nghe-may': { L: HANG, R: { e: [0.13, 0.36], t: [-0.06, -0.13], hand: 'phone' }, expr: 'binh-thuong', front: 'R', head: -4, shrug: 4 },
-  'om-dau': { L: HANG, R: { e: [0.16, 0.32], t: [0.04, -0.23], hand: 'open' }, expr: 'so', shrug: 7, head: -6, front: 'R' },
+  'om-dau': { L: HANG, R: { e: [0.3, 0.26], t: [0.1, -0.2], hand: 'open' }, expr: 'so', shrug: 7, head: -6, front: 'R' },
   'chong-nanh': { L: { e: [0.27, 0.43], t: [0.03, 0.74], hand: 'fist' }, R: { e: [0.27, 0.43], t: [0.03, 0.74], hand: 'fist' }, expr: 'gian' },
   like: { L: HANG, R: { e: [0.1, 0.48], t: [0.2, 0.1], hand: 'thumb' }, expr: 'vui' },
-  'nhun-vai': { L: { e: LOW, t: [0.4, 0.4], hand: 'palm' }, R: { e: LOW, t: [0.4, 0.4], hand: 'palm' }, expr: 'lo-lang', shrug: 13, head: 5 },
+  'nhun-vai': { L: { e: [0.16, 0.47], t: [0.46, 0.46], hand: 'palm' }, R: { e: [0.16, 0.47], t: [0.46, 0.46], hand: 'palm' }, expr: 'lo-lang', shrug: 13, head: 5 },
   'di-bo': { L: HANG, R: HANG, expr: 'binh-thuong', legs: 'walk' },
   // ngồi bàn: hai tay đặt lên mặt bàn / bàn phím (cảnh story)
   'go-phim': { L: { e: [0.06, 0.47], t: [-0.16, 0.66], hand: 'relax' }, R: { e: [0.06, 0.47], t: [-0.16, 0.66], hand: 'relax' }, expr: 'binh-thuong', look: [0, 0.6], head: 3 },
   'dat-tay': { L: { e: [0.07, 0.48], t: [-0.3, 0.68], hand: 'relax' }, R: { e: [0.07, 0.48], t: [-0.3, 0.74], hand: 'relax' }, expr: 'binh-thuong', front: 'R' },
 };
 export const POSE_LIST = Object.keys(POSES);
+
+// ───── HƯỚNG CỬ CHỈ (luật cứng — đừng bỏ): tay đưa ra phải hướng VỀ phía nhân vật đang quay tới (người nghe / giữa khung hình).
+// Người quay mặt sang phải mà tay lại mở ngang sang trái thì trông như bẻ tay ra sau lưng ("tay bị ngược").
+// Tư thế trong POSES chỉ viết MỘT chiều; hàm này tự xoay theo `dir` (+1 = quay sang phải khung vẽ, −1 = sang trái, 0 = nhìn thẳng máy quay):
+//   • chỉ một tay mở mà lại nằm phía xa  → lật trái–phải cả tư thế (tay cử chỉ luôn là tay phía gần);
+//   • cả hai tay mở (giai-thich, nhun-vai) và đang quay về người nghe (`fold`) → tay phía xa gập ra trước bụng, không mở ra sau.
+// "Tay mở" = cẳng tay đưa NGANG ra ngoài thân (chi, tay-mo, giai-thich, nhun-vai, ngac-nhien). Bàn tay giơ thẳng cạnh vai/đầu
+// (chao, vui, like, om-dau, nghe-may) không tính: không có hướng, và lật sang phía bạn diễn chỉ làm hai bàn tay chạm nhau ở cảnh cận.
+export const armOpen = (d: ArmDef) => d.t[0] >= 0.25 && d.t[1] > 0.15 && d.t[1] < 0.7;
+const FAR_FOLD: ArmDef = { e: [0.09, 0.5], t: [-0.14, 0.53], hand: 'open' }; // bàn tay ngang bụng, dưới logo ngực
+const mirrorPose = (p: PoseDef): PoseDef => ({ ...p, L: p.R, R: p.L, front: p.front === 'L' ? 'R' : p.front === 'R' ? 'L' : undefined, look: p.look && [-p.look[0], p.look[1]], head: -(p.head ?? 0), lean: -(p.lean ?? 0) });
+export const orientPose = (p: PoseDef, dir: number, fold: boolean): { pose: PoseDef; mirrored: boolean } => {
+  if (!dir) return { pose: p, mirrored: false };
+  const far = (q: PoseDef) => (dir > 0 ? q.L : q.R), near = (q: PoseDef) => (dir > 0 ? q.R : q.L);
+  const mirrored = armOpen(far(p)) && !armOpen(near(p));
+  let q = mirrored ? mirrorPose(p) : p;
+  if (fold && armOpen(far(q)) && armOpen(near(q))) q = dir > 0 ? { ...q, L: FAR_FOLD, front: 'L' } : { ...q, R: FAR_FOLD, front: 'R' };
+  return { pose: q, mirrored };
+};
 // Khung máy: vùng khung (y) cần thấy — scene dùng để phóng/cắt
 export const FRAMING = { 'toan-than': [-14, 1200], 'trung-canh': [-14, 800], 'can-canh': [-14, 470] } as const;
 export type Framing = keyof typeof FRAMING;
@@ -401,7 +422,7 @@ const handShapes = (kind: Hand, tx: number): { d: string[]; lines?: string } => 
   const fist = 'M -16 -8 C -24 8 -27 30 -23 45 C -19 57 -9 61 2 61 C 14 61 22 55 24 43 C 27 28 24 8 16 -8 Z';
   const thumbIn = limb([tx * 19, 12], [tx * 9, 40], 14, 12);
   if (kind === 'open') return { d: [finger(-16, 42, 36, -14), finger(-5.5, 45, 45, -4.5), finger(5.5, 45, 43, 4.5), finger(16, 42, 33, 14), palm, limb([tx * 17, 14], [tx * 46, 34], 14, 11)] };
-  if (kind === 'palm') return { d: [finger(-15.5, 42, 38, -5), finger(-5.2, 44, 46, -1.5), finger(5.2, 44, 44, 1.5), finger(15.5, 42, 35, 5), palm, limb([tx * 17, 14], [tx * 42, 40], 14, 11)], lines: 'M -12 20 Q 0 32 12 20' };
+  if (kind === 'palm') return { d: [finger(-15.5, 42, 38, -5), finger(-5.2, 44, 46, -1.5), finger(5.2, 44, 44, 1.5), finger(15.5, 42, 35, 5), palm, limb([tx * 17, 14], [tx * 42, 40], 14, 11)] };
   if (kind === 'point') return { d: [finger(tx * 11, 40, 56, 0, 12.5), fist, thumbIn], lines: `M ${-tx * 2} 44 L ${-tx * 2} 60 M ${-tx * 12} 42 L ${-tx * 12} 58` };
   // giơ ngón cái: nắm tay nhìn nghiêng (các ngón gập nằm ngang) + ngón cái to, ngắn, dựng ở mép trong
   if (kind === 'thumb') return { d: [limb([tx * 15, 40], [tx * 19, 92], 25, 21), 'M -19 -8 C -26 6 -27 30 -24 46 C -21 58 -10 62 2 62 C 14 62 23 56 25 44 C 28 28 25 8 19 -8 Z'], lines: 'M -4 12 L 20 12 M -6 27 L 21 27 M -5 42 L 20 42' };
@@ -432,7 +453,11 @@ const Arm: React.FC<{ S: V; def: ArmDef; side: 1 | -1; skin: string; o: Outfit; 
   const fo = Math.hypot(T[0] - E[0], T[1] - E[1]);
   const a2 = ang(E, T) + wave + gesture; // cử chỉ khi nói: cẳng tay lắc quanh khuỷu
   const W: V = [E[0] - Math.sin(rad(a2)) * fo, E[1] + Math.cos(rad(a2)) * fo];
-  const tx = Math.cos(rad(a2)) * side * 0.6 - Math.sin(rad(a2)) >= 0 ? 1 : -1; // ngón cái hướng vào trong thân / lên trên
+  // PHÍA NGÓN CÁI (luật cứng — bẫy 18). Bàn tay xoè (open/palm) luôn vẽ nhìn từ MU bàn tay: ngón cái nằm về phía `side`
+  // (tay phải nhân vật — bên trái khung vẽ — ngón cái ở +x của hệ bàn tay, tay trái ngược lại). Cố định theo TAY, không theo góc cẳng tay,
+  // nên không bao giờ ra "bàn tay trái gắn vào tay phải" và ngón cái không nhảy phía khi tay lắc. Tay nắm/chỉ/giơ ngón cái: ngón cái vào trong/lên trên.
+  const flat = def.hand === 'palm' || def.hand === 'open';
+  const tx = flat ? side : Math.cos(rad(a2)) * side * 0.6 - Math.sin(rad(a2)) >= 0 ? 1 : -1;
   const long = o.sleeve === 'long';
   const pad = long ? (o.kind === 'hoodie' ? 10 : o.kind === 'vest' ? 8 : 6) : 0;
   const wU = b.wU + pad, wE = b.wE + pad, wW = b.wW + pad * (o.kind === 'hoodie' ? 1.1 : 0.8);
@@ -441,34 +466,51 @@ const Arm: React.FC<{ S: V; def: ArmDef; side: 1 | -1; skin: string; o: Outfit; 
   const cuffC = o.kind === 'vest' ? '#F4F6FA' : o.kind === 'so-mi' ? light(o.top, 0.45) : o.kind === 'hoodie' ? o.topS : shade(o.top, 0.1);
   const mid = lerpV(S, E, 0.5);
   const sW = b.wU + 10;
-  return (
-    <Two
-      r={(p) => (
+  const shadeC = mix(armC, shade(armC, 0.1), 0.75);
+  // THỨ TỰ LỚP (luật cứng — bẫy 18): bắp tay + tay áo vẽ TRƯỚC, cẳng tay + bàn tay vẽ SAU (nằm trên).
+  // Khuỷu người chỉ gập ra phía trước, nên nhìn chính diện cẳng tay luôn ở trước bắp tay; vẽ ngược lại thì tay giơ lên
+  // trông như luồn ra sau vai/tay áo ("tay bị ngược").
+  const kJ = 0.74; // đoạn cuối bắp tay tô đè lại để xoá nét viền đầu tròn của cẳng tay ngay khớp khuỷu (không lộ đường nối)
+  const J = lerpV(S, E, kJ), wJ = lerp(wU, wE, kJ);
+  const upper = (p: Pass) => (
+    <>
+      {sp(p, limb(S, E, wU, wE), armC)}
+      {!long && sp(p, limb(S, mid, sW, sW - 5, true, false), o.top)}
+      {!long && o.kind === 'misa' && sp(p, band(lerpV(S, E, 0.405), mid, sW - 4, sW - 5), SHIRT.dark)}
+      {p === 'f' && (
         <>
-          {sp(p, limb(E, long ? lerpV(E, W, 1.0) : W, wE, wW), armC)}
-          <g transform={`translate(${W[0].toFixed(1)} ${W[1].toFixed(1)}) rotate(${a2.toFixed(1)})`}>
-            <HandG pass={p} kind={def.hand ?? 'relax'} skin={skin} dir={a2} tx={tx} k={b.hand} />
-          </g>
-          {long && sp(p, band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4), cuffC)}
-          {sp(p, limb(S, E, wU, wE), armC)}
-          {!long && sp(p, limb(S, mid, sW, sW - 5, true, false), o.top)}
-          {!long && o.kind === 'misa' && sp(p, band(lerpV(S, E, 0.405), mid, sW - 4, sW - 5), SHIRT.dark)}
-          {p === 'f' && (
-            <>
-              <path d={shadeStrip(E, W, wE, wW, side)} fill={shade(armC, 0.1)} opacity={0.75} />
-              <path d={shadeStrip(S, E, wU, wE, side)} fill={shade(armC, 0.1)} opacity={0.75} />
-              {!long && <path d={limb(S, mid, sW, sW - 5, true, false)} fill={o.top} />}
-              {!long && o.kind === 'misa' && <path d={band(lerpV(S, E, 0.405), mid, sW - 4, sW - 5)} fill={SHIRT.dark} />}
-              {!long && o.kind === 'misa' && <path d={band(lerpV(S, E, 0.438), lerpV(S, E, 0.458), sW - 4.4, sW - 4.6)} fill={SHIRT.red} />}
-              {!long && o.kind !== 'misa' && <path d={band(lerpV(S, E, 0.455), mid, sW - 4.6, sW - 5)} fill={o.topS} />}
-              {long && <path d={band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4)} fill={cuffC} />}
-              {long && o.kind === 'hoodie' && [0.9, 0.94, 0.98].map((t) => <path key={t} d={band(lerpV(E, W, t), lerpV(E, W, t + 0.008), wW + 4)} fill={shade(o.top, 0.3)} />)}
-              {long && o.kind === 'so-mi' && <circle cx={lerpV(E, W, 0.94)[0]} cy={lerpV(E, W, 0.94)[1]} r={2.6} fill={shade(o.top, 0.3)} />}
-            </>
-          )}
+          <path d={shadeStrip(S, J, wU, wJ, side)} fill={shadeC} />
+          {!long && <path d={limb(S, mid, sW, sW - 5, true, false)} fill={o.top} />}
+          {!long && o.kind === 'misa' && <path d={band(lerpV(S, E, 0.405), mid, sW - 4, sW - 5)} fill={SHIRT.dark} />}
+          {!long && o.kind === 'misa' && <path d={band(lerpV(S, E, 0.438), lerpV(S, E, 0.458), sW - 4.4, sW - 4.6)} fill={SHIRT.red} />}
+          {!long && o.kind !== 'misa' && <path d={band(lerpV(S, E, 0.455), mid, sW - 4.6, sW - 5)} fill={o.topS} />}
         </>
       )}
-    />
+    </>
+  );
+  const fore = (p: Pass) => (
+    <>
+      {sp(p, limb(E, long ? lerpV(E, W, 1.0) : W, wE, wW), armC)}
+      <g transform={`translate(${W[0].toFixed(1)} ${W[1].toFixed(1)}) rotate(${a2.toFixed(1)})`}>
+        <HandG pass={p} kind={def.hand ?? 'relax'} skin={skin} dir={a2} tx={tx} k={b.hand} />
+      </g>
+      {long && sp(p, band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4), cuffC)}
+      {p === 'f' && (
+        <>
+          <path d={limb(J, E, wJ, wE, false, true)} fill={armC} />
+          <path d={shadeStrip(E, W, wE, wW, side)} fill={shadeC} />
+          {long && <path d={band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4)} fill={cuffC} />}
+          {long && o.kind === 'hoodie' && [0.9, 0.94, 0.98].map((t) => <path key={t} d={band(lerpV(E, W, t), lerpV(E, W, t + 0.008), wW + 4)} fill={shade(o.top, 0.3)} />)}
+          {long && o.kind === 'so-mi' && <circle cx={lerpV(E, W, 0.94)[0]} cy={lerpV(E, W, 0.94)[1]} r={2.6} fill={shade(o.top, 0.3)} />}
+        </>
+      )}
+    </>
+  );
+  return (
+    <>
+      <Two r={upper} />
+      <Two r={fore} />
+    </>
   );
 };
 
@@ -606,17 +648,26 @@ export type PersonProps = {
   turn?: number; // -1 … 1 (quay mặt nhẹ sang trái/phải)
   height: number; // chiều cao vẽ của khung 600×1200
   flip?: boolean;
+  face?: number; // nhân vật đang quay về phía nào TRÊN MÀN HÌNH để nói chuyện (+1 phải, −1 trái, 0 thẳng) → tay cử chỉ hướng về đó, tay kia gập trước bụng. Không truyền thì suy từ `look`.
+  aim?: number; // đứng một mình lệch một bên: phía giữa khung hình (+1/−1) → cử chỉ một tay (chi, tay-mo…) quay vào trong, không gập tay kia
   walk?: number; // pha bước chân (khi pose = di-bo)
   style?: React.CSSProperties;
 };
 
-export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, poseT = 1, expr, mouth = 0, frame = 0, look = 0, turn = 0, height, flip, walk, style }) => {
+export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, poseT = 1, expr, mouth = 0, frame = 0, look: lookS = 0, turn: turnS = 0, height, flip, face, aim, walk, style }) => {
+  // `flip` lật ngang cả khung vẽ → mọi hướng tính theo màn hình phải đổi dấu, nếu không nhân vật lật sẽ nhìn/quay/đưa tay ngược phía
+  const sx = flip ? -1 : 1;
+  const look = lookS * sx, turn = turnS * sx;
+  const faceDir = Math.sign(face ?? (Math.abs(lookS) > 0.3 ? lookS : 0)) * sx;
+  const dir = faceDir || Math.sign(aim ?? 0) * sx;
   const uid = 'p' + useId().replace(/[^a-zA-Z0-9]/g, '');
   const f = spec.gender === 'nu';
   const b = bodyOf(f);
-  const P1 = POSES[pose] ?? POSES.dung;
-  const P0 = poseFrom && POSES[poseFrom] && poseT < 1 ? POSES[poseFrom] : P1;
-  const t = P0 === P1 ? 1 : Math.max(0, Math.min(1, poseT));
+  const O1 = orientPose(POSES[pose] ?? POSES.dung, dir, faceDir !== 0);
+  const P1 = O1.pose;
+  const blend = !!poseFrom && !!POSES[poseFrom] && poseT < 1 && poseFrom !== pose;
+  const P0 = blend ? orientPose(POSES[poseFrom!], dir, faceDir !== 0).pose : P1;
+  const t = blend ? Math.max(0, Math.min(1, poseT)) : 1;
   const te = t * t * (3 - 2 * t);
   const mixArm = (a0: ArmDef, b0: ArmDef): ArmDef => { const a = solveArm(a0, b), c = solveArm(b0, b); return { t: lerpV(a.t, c.t, te), e: lerpV(a.e!, c.e!, te), hand: t < 0.5 ? a.hand : c.hand }; };
   const P: PoseDef = { ...P1, L: mixArm(P0.L, P1.L), R: mixArm(P0.R, P1.R), shrug: lerp(P0.shrug ?? 0, P1.shrug ?? 0, te), lean: lerp(P0.lean ?? 0, P1.lean ?? 0, te), head: lerp(P0.head ?? 0, P1.head ?? 0, te) };
@@ -642,9 +693,11 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
   if (ek === 'buon' || ek === 'khoc') shrug -= 4;
   const nod = talking ? Math.sin(frame / 4.2) * 1.4 * mouth : 0;
   const gest = talking ? Math.sin(frame / 5.5 + seed) * 9 * Math.min(1, mouth * 1.6) : 0;
-  const gestureR = ['tay-mo', 'giai-thich', 'chi', 'nhun-vai'].includes(pose) ? gest : 0;
-  const gestureL = ['giai-thich', 'nhun-vai'].includes(pose) ? -gest * 0.8 : 0;
+  // tay chính (R trong POSES; là L khi tư thế bị lật) lắc mạnh, tay còn lại của tư thế hai tay lắc nhẹ hơn
+  const gMain = ['tay-mo', 'giai-thich', 'chi', 'nhun-vai'].includes(pose) ? gest : 0;
+  const gSub = ['giai-thich', 'nhun-vai'].includes(pose) ? gest * 0.8 : 0;
   const wave = pose === 'chao' ? Math.sin(frame / 3.6) * 11 : 0;
+  const flipped = O1.mirrored; // tư thế đã bị lật trái–phải
 
   // chân
   const vay = o.bottomKind === 'vay';
@@ -700,8 +753,11 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
   );
 
   const shL: V = [300 - b.sh, b.shY - shrug], shR: V = [300 + b.sh, b.shY - shrug];
-  const armL = <Arm S={shL} def={P.L} side={1} skin={skin} o={o} b={b} wave={0} gesture={gestureL} />;
-  const armR = <Arm S={shR} def={P.R} side={-1} skin={skin} o={o} b={b} wave={wave} gesture={-gestureR} />;
+  // tư thế hai tay: tay phía gần người nghe lắc mạnh, tay phía xa (đang gập trước bụng) chỉ nhúc nhích
+  const gL = gSub ? (dir < 0 ? gMain : -gSub * (dir > 0 ? 0.5 : 1)) : flipped ? gMain : 0;
+  const gR = gSub ? (dir < 0 ? gSub * 0.5 : -gMain) : flipped ? 0 : -gMain;
+  const armL = <Arm S={shL} def={P.L} side={1} skin={skin} o={o} b={b} wave={flipped ? -wave : 0} gesture={gL} />;
+  const armR = <Arm S={shR} def={P.R} side={-1} skin={skin} o={o} b={b} wave={flipped ? 0 : wave} gesture={gR} />;
   const lk: [number, number] = [P1.look?.[0] ?? look, P1.look?.[1] ?? 0];
   const w = height * 0.5;
   const nk = b.neck;

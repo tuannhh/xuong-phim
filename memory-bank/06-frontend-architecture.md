@@ -15,6 +15,14 @@
 - `Episode.tsx` nhận `build/timed.json` làm props; `TransitionSeries` nối các cảnh; `scenes/index.ts` ánh xạ `type` → component.
 - Template: `hook, title, bullets, stat, quote, compare, steps, icons, chart, kinetic, chat, phone, alert, figure, character, talk, story, outro, custom` (danh sách kiểm ở `tools/ep.mjs`).
 - **Cảnh `story`** (`scenes/story.tsx` + `kit/Sets.tsx`): bối cảnh nhiều lớp (`van-phong` ngày/chiều/tối, `nha` đêm/ngày, `hang-o`), nhân vật ngồi sau bàn tiền cảnh, máy quay `toan|trung|can|man-hinh` + đẩy chậm, nhãn bật (`tag|chip|alert|big|note`), chèn màn hình điện thoại / bảng tổng kết, phụ đề trắng viền đậm trên mặt bàn + nhãn tên người nói (đỏ nếu `villain`).
-- **Nhân vật** (`kit/Character.tsx`): minh hoạ phẳng ~6 đầu, vẽ hai lượt viền → tô; 19 tư thế, 14 biểu cảm, 6 trang phục; khuỷu tay gần thân, cử chỉ ở cẳng tay/bàn tay.
+- **Nhân vật** (`kit/Character.tsx`): minh hoạ phẳng ~6 đầu, vẽ hai lượt viền → tô; 19 tư thế, 14 biểu cảm, 6 trang phục; khuỷu tay gần thân, cử chỉ ở cẳng tay/bàn tay. Hướng cử chỉ tự xoay theo phía nhân vật quay tới (`orientPose`; cảnh truyền `face`/`aim`) — bẫy 17.
 - **Logo** (`kit/MisaLogo.tsx`): sinh nguyên hình từ `assets/brand/misa-logo.svg`, luôn kèm khẩu hiệu.
 - **LayoutProbe** (`kit/LayoutProbe.tsx`): khi chụp storyboard, đo chữ đè chữ / đè `[data-person]` / tràn khung → `storyboard/layout.json`.
+
+## Bổ sung 2026-11-22 (đổi tên "Xưởng phim")
+
+- Header: logo MISA bản đầy đủ có khẩu hiệu (`/api/brand/misa-logo.svg`, nguyên hình, đặt trên tấm nền trắng vát góc) + chữ "Xưởng phim". Menu: Series của tôi · + Series mới · Thiết lập (`#/settings`; `#/drive` cũ chuyển về đây).
+- Form: mục 2 "Nguồn nội dung" — 3 lựa chọn `sourceMode`; khác `claude` thì hiện ô kéo thả file (series mới: giữ trong trình duyệt, tạo series xong mới tải lên), danh sách link Drive / đường dẫn trên máy (kèm ghi chú lấy phần nào), gợi ý quyền đọc Drive.
+- Trang series: nút "Mở thư mục phim"; thẻ "Nguồn nội dung" ở cột phải (số file/link, lần đọc gần nhất, file không đọc được); mỗi phim có dòng "Trên máy: <đường dẫn>"; mục "Sửa lời thoại" (tải lười khi mở; chữ đang sửa giữ trong `DRAFT` qua các lần vẽ lại).
+- Trang Thiết lập: thư mục phim (Lưu / Mở thư mục; Docker thì khoá) + Google Drive (thêm nút "Cho phép đọc tư liệu trên Drive").
+- Cảnh Remotion mới `photo` (`remotion/scenes/special.tsx`): ảnh tư liệu trong khung bo góc theo `ratio`, trôi chậm Ken Burns, nhiều ảnh thì chuyển theo câu thoại (dùng `revealFrames`), chú thích + nguồn; SFX `camera` khi vào cảnh, `whoosh-soft` khi đổi ảnh.

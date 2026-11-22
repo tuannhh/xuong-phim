@@ -1,0 +1,618 @@
+{
+ "id": "ep05",
+ "number": 5,
+ "title": "Kẻ gian mượn tên MISA",
+ "logline": "Chị Hạnh, chủ cửa hàng dùng phần mềm MISA, nhận cuộc gọi “nhân viên MISA” doạ khoá phần mềm, đòi chuyển phí vào tài khoản cá nhân, rồi thêm email giả đổi số tài khoản. Chị gọi hỏi Lan: đó là mạo danh. Minh tổng kết cả series: Dừng lại – Kiểm tra – Báo ngay.",
+ "target": 70,
+ "characters": [
+  {
+   "id": "minh",
+   "name": "Minh",
+   "kind": "misa",
+   "gender": "nam",
+   "hair": "ngan",
+   "voice": "Hải Đăng",
+   "geminiVoice": "Charon",
+   "role": "nhân viên MISA, người dẫn chuyện"
+  },
+  {
+   "id": "lan",
+   "name": "Lan",
+   "kind": "misa",
+   "gender": "nu",
+   "hair": "buoc",
+   "voice": "Ngọc Huyền",
+   "geminiVoice": "Kore",
+   "role": "nhân viên MISA chăm sóc khách hàng"
+  },
+  {
+   "id": "hanh",
+   "name": "Chị Hạnh",
+   "kind": "ao-thun",
+   "outfitColor": "#3E9C8F",
+   "gender": "nu",
+   "hair": "dai",
+   "hairColor": "#2E1C14",
+   "age": "trung-nien",
+   "voice": "Trúc Ly",
+   "geminiVoice": "Leda",
+   "role": "chủ cửa hàng, khách hàng dùng phần mềm MISA"
+  },
+  {
+   "id": "gian",
+   "name": "Kẻ gian",
+   "kind": "hoodie",
+   "gender": "nam",
+   "hair": "tia",
+   "voice": "Quốc Tuấn",
+   "geminiVoice": "Puck",
+   "role": "kẻ lừa đảo mạo danh nhân viên MISA",
+   "villain": true
+  }
+ ],
+ "scenes": [
+  {
+   "id": "s01",
+   "type": "story",
+   "props": {
+    "set": "hang-o",
+    "label": "Phần 1 · Cuộc gọi “từ MISA”",
+    "actors": [
+     {
+      "id": "gian",
+      "x": 0.42,
+      "pose": "nghe-may",
+      "expr": "gian-xao"
+     }
+    ],
+    "desk": [
+     {
+      "kind": "ban-phim",
+      "x": 0.42
+     },
+     {
+      "kind": "lon",
+      "x": 0.1
+     },
+     {
+      "kind": "giay",
+      "x": 0.86
+     }
+    ],
+    "pops": [
+     {
+      "kind": "chip",
+      "text": "Ổ lừa đảo · 9:30",
+      "icon": "eye",
+      "at": [
+       0.42,
+       0.215
+      ],
+      "on": 1,
+      "delay": 0
+     },
+     {
+      "kind": "tag",
+      "text": "Mạo danh MISA",
+      "icon": "venetian-mask",
+      "tone": "do",
+      "at": [
+       0.8,
+       0.36
+      ],
+      "on": 1,
+      "delay": 1.2,
+      "rot": 3
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Alo, em gọi từ *MISA*. Phần mềm của chị sắp bị *khoá*!",
+     "speaker": "gian",
+     "expr": "gian-xao"
+    }
+   ],
+   "pad": 0.8
+  },
+  {
+   "id": "s02",
+   "type": "story",
+   "transition": "wipe",
+   "props": {
+    "set": "nha",
+    "time": "ngay",
+    "actors": [
+     {
+      "id": "hanh",
+      "x": 0.32,
+      "pose": "nghe-may",
+      "expr": "binh-thuong"
+     }
+    ],
+    "desk": [
+     {
+      "kind": "laptop",
+      "x": 0.68
+     },
+     {
+      "kind": "coc",
+      "x": 0.88
+     }
+    ],
+    "pops": [
+     {
+      "kind": "chip",
+      "text": "Cửa hàng chị Hạnh · 9:30",
+      "icon": "store",
+      "at": [
+       0.36,
+       0.215
+      ],
+      "on": 1,
+      "delay": 0
+     },
+     {
+      "kind": "alert",
+      "text": "Mất dữ liệu?!",
+      "at": [
+       0.72,
+       0.36
+      ],
+      "on": 2,
+      "delay": 0.3
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Chị chuyển ngay *phí gia hạn*, không là mất hết dữ liệu.",
+     "speaker": "gian"
+    },
+    {
+     "text": "Chết, sổ sách cả năm của tôi nằm *trong đó*!",
+     "speaker": "hanh",
+     "expr": "so",
+     "pose": "om-dau"
+    }
+   ],
+   "pad": 0.8
+  },
+  {
+   "id": "s03",
+   "type": "story",
+   "transition": "slide",
+   "props": {
+    "set": "hang-o",
+    "label": "Phần 2 · Sau màn hình",
+    "actors": [
+     {
+      "id": "gian",
+      "x": 0.4,
+      "pose": "go-phim",
+      "expr": "gian-xao",
+      "prop": "laptop"
+     }
+    ],
+    "desk": [
+     {
+      "kind": "tien",
+      "x": 0.86
+     }
+    ],
+    "pops": [
+     {
+      "kind": "note",
+      "text": "*Kịch bản*\n1. Doạ khoá phần mềm\n2. Đòi chuyển phí gấp\n3. Bắt cài ứng dụng",
+      "at": [
+       0.79,
+       0.37
+      ],
+      "on": 1,
+      "delay": 0.8
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Kẻ gian mượn tên MISA, đánh vào nỗi sợ *mất dữ liệu*."
+    },
+    {
+     "text": "Không chuyển thì cài ứng dụng này, em *hỗ trợ từ xa*.",
+     "speaker": "gian",
+     "pose": "chi"
+    }
+   ],
+   "pad": 0.7
+  },
+  {
+   "id": "s04",
+   "type": "story",
+   "transition": "wipe",
+   "props": {
+    "set": "nha",
+    "time": "ngay",
+    "actors": [
+     {
+      "id": "hanh",
+      "x": 0.32,
+      "pose": "dien-thoai"
+     }
+    ],
+    "screen": {
+     "device": "dien-thoai",
+     "app": "Hỗ trợ phần mềm",
+     "sub": "Người lạ · Zalo",
+     "avatar": "H",
+     "clock": "9:35",
+     "color": "#1E4FA8",
+     "items": [
+      {
+       "in": "Phí gia hạn *3.500.000đ*. Hạn chót *11 giờ* hôm nay.",
+       "on": 1
+      },
+      {
+       "in": "Chị chuyển vào STK 0123•••• · *TRAN VAN B* nhé.",
+       "on": 2
+      },
+      {
+       "in": "Hoặc cài ứng dụng để em *điều khiển máy* giúp chị.",
+       "on": 2
+      },
+      {
+       "btn": "Cho phép điều khiển máy",
+       "tone": "do",
+       "on": 2
+      }
+     ]
+    }
+   },
+   "lines": [
+    {
+     "text": "Tin nhắn tới tấp: phí gia hạn, *hạn chót* ngay trong buổi sáng."
+    },
+    {
+     "text": "Người nhận là *tài khoản cá nhân*, kèm lời mời cài ứng dụng *điều khiển máy*."
+    }
+   ],
+   "pad": 0.7
+  },
+  {
+   "id": "s05",
+   "type": "story",
+   "transition": "fade",
+   "props": {
+    "set": "nha",
+    "time": "ngay",
+    "actors": [
+     {
+      "id": "hanh",
+      "x": 0.32,
+      "pose": "dien-thoai"
+     }
+    ],
+    "screen": {
+     "device": "dien-thoai",
+     "app": "Hộp thư",
+     "sub": "Email mới · 9:42",
+     "avatar": "M",
+     "clock": "9:42",
+     "color": "#C2410C",
+     "items": [
+      {
+       "in": "Từ: ketoan@*rnisa*-cskh.online",
+       "on": 1
+      },
+      {
+       "in": "Thông báo: MISA *đổi số tài khoản* nhận thanh toán từ hôm nay.",
+       "on": 1
+      },
+      {
+       "warn": "Chữ *r* + chữ *n* ghép lại trông như chữ *m*",
+       "on": 2
+      }
+     ]
+    }
+   },
+   "lines": [
+    {
+     "text": "Rồi thêm một email: MISA *đổi số tài khoản* nhận tiền."
+    },
+    {
+     "text": "Soi kỹ địa chỉ: chữ *r* với chữ *n* ghép lại, trông như chữ *m*.",
+     "say": "Soi kỹ địa chỉ: chữ rờ với chữ nờ ghép lại, trông như chữ mờ."
+    }
+   ],
+   "pad": 0.8
+  },
+  {
+   "id": "s06",
+   "type": "story",
+   "transition": "fade",
+   "props": {
+    "set": "nha",
+    "time": "ngay",
+    "shot": "can",
+    "focus": "hanh",
+    "actors": [
+     {
+      "id": "hanh",
+      "x": 0.5,
+      "pose": "dien-thoai",
+      "expr": "nghi-ngo"
+     }
+    ],
+    "pops": [
+     {
+      "kind": "tag",
+      "text": "Khoan đã!",
+      "icon": "hand",
+      "tone": "vang",
+      "over": "hanh",
+      "on": 1,
+      "delay": 0.3
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Sao lại gấp thế? Để tôi hỏi *Lan* bên MISA đã.",
+     "speaker": "hanh",
+     "expr": "nghi-ngo",
+     "pose": "nghi"
+    }
+   ],
+   "pad": 0.8
+  },
+  {
+   "id": "s07",
+   "type": "story",
+   "transition": "slide",
+   "props": {
+    "set": "van-phong",
+    "logo": true,
+    "label": "Phần 3 · Hỏi đúng người",
+    "actors": [
+     {
+      "id": "lan",
+      "x": 0.29,
+      "pose": "nghe-may",
+      "expr": "binh-thuong"
+     },
+     {
+      "id": "minh",
+      "x": 0.71,
+      "pose": "go-phim",
+      "expr": "binh-thuong",
+      "prop": "laptop"
+     }
+    ],
+    "desk": [
+     {
+      "kind": "coc",
+      "x": 0.9
+     }
+    ],
+    "pops": [
+     {
+      "kind": "chip",
+      "text": "Văn phòng MISA · 9:50",
+      "icon": "clock",
+      "at": [
+       0.4,
+       0.215
+      ],
+      "on": 1,
+      "delay": 0
+     },
+     {
+      "kind": "tag",
+      "text": "Khách hàng gọi",
+      "icon": "phone-incoming",
+      "tone": "cam",
+      "over": "lan",
+      "on": 1,
+      "delay": 0.8,
+      "off": 2
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Lan ơi, bên em vừa gọi bảo chị *chuyển phí*, đúng không?",
+     "speaker": "hanh",
+     "react": {
+      "lan": "ngac-nhien"
+     }
+    },
+    {
+     "text": "Chị ơi, *không phải* bên em đâu! Chị đừng chuyển nhé.",
+     "speaker": "lan",
+     "expr": "lo-lang",
+     "pose": "nghe-may",
+     "react": {
+      "minh": "lo-lang"
+     }
+    }
+   ],
+   "pad": 0.7
+  },
+  {
+   "id": "s08",
+   "type": "story",
+   "transition": "fade",
+   "props": {
+    "set": "van-phong",
+    "logo": true,
+    "actors": [
+     {
+      "id": "lan",
+      "x": 0.29,
+      "pose": "nghe-may",
+      "expr": "binh-thuong"
+     },
+     {
+      "id": "minh",
+      "x": 0.71,
+      "pose": "dat-tay",
+      "expr": "binh-thuong"
+     }
+    ],
+    "desk": [
+     {
+      "kind": "coc",
+      "x": 0.9
+     }
+    ],
+    "pops": [
+     {
+      "kind": "tag",
+      "text": "Chặn kịp!",
+      "icon": "shield-check",
+      "tone": "xanh",
+      "at": [
+       0.4,
+       0.215
+      ],
+      "on": 1,
+      "delay": 0.6,
+      "rot": -2
+     }
+    ]
+   },
+   "lines": [
+    {
+     "text": "Có gì lạ, chị cứ gọi *em* hoặc số in trên *hợp đồng* nhé.",
+     "speaker": "lan",
+     "expr": "tu-tin",
+     "pose": "nghe-may"
+    },
+    {
+     "text": "Kẻ gian mượn tên mình, thì mình phải *nhắc khách* trước.",
+     "speaker": "minh",
+     "expr": "tu-tin",
+     "pose": "tay-mo",
+     "react": {
+      "lan": {
+       "expr": "vui",
+       "pose": "like"
+      }
+     }
+    }
+   ],
+   "pad": 0.7
+  },
+  {
+   "id": "s09",
+   "type": "compare",
+   "transition": "slide-up",
+   "props": {
+    "heading": "Nhận diện *MISA giả*",
+    "left": {
+     "title": "Kẻ mạo danh",
+     "tone": "bad",
+     "items": [
+      "Doạ *khoá phần mềm*, mất dữ liệu",
+      "Đòi chuyển vào *tài khoản cá nhân*",
+      "Gửi link cài *điều khiển từ xa*"
+     ]
+    },
+    "right": {
+     "title": "Bạn nên làm",
+     "tone": "good",
+     "items": [
+      "Bình tĩnh, *chưa chuyển* vội",
+      "Gọi lại *người chăm sóc* hoặc số trên hợp đồng",
+      "Chỉ cho điều khiển máy khi *chính mình* gọi lên"
+     ]
+    }
+   },
+   "lines": [
+    {
+     "text": "Doạ khoá phần mềm, đòi chuyển *tài khoản cá nhân*: đó là *MISA giả*."
+    },
+    {
+     "text": "Hãy gọi lại *người chăm sóc* hoặc số trên *hợp đồng* để hỏi."
+    }
+   ],
+   "pad": 0.8
+  },
+  {
+   "id": "s10",
+   "type": "story",
+   "transition": "slide",
+   "props": {
+    "set": "van-phong",
+    "actors": [
+     {
+      "id": "lan",
+      "x": 0.29,
+      "pose": "dat-tay"
+     },
+     {
+      "id": "minh",
+      "x": 0.71,
+      "pose": "giai-thich"
+     }
+    ],
+    "screen": {
+     "device": "bang",
+     "title": "Cả series · nhớ 3 bước",
+     "icon": "shield-check",
+     "rows": [
+      {
+       "text": "*Dừng lại*",
+       "sub": "Bị hối thúc, doạ dẫm, bắt giữ bí mật",
+       "on": 1
+      },
+      {
+       "text": "*Kiểm tra*",
+       "sub": "Gọi lại qua số mình đã biết",
+       "on": 2
+      },
+      {
+       "text": "*Báo ngay*",
+       "sub": "Ngân hàng, công an, người thân",
+       "on": 3
+      }
+     ]
+    }
+   },
+   "lines": [
+    {
+     "text": "Cả series chỉ cần nhớ. Một: *dừng lại* khi bị hối thúc.",
+     "speaker": "minh"
+    },
+    {
+     "text": "Hai: *kiểm tra* lại qua số mình đã biết.",
+     "speaker": "minh"
+    },
+    {
+     "text": "Ba: *báo ngay* ngân hàng, công an và người thân.",
+     "speaker": "minh"
+    }
+   ],
+   "pad": 0.9
+  },
+  {
+   "id": "s11",
+   "type": "outro",
+   "transition": "fade",
+   "character": {
+    "id": "minh",
+    "pose": "chao",
+    "position": "center"
+   },
+   "props": {
+    "logo": "misa",
+    "cta": "Chia sẻ cho *khách hàng* bạn đang chăm sóc",
+    "handle": "Người MISA cảnh giác"
+   },
+   "lines": [
+    {
+     "text": "Chia sẻ cho khách hàng và người thân nhé. Người MISA, luôn cảnh giác!"
+    }
+   ]
+  }
+ ]
+}

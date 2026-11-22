@@ -32,3 +32,15 @@
 - Client secret + refresh token lưu `~/.config/xuong-phim/google.json` (thư mục 700, file 600, ghi nguyên tử), ngoài repo; API chỉ trả về `configured/connected/account`.
 - Chỉ tải lên file trong `series/<slug>/episodes/epNN/out/` (đường dẫn do máy chủ tự ghép, không nhận đường dẫn từ trình duyệt). Ngắt kết nối = gọi revoke của Google + xoá token.
 - Refresh token bị thu hồi/hết hạn (`invalid_grant`) → xoá token, báo người dùng kết nối lại. Ứng dụng OAuth để chế độ "Testing" với tài khoản ngoài tổ chức thì refresh token hết hạn sau 7 ngày — dùng "Internal" (Workspace) hoặc publish ứng dụng (quyền drive.file không cần Google thẩm định).
+
+## Tư liệu & thư mục phim (2026-11-22)
+
+| Điểm | Thiết kế |
+|---|---|
+| Tải file lên | Header `x-xuong` + cùng nguồn như mọi lệnh ghi; tên file làm sạch (bỏ `/ \ : * ? " < > |`, ký tự điều khiển, dấu chấm đầu) → không thoát thư mục; chỉ nhận đuôi tài liệu/ảnh (không SVG/HTML để khỏi chạy mã khi xem qua `/files`); ≤ 300 MB, ghi `.part` rồi đổi tên |
+| Tư liệu riêng tư | `series/*/tu-lieu/`, `series/*/.studio/tu-lieu/` đã gitignore — không lên GitHub. Ảnh Claude chọn đưa vào `episodes/*/assets/` thì có commit (repo riêng tư) |
+| Drive đọc | Quyền `drive.readonly` chỉ xin khi người dùng bấm; không có thì chỉ tải link công khai (gửi tới Google đúng id file người dùng dán) |
+| Đường dẫn trên máy | Phải tuyệt đối; claude chỉ được đọc thêm đúng các thư mục đó (`--add-dir`), quyền ghi vẫn giới hạn trong repo theo `acceptEdits` |
+| Chế độ "chỉ tư liệu" | Bỏ WebSearch/WebFetch khỏi danh sách công cụ của claude (không chỉ dặn trong câu lệnh) |
+| Thư mục phim | Đường dẫn tuyệt đối, phải ghi được; chỉ xoá bản cũ nằm trong thư mục phim và do chính xưởng ghi (`out/export.json`) |
+| Docker | Trong container nghe 0.0.0.0 nhưng compose chỉ publish `127.0.0.1:4710`; Host header vẫn phải là localhost; thư mục tư liệu gắn chỉ-đọc; token Claude/Gemini qua `.env` (gitignore), không nằm trong image |

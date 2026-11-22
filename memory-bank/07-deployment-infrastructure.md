@@ -5,7 +5,7 @@
 | Môi trường | Trạng thái | Ghi chú |
 |---|---|---|
 | Máy cá nhân macOS Apple Silicon | Đang dùng | Node 24, pnpm 9, uv, ffmpeg 7, Claude Code CLI |
-| Docker | Chưa có Dockerfile | Đánh giá bên dưới |
+| Docker | Có (`Dockerfile`, `docker-compose.yml`) | Mục Docker bên dưới |
 | Cloud Run | Chưa làm | **Không tự triển khai** — chỉ khi chủ dự án yêu cầu |
 
 ## Cài trên máy mới
@@ -42,17 +42,30 @@ Biến bỏ bước: `XUONG_SKIP_TTS=1`, `XUONG_SKIP_SKILL=1`, `XUONG_SKIP_CLAUD
 | File khoá Gemini API / service account | Dự phòng giọng đọc | Không — chỉ cần nếu muốn Gemini |
 | `series/*/.studio/gop-y.md` | Góp ý tạm từ trang web | — |
 | `~/.config/xuong-phim/google.json` | OAuth client + token Google Drive (quyền 600) | Không — chỉ khi dùng Drive |
+| `~/.config/xuong-phim/settings.json` | Thư mục phim chung (trang Thiết lập) | Không — mặc định `~/Movies/Xưởng phim` |
+| `series/*/tu-lieu/`, `series/*/.studio/tu-lieu/` | Tư liệu người dùng + bản đọc | — |
+| `series/*/episodes/*/out/export.json` | Đường dẫn bản chép trong thư mục phim của máy này | — |
+| `.env` | Biến cho docker compose (mẫu `.env.example`) | Chỉ khi chạy Docker |
 | `series/*/.studio/drive.json`, `out/drive.json` | id thư mục/file Drive gắn với tài khoản trên máy này | — |
 
-**Biến môi trường:** `PORT` (trang web, mặc định 4710), `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác), `GEMINI_API_KEY` (ghi đè file khoá), `LEMO_LIB` (thư viện lemo-opuscar), `XUONG_CONFIG_DIR` (thư mục cấu hình Drive), `STUDIO_GOOGLE_BASE` (chỉ để kiểm thử với máy chủ Google giả lập).
+**Biến môi trường:** `PORT` (trang web, mặc định 4710), `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác), `GEMINI_API_KEY` (ghi đè file khoá), `LEMO_LIB` (thư viện lemo-opuscar), `XUONG_CONFIG_DIR` (thư mục cấu hình), `XUONG_OUTPUT_DIR` (thư mục phim, ghi đè trang Thiết lập), `XUONG_OUTPUT_HOST_PATH` (Docker: đường dẫn máy thật để hiển thị), `XUONG_DOCKER`, `STUDIO_GOOGLE_BASE` (chỉ để kiểm thử với máy chủ Google giả lập).
 
-## Đánh giá Docker / Cloud Run (2026-11-22, chưa thực hiện)
+## Docker (2026-11-22)
 
-**Docker — làm được, hợp để mang sang máy khác / máy chủ nội bộ.** Cần image Linux có Node + pnpm, Chrome headless của Remotion (thư viện hệ thống + font), ffmpeg, uv + Python, VieNeu-TTS (model Hugging Face nên để ở volume để không tải lại). Lưu ý:
-- `series/` phải là volume, nếu không mất dữ liệu khi xoá container.
-- VieNeu trong Docker chạy CPU (trên Mac, Docker không dùng được GPU Apple) — hiện ngoài Docker cũng đang chạy CPU nên chênh không lớn; render Remotion trong Docker trên Mac chậm hơn chạy thẳng.
-- Nút AI cần `claude` trong container và đăng nhập: gắn thư mục đăng nhập của máy vào, hoặc dùng `ANTHROPIC_API_KEY` (tính tiền theo API, không theo gói thuê bao).
-- Máy chủ đang nghe `127.0.0.1` → trong container phải nghe `0.0.0.0` và chỉ publish cổng ra `127.0.0.1` của máy host.
+```bash
+cp .env.example .env          # XUONG_OUTPUT_DIR, TU_LIEU_DIR, CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY, GEMINI_API_KEY
+docker compose up -d --build  # → http://localhost:4710
+```
+
+- Image (`Dockerfile`): node:24-bookworm-slim + ffmpeg + thư viện Chrome headless của Remotion + font emoji → uv 0.13.9 → VieNeu-TTS clone vào `/opt/vieneu` (ghim `VIENEU_REF=6566468`, `uv sync --frozen --no-dev`) → Claude CLI (`WITH_CLAUDE=1`) → `pnpm install` → `uv sync` → Chrome headless → mã xưởng → font, kho SFX, `config.env` trỏ `/opt/vieneu`, lệnh `/usr/local/bin/tts-vi`, skill gắn vào `/root/.claude/skills/series`. Lớp nặng (VieNeu, thư viện) đứng trước `COPY . .` nên sửa mã chỉ build lại vài giây.
+- Biến trong image: `XUONG_DOCKER=1` (máy chủ nghe `0.0.0.0`, tắt nút "Mở thư mục", khoá thư mục phim), `XUONG_CONFIG_DIR=/data/config`, `XUONG_OUTPUT_DIR=/data/output`, `HF_HOME=/data/cache/huggingface`.
+- `docker-compose.yml`: publish `127.0.0.1:4710` (chỉ máy này); volume `./series:/app/series`, thư mục phim `${XUONG_OUTPUT_DIR}` → `/data/output` (trang hiện đường dẫn máy thật nhờ `XUONG_OUTPUT_HOST_PATH`), thư mục tư liệu `${TU_LIEU_DIR}` gắn **chỉ-đọc, cùng đường dẫn** (dán đường dẫn trong form như ngoài Docker), volume tên `xuong-config` (OAuth Drive) và `xuong-cache` (model VieNeu). `shm_size: 1gb` cho Chrome.
+- Đăng nhập Claude trong container: `CLAUDE_CODE_OAUTH_TOKEN` (từ `claude setup-token` trên máy thật, dùng gói thuê bao) hoặc `ANTHROPIC_API_KEY` (tính tiền theo API).
+- Google Drive trong Docker: OAuth redirect `http://127.0.0.1:4710/api/drive/callback` đi qua cổng publish nên vẫn chạy; token lưu ở volume `xuong-config`.
+- **Đã kiểm chứng 2026-11-22 (Mac Apple Silicon, image linux/arm64 5,96 GB):** `/api/doctor` trong container đủ 11/11; `tts-vi` dùng VieNeu (nạp model 10 s, 2,5 s tiếng/15 s); đọc tư liệu (docx/pptx/xlsx/pdf/ảnh); dựng tập 4 qua nút trên trang → MP4 1080×1920 66,8 s trong 156 s, tự chép ra thư mục phim trên máy thật, trang hiện đúng đường dẫn máy thật. **Chưa kiểm chứng trong Docker:** nút AI (cần `CLAUDE_CODE_OAUTH_TOKEN` thật), Google Drive thật.
+- Hạn chế: VieNeu + Remotion chạy CPU trong container (trên Mac chậm hơn chạy thẳng); file container ghi vào `series/` thuộc root trên máy Linux (Docker Desktop trên Mac thì không sao); lần build đầu tải vài GB (mạng chậm có thể mất 20–30 phút).
+
+## Cloud Run (đánh giá 2026-11-22, chưa làm — không tự triển khai)
 
 **Cloud Run — làm được nhưng không hợp với thiết kế hiện tại; cần sửa trước:**
 1. Không có đăng nhập: trang web giả định chỉ chủ máy truy cập. Lên mạng phải có xác thực (IAP / Google login nội bộ) — bắt buộc.

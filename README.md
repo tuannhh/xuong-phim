@@ -1,6 +1,6 @@
 # Xưởng phim — series phim ngắn cho mạng xã hội
 
-Sản xuất series phim ngắn (TikTok/Reels/Shorts) bằng Claude Code: ý tưởng → kế hoạch từng tập → kịch bản → storyboard → lời đọc tiếng Việt → chuyển động Remotion → SFX + nhạc → MP4. Hình chỉ bằng code/vector.
+Sản xuất series phim ngắn (TikTok/Reels/Shorts) bằng Claude Code: ý tưởng → kế hoạch từng tập → kịch bản → storyboard → lời đọc tiếng Việt → chuyển động Remotion → SFX + nhạc → MP4. Hình bằng code/vector, cộng ảnh thật trong tư liệu người dùng đưa vào (không ảnh AI).
 
 ## Cài trên máy mới
 
@@ -17,9 +17,21 @@ Mở thư mục này bằng Claude Desktop (tab Code) cũng được: nếu máy
 
 Muốn Gemini làm giọng dự phòng: điền đường dẫn file khoá vào `tools/tts-vi/config.env` (không commit).
 
+## Chạy bằng Docker (không cần cài từng phần mềm)
+
+Cần Docker Desktop. Lần build đầu tải khoảng vài GB (VieNeu, Chrome headless, Claude CLI).
+
+```bash
+cp .env.example .env      # sửa: thư mục phim, thư mục tư liệu, mã đăng nhập Claude
+docker compose up -d --build
+```
+
+Mở http://localhost:4710. Dữ liệu nằm ngoài container: `series/` (gắn từ repo), thư mục phim (`XUONG_OUTPUT_DIR`), thư mục tư liệu (`TU_LIEU_DIR`, chỉ đọc, cùng đường dẫn như máy thật), cấu hình Drive và model giọng đọc (volume Docker). Nút AI trong Docker đăng nhập bằng `CLAUDE_CODE_OAUTH_TOKEN` (lấy bằng `claude setup-token` trên máy thật) hoặc `ANTHROPIC_API_KEY`.
+
 ## Dùng
 
-- **Trang web:** `pnpm web` → http://localhost:4710 — điền đề bài, duyệt kế hoạch → kịch bản + storyboard → phim; kết nối Google Drive (trang "Google Drive") để đẩy phim thành phẩm lên Drive.
+- **Trang web:** `pnpm web` (hoặc Docker) → http://localhost:4710 — điền đề bài, chọn nguồn nội dung (Claude tự tìm / kết hợp / chỉ tư liệu của bạn: kéo thả Word, PDF, PowerPoint, Excel, ảnh; dán link Google Drive; đường dẫn trên máy), duyệt kế hoạch → kịch bản + storyboard (sửa lời thoại ngay trên trang) → phim.
+- **Phim thành phẩm** được gom về một chỗ: `~/Movies/Xưởng phim/<tên series>/EP01 - <tiêu đề>.mp4` (đổi ở trang "Thiết lập"). Trang Thiết lập cũng là nơi kết nối Google Drive (đẩy phim lên, lấy tư liệu về).
 - **Chat:** mở Claude Code trong thư mục này, gõ `/series` + ý tưởng.
 
 ## Tài liệu

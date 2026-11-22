@@ -24,7 +24,7 @@ Xưởng sản xuất **series phim ngắn cho mạng xã hội** (TikTok, Reels
 | Môi trường | Trạng thái | Ghi chú |
 |---|---|---|
 | Máy cá nhân (macOS Apple Silicon) | Đang dùng | Mọi thứ chạy tại máy; dữ liệu nằm trong `series/` |
-| Docker | Chưa làm | Đánh giá ở `07-deployment-infrastructure.md` |
+| Docker | Có `Dockerfile` + `docker-compose.yml` (2026-11-22) | Chạy cả xưởng trong container — xem `07-deployment-infrastructure.md` |
 | Cloud Run | Chưa làm, **không tự triển khai** | Chỉ làm khi chủ dự án yêu cầu |
 
 ## Sản phẩm mẫu

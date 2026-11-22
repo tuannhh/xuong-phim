@@ -53,7 +53,8 @@ Khai báo trong `bible.characters` (hoặc `episode.characters` khi `characterMo
 ```
 - Tóc: nam `ngan, vuot, tia, xoan, hoi` · nữ `dai, buoc, bob, bui`.
 - **Tư thế** (`pose`): dung, chao, chi, tay-mo, giai-thich, nghi, vui, ngac-nhien, khoanh-tay, buon, dien-thoai, nghe-may, om-dau, chong-nanh, like, nhun-vai, di-bo, go-phim, dat-tay. Đổi tư thế giữa các câu → chuyển dần (khớp vai/khuỷu/cổ tay).
-  Nguyên tắc vẽ tư thế: khuỷu tay ở gần thân, cử chỉ nằm ở cẳng tay + bàn tay; không giơ hai tay quá đầu, không chĩa khuỷu ngang ra ngoài.
+  Nguyên tắc vẽ tư thế: khuỷu tay ở gần thân, cử chỉ nằm ở cẳng tay + bàn tay; không giơ hai tay quá đầu, không chĩa khuỷu ngang ra ngoài. Tay mở ra ngoài thì cả cánh tay cùng đưa ra (khuỷu `OUT`, góc khuỷu rộng), không ghim bắp tay thẳng đứng rồi bẻ cẳng tay ngang. Cẳng tay luôn vẽ trước bắp tay/tay áo; bàn tay xoè nhìn từ mu, ngón cái cố định theo tay.
+  **Hướng cử chỉ (máy tự lo, đừng lách):** tay đưa ngang ra (`chi`, `tay-mo`, `giai-thich`, `nhun-vai`, `ngac-nhien`) luôn ở phía nhân vật đang quay tới — bạn diễn gần nhất, hoặc giữa khung hình khi đứng một mình lệch một bên. Tư thế hai tay khi nói với bạn diễn: tay phía xa gập ra trước bụng, không mở ra sau lưng. Nên chỉ cần ghi tên tư thế, không phải chọn tay trái/phải và không dùng `flip` để "sửa" hướng tay. Thêm/sửa tư thế trong `POSES` (viết một chiều, tay chính là `R`) → chạy `pnpm series characters <slug> --huong` xem `characters-huong.png` (mọi tư thế khi quay phải/trái).
 - **Biểu cảm** (`expr`): binh-thuong, cuoi, vui, cuoi-lon, buon, khoc, gian, ngac-nhien, so, lo-lang, nghi, nghi-ngo, tu-tin, gian-xao. Kèm cử động: cười lớn rung vai, giận lắc đầu, sợ run, buồn rũ vai.
 - Tự động: chớp mắt, thở, nhép miệng theo voice, gật đầu + cử chỉ tay khi nói, nhìn về người đang nói.
 - **Khung máy** (`shot`): `toan-than` · `trung-canh` (tới trên gối) · `can-canh` (tới ngực).
@@ -137,6 +138,7 @@ Mục hiện dần theo lời: số câu = số mục + 1 → câu đầu là ti
 | `phone` | mode: call → caller, number, label, avatar · mode: notify → time, notifications[{app, icon, color, title, text, warn?}] | ring / notify |
 | `alert` | title, items[], icon?, kicker? | alarm + tick |
 | `figure` | src: "assets/x.svg", heading?, caption?, draw? (nét tự vẽ) | draw |
+| `photo` | src: "assets/x.jpg" hoặc images[{src, caption?, beat?}] (2–4 ảnh, mỗi ảnh một câu), ratio? (cao/rộng, mặc định 1), heading?, caption?, source?, fit? cover/contain, focus? [x,y], zoom? in/out/none — **ảnh thật từ tư liệu người dùng** (chép từ `.studio/tu-lieu/images/`), trôi chậm Ken Burns | camera; whoosh-soft khi đổi ảnh |
 | `story` | set, time?, shot?, focus?, label?, actors[], desk[], pops[] hoặc screen — cảnh kể chuyện có bối cảnh (xem trên) | theo nhãn/mục |
 | `talk` | cast[], shot?, room?, title?, bubble? — hội thoại nhiều nhân vật (xem trên) | — |
 | `character` | như `talk` với một nhân vật lấy từ `character` | — |
@@ -169,22 +171,29 @@ Danh mục đầy đủ (100 phong cách, tự sinh): `docs/lemo-styles.md` — 
 ## Giọng VieNeu hay dùng
 Bắc: Hải Đăng (nam, mặc định), Mai Anh (nữ, tin tức), Trúc Ly (nữ), Thiện Minh (nam, kể chuyện), Ngọc Huyền (nữ), Adam bựa (nam, vui). Trung: Quang Sơn, Ngọc Trân. Nam: Thùy Dung, Thái Sơn, Minh Triết, Mỹ Duyên. Danh sách đủ: `tts-vi --voices`.
 
-## Trang web của xưởng (`pnpm web`)
+## Trang web Xưởng phim (`pnpm web`)
 
 `pnpm web` → http://localhost:4710 (đổi cổng: `PORT=… pnpm web`). Một file máy chủ `tools/web/server.mjs`, một file giao diện `web/index.html`, không cài thêm gì.
 
 | Trên trang | Việc xảy ra | Ai làm |
 |---|---|---|
 | Form "Series mới" / "Sửa đề bài" | ghi `series/<slug>/brief.json`, `brief.md`, `bible.json` (nhân vật, giọng, bộ màu, nhạc); tạo xong tự vẽ `characters.png` | máy chủ |
+| Mục "Nguồn nội dung" | chọn `sourceMode` (claude / ket-hop / tu-lieu); file kéo thả lưu ở `series/<slug>/tu-lieu/tai-len/`; link Drive + đường dẫn trên máy ghi vào `brief.materials` | máy chủ (`tools/web/materials.mjs`) |
+| (trước mỗi lần Claude viết, khi có tư liệu) | tải link Drive về `tu-lieu/drive/`, đọc mọi tư liệu → `.studio/tu-lieu/index.md` + `text/` + `images/` (`uv run tools/materials/extract.py`); đường dẫn trên máy được đưa cho claude bằng `--add-dir` | máy chủ |
 | "Lập kế hoạch" / "Lập lại kế hoạch" | giai đoạn `plan` → `plan.json` | `claude -p` (skill series, Chế độ form) |
 | "Duyệt tập này" / "Duyệt tất cả" | `plan.json`: `status: "duyet"` | máy chủ |
 | "Viết kịch bản + storyboard" | giai đoạn `script <n>` → `episode.json`, `script.md`, `storyboard/` | `claude -p` |
+| "Sửa lời thoại" (bước kịch bản + storyboard, và ở phim đã dựng) | sửa chữ từng câu ngay trên trang → `episode.json` (bỏ `say` cũ của câu đổi) → tự chạy `check` → `script` → `storyboard`; lần dựng sau voice chỉ đọc lại câu đổi | máy chủ, không cần Claude |
 | "Sửa theo góp ý" | góp ý ghi vào `.studio/gop-y.md` → giai đoạn `fix <n>` (đã có MP4 thì dựng lại luôn) | `claude -p` |
 | "Duyệt và dựng phim" / "Dựng lại" | `node tools/ep.mjs <dir> all` → `out/epNN.mp4` + `.srt`; series bật `driveAuto` → tự đẩy lên Drive sau khi dựng | máy chủ, không cần Claude |
-| Trang "Google Drive" | dán OAuth client (Desktop app) → "Kết nối" → đăng nhập Google; lưu ở `~/.config/xuong-phim/google.json` | máy chủ (`tools/web/drive.mjs`) |
+| Dựng xong (mọi cách dựng) | chép `out/epNN.mp4` + `.srt` vào thư mục phim chung `<thư mục xuất>/<tên series>/EPNN - <tiêu đề>.mp4` (`tools/output.mjs`; ghi ở `out/export.json`); gom phim cũ: `pnpm series export <slug>` | `tools/ep.mjs render` |
+| Trang "Thiết lập" | thư mục phim (mặc định `~/Movies/Xưởng phim`, Linux `~/Videos/Xưởng phim`; lưu ở `~/.config/xuong-phim/settings.json`) + Google Drive: dán OAuth client (Desktop app) → "Kết nối"; "Cho phép đọc tư liệu trên Drive" xin thêm quyền `drive.readonly`; lưu ở `~/.config/xuong-phim/google.json` | máy chủ (`tools/web/drive.mjs`) |
+| (bỏ) Trang "Google Drive" cũ | `#/drive` chuyển sang `#/settings` | — | (Desktop app) → "Kết nối" → đăng nhập Google; lưu ở `~/.config/xuong-phim/google.json` | máy chủ (`tools/web/drive.mjs`) |
 | "Đẩy lên Drive" / "Đẩy bản mới" | tải MP4 + SRT lên `Xưởng phim/<thư mục series>/` (ghi đè cùng file, giữ link); kết quả ở `out/drive.json` | máy chủ |
 
-- `brief.json`: `name, channel, idea, audience, platform, episodes, duration, format, theme, style (tinh-huong|thong-tin|ket-hop), sets[], tone, music, characterMode, narrator, logo (misa|none), cta, notes, driveAuto, driveFolder`.
+- `brief.json`: `name, channel, idea, audience, platform, episodes, duration, format, theme, style (tinh-huong|thong-tin|ket-hop), sets[], tone, music, characterMode, narrator, logo (misa|none), cta, notes, sourceMode (claude|ket-hop|tu-lieu), materials[{type: drive|local, ref, note}], driveAuto, driveFolder`.
 - Các nút "AI" cần lệnh `claude` đã đăng nhập trên máy (`claude` → `/login`). Chưa đăng nhập thì trang báo rõ; khi đó dán câu lệnh ở mục "Làm trong Claude Code thay vì bấm nút" vào Claude Code.
-- Biến môi trường: `PORT`, `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác).
-- An toàn: chỉ nghe `127.0.0.1`; lệnh ghi phải có header `x-xuong` và cùng nguồn; `claude -p` chạy với quyền `acceptEdits` + danh sách lệnh cho phép (pnpm ep/series, node tools/, ffmpeg, ffprobe).
+- Biến môi trường: `PORT`, `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác), `XUONG_OUTPUT_DIR` (ghi đè thư mục phim), `XUONG_CONFIG_DIR` (nơi lưu cấu hình, mặc định `~/.config/xuong-phim`).
+- Tư liệu đọc được: PDF, Word .docx (.doc cũ chỉ trên macOS), PowerPoint .pptx, Excel .xlsx, CSV/TXT/MD, ảnh JPG/PNG/WEBP/GIF/BMP; tối đa 300 MB/file, 300 file/lần. Link Drive: có quyền đọc → file/thư mục riêng tư (thư mục quét 3 cấp, tối đa 200 file; Google Docs/Slides/Sheets xuất ra docx/pptx/xlsx); không có quyền đọc → chỉ file chia sẻ công khai.
+- `sourceMode = tu-lieu` → `claude -p` không được dùng WebSearch/WebFetch; hai chế độ còn lại được.
+- An toàn: chỉ nghe `127.0.0.1` (trong Docker nghe 0.0.0.0 nhưng cổng chỉ publish ra 127.0.0.1 của máy thật); lệnh ghi phải có header `x-xuong` và cùng nguồn; `claude -p` chạy với quyền `acceptEdits` + danh sách lệnh cho phép (pnpm ep/series, node tools/, ffmpeg, ffprobe).

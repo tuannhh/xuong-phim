@@ -1,11 +1,11 @@
 import React from 'react';
-import { AbsoluteFill, staticFile, useCurrentFrame, useVideoConfig, delayRender, continueRender } from 'remotion';
+import { AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig, delayRender, continueRender } from 'remotion';
 import { RichText } from '../kit/RichText';
 import { Icon } from '../kit/Icon';
 import { ease, revealFrames, springAt } from '../kit/anim';
 import { useLayout, useTheme, alpha } from '../kit/theme';
 import { Background } from '../kit/Background';
-import { CharacterLayer, Heading, Kicker, SceneShell, type SceneProps } from './common';
+import { CharacterLayer, Heading, Kicker, SceneShell, useContentBox, type SceneProps } from './common';
 
 // Khung điện thoại vector dùng chung cho chat/call/notification.
 const PhoneFrame: React.FC<{ children: React.ReactNode; w: number; h: number; header?: React.ReactNode; dark?: boolean }> = ({ children, w, h, header, dark }) => {
@@ -227,3 +227,50 @@ export const Figure: React.FC<SceneProps> = ({ scene }) => {
   );
 };
 
+
+// ───────── photo: ảnh thật từ tư liệu người dùng (không phải ảnh AI) — trôi chậm kiểu Ken Burns, chú thích + nguồn.
+// props: { src: 'assets/x.jpg', ratio?: cao/rộng của ảnh (lấy từ index.md tư liệu, vd 500/800 = 0.625), heading?, caption?, source?,
+//          fit?: 'cover'|'contain', focus?: [x,y] 0..1, zoom?: 'in'|'out'|'none' }
+//     hoặc images: [{ src, caption?, beat?, at? }] (2–4 ảnh) — mỗi ảnh hiện theo câu thoại, ảnh trước mờ dần.
+export const Photo: React.FC<SceneProps> = ({ scene }) => {
+  const th = useTheme();
+  const f = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const { u } = useLayout();
+  const box = useContentBox(scene);
+  const p = scene.props;
+  const list: { src: string; caption?: string; beat?: number; at?: number }[] = p.images?.length ? p.images.slice(0, 4) : [{ src: p.src, caption: p.caption }];
+  const starts = list.length > 1 ? revealFrames(scene, list.length, list, fps) : [0];
+  let cur = 0;
+  starts.forEach((s0, i) => { if (f >= s0) cur = i; });
+  const headH = p.heading ? 110 * u : 0;
+  const capText = list[cur]?.caption ?? (list.length > 1 ? null : p.caption);
+  const footH = (capText ? 70 * u : 0) + (p.source ? 46 * u : 0);
+  const ratio = Math.min(1.6, Math.max(0.4, +p.ratio || 1)); // khung theo tỉ lệ ảnh để không cắt mất nội dung
+  const imgH = Math.max(200 * u, Math.min(box.h - headH - footH - 24 * u, box.w * ratio));
+  const fit = p.fit === 'contain' ? 'contain' : 'cover';
+  const [fx, fy] = Array.isArray(p.focus) ? p.focus : [0.5, 0.5];
+  return (
+    <AbsoluteFill>
+      <Background variant={p.bg?.variant} tint={p.bg?.tint} />
+      {scene.character && <CharacterLayer scene={scene} />}
+      <div style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 12 * u }}>
+        {p.heading && <Heading text={p.heading} size={64} />}
+        <div style={{ position: 'relative', width: '100%', height: imgH, borderRadius: 28 * u, overflow: 'hidden', background: alpha(th.fg, 0.08), boxShadow: `0 ${18 * u}px ${50 * u}px rgba(0,0,0,.28)`, border: `${6 * u}px solid ${th.card ?? '#fff'}`, opacity: ease(f, 0, 10), transform: `scale(${0.94 + 0.06 * springAt(f, 0, fps)})` }}>
+          {list.map((im, i) => {
+            const s0 = starts[i], s1 = starts[i + 1] ?? scene.duration + 30;
+            const vis = i === 0 ? 1 - ease(f, s1, 10) : ease(f, s0, 12) * (1 - ease(f, s1, 10));
+            if (vis <= 0.001 && i !== cur) return null;
+            const t = Math.min(1, Math.max(0, (f - s0) / Math.max(30, s1 - s0)));
+            const z = p.zoom === 'none' ? 1 : p.zoom === 'out' ? 1.12 - 0.12 * t : 1 + 0.12 * t;
+            return (
+              <Img key={i} src={staticFile(im.src)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: fit, objectPosition: `${fx * 100}% ${fy * 100}%`, opacity: vis, transform: `scale(${z})`, transformOrigin: `${fx * 100}% ${fy * 100}%` }} />
+            );
+          })}
+        </div>
+        {capText && <div style={{ fontFamily: th.fontBody, fontSize: 38 * u, lineHeight: 1.3, color: th.fg, textAlign: 'center', opacity: ease(f, (starts[cur] ?? 0) + 6, 12) }}><RichText text={capText} /></div>}
+        {p.source && <div style={{ fontFamily: th.fontBody, fontSize: 26 * u, color: th.muted, textAlign: 'right' }}>Nguồn: {p.source}</div>}
+      </div>
+    </AbsoluteFill>
+  );
+};

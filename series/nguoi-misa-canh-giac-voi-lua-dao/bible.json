@@ -1,0 +1,83 @@
+{
+ "name": "Người MISA cảnh giác với lừa đảo",
+ "slug": "nguoi-misa-canh-giac-voi-lua-dao",
+ "channel": "@Người MISA luôn cảnh giác",
+ "episodes": 10,
+ "format": "9:16",
+ "fps": 30,
+ "engine": "remotion",
+ "theme": {
+  "preset": "misa-sang"
+ },
+ "captions": "pill",
+ "voice": "Hải Đăng",
+ "narrator": "tuan",
+ "characterMode": "moi-tap",
+ "characters": [
+  {
+   "id": "tuan",
+   "name": "Tuấn",
+   "gender": "nam",
+   "kind": "misa",
+   "hair": "xoan",
+   "glasses": true,
+   "role": "nhân viên MISA, người dẫn chuyện"
+  },
+  {
+   "id": "linh",
+   "name": "Linh",
+   "gender": "nu",
+   "kind": "misa",
+   "hair": "buoc",
+   "bottom": "vay",
+   "glasses": true,
+   "role": "đồng nghiệp, hay gặp tình huống"
+  },
+  {
+   "id": "anhhoang",
+   "name": "Anh Hoàng",
+   "gender": "nam",
+   "kind": "vest",
+   "hair": "ngan",
+   "outfitColor": "#002e7a",
+   "role": "Giám đốc"
+  },
+  {
+   "id": "chiphuonganh",
+   "name": "Chị Phương Anh",
+   "gender": "nam",
+   "kind": "so-mi",
+   "hair": "ngan",
+   "outfitColor": "#38571a",
+   "role": "kế toán"
+  },
+  {
+   "id": "keluadao",
+   "name": "Kẻ lừa đảo",
+   "gender": "nam",
+   "kind": "hoodie",
+   "hair": "ngan",
+   "outfitColor": "#919191",
+   "glasses": true,
+   "villain": true
+  }
+ ],
+ "music": {
+  "volume": 0.12,
+  "mood": "tension"
+ },
+ "sfx": {
+  "auto": true,
+  "volume": 0.6
+ },
+ "transition": {
+  "type": "slide",
+  "frames": 12
+ },
+ "chrome": {
+  "handle": false,
+  "progress": true,
+  "tag": true
+ },
+ "pronounce": {"APK": "ây pi kê", "IPA": "ai pi ây", "MISAJSC": "mi xa jây ét xi", "misavpn": "mi xa vi pi en", "misasme": "mi xa ét em i", "misavnp": "mi xa vi en pi"}
+}

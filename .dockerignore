@@ -1,0 +1,14 @@
+.git
+node_modules
+.venv
+**/__pycache__
+series
+assets/fonts/*.woff2
+assets/fonts/fonts-inline.json
+assets/sfx/*.wav
+tools/tts-vi/config.env
+.claude/settings.local.json
+.env
+.env.*
+*.local.json
+.DS_Store

@@ -1,7 +1,7 @@
 import type React from 'react';
 import type { SceneProps } from './common';
 import { Bullets, Chart, Compare, Hook, Icons, Kinetic, Outro, Quote, Stat, Steps, Title } from './basic';
-import { Alert, Chat, Figure, Phone } from './special';
+import { Alert, Chat, Figure, Phone, Photo } from './special';
 import { Talk } from './talk';
 import { Story } from './story';
 import { CUSTOM } from '../custom';
@@ -22,6 +22,7 @@ export const SCENES: Record<string, React.FC<SceneProps>> = {
   phone: Phone,
   alert: Alert,
   figure: Figure,
+  photo: Photo,
   character: Talk,
   talk: Talk,
   story: Story,

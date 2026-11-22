@@ -24,7 +24,7 @@ if (flags.has('--gemini')) process.env.SERIES_ENGINE = 'gemini';
 const ctx = loadEpisode(epArg);
 const { epDir, bible, episode } = ctx;
 const rel = (p) => path.relative(process.cwd(), p) || '.';
-const TEMPLATES = ['hook', 'title', 'bullets', 'stat', 'quote', 'compare', 'steps', 'icons', 'chart', 'kinetic', 'chat', 'phone', 'alert', 'figure', 'character', 'talk', 'story', 'outro', 'custom'];
+const TEMPLATES = ['hook', 'title', 'bullets', 'stat', 'quote', 'compare', 'steps', 'icons', 'chart', 'kinetic', 'chat', 'phone', 'alert', 'figure', 'photo', 'character', 'talk', 'story', 'outro', 'custom'];
 // giữ khớp với POSE_LIST / EXPR_LIST trong remotion/kit/Character.tsx
 const POSES = ['dung', 'chao', 'chi', 'tay-mo', 'giai-thich', 'nghi', 'vui', 'ngac-nhien', 'khoanh-tay', 'buon', 'dien-thoai', 'nghe-may', 'om-dau', 'chong-nanh', 'like', 'nhun-vai', 'di-bo', 'go-phim', 'dat-tay'];
 const EXPRS = ['binh-thuong', 'cuoi', 'vui', 'cuoi-lon', 'buon', 'khoc', 'gian', 'ngac-nhien', 'so', 'lo-lang', 'nghi', 'nghi-ngo', 'tu-tin', 'gian-xao'];
@@ -66,6 +66,11 @@ function check() {
       for (const [k, v] of Object.entries(l.react ?? {})) { const e = typeof v === 'string' ? v : v.expr; if (e && !EXPRS.includes(e)) errs.push(`${s.id}: react ${k} biểu cảm "${e}" không có`); }
     }
     if (s.type === 'figure' && !fs.existsSync(path.join(epDir, s.props?.src ?? '-'))) errs.push(`${s.id}: thiếu file ${s.props?.src}`);
+    if (s.type === 'photo')
+      for (const src of s.props?.images?.length ? s.props.images.map((x) => x?.src) : [s.props?.src]) {
+        if (!src || !/^assets\/[^/].*\.(jpe?g|png|webp)$/i.test(src)) errs.push(`${s.id}: ảnh phải là assets/<tên>.jpg|png|webp (chép từ .studio/tu-lieu/images/)`);
+        else if (!fs.existsSync(path.join(epDir, src))) errs.push(`${s.id}: thiếu file ${src}`);
+      }
     if (!(s.lines ?? []).length && !s.hold) warns.push(`${s.id}: không có lời đọc (đặt "hold": giây nếu cố ý)`);
   }
   const cv = castVoices(episode.characters ?? bible.characters ?? [], bible);
@@ -188,6 +193,10 @@ async function storyboard() {
 async function render() {
   const { renderVideo } = await import('./render.mjs');
   await renderVideo(epDir, { preview: flags.has('--preview') });
+  if (flags.has('--preview') || flags.has('--gemini')) return; // bản xem nhanh / bản so sánh Gemini không chép ra thư mục xuất
+  const { exportEpisode, displayPath } = await import('./output.mjs');
+  const dst = exportEpisode(path.dirname(path.dirname(epDir)), path.basename(epDir));
+  if (dst) console.log(`  xuất → ${displayPath(dst)}`);
 }
 
 async function studio() {
