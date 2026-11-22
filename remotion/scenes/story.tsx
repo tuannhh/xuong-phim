@@ -1,8 +1,8 @@
 import React from 'react';
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
-import { Person } from '../kit/Character';
+import { Person, mascotBox } from '../kit/Character';
 import { castState } from '../kit/Stage';
-import { SetBack, SetFront, SetMid, WORLD, type DeskItem } from '../kit/Sets';
+import { SetBack, SetFront, SetMid, WORLD, hasExtras, seatFor, type DeskItem } from '../kit/Sets';
 import { RichText } from '../kit/RichText';
 import { Icon } from '../kit/Icon';
 import { clamp, ease, springAt } from '../kit/anim';
@@ -14,7 +14,7 @@ import type { SceneProps } from './common';
 // ───────── story: cảnh kể chuyện kiểu phim hoạt hình — bối cảnh nhiều lớp, nhân vật sau bàn tiền cảnh, máy quay đổi cỡ cảnh
 // và đẩy chậm, nhãn/thẻ bật ra theo lời đọc, chèn màn hình điện thoại hoặc bảng tổng kết. Phụ đề nằm trên mặt bàn (không đè nhân vật).
 // props:
-//   set: van-phong | nha | hang-o        time: ngay | chieu | toi | dem        logo: bool (khung logo MISA trên tường văn phòng)
+//   set + time: danh mục SETS ở shared/catalog.mjs (van-phong, nha, hang-o, quan-ca-phe, ngan-hang, phong-hop, ngoai-troi, cua-hang)   logo: bool (khung logo MISA trên tường văn phòng / phòng họp)
 //   shot: toan (mặc định) | trung | can   focus: id nhân vật máy quay hướng vào (trung/can)   push: mức đẩy máy (mặc định 0.035)
 //   label: nhãn phần (dòng vàng dưới tên tập, chỉ hiện ở toan/trung)
 //   actors: [{ id, x?: 0..1, pose?, expr?, prop?: laptop, stand?: true (không ghế), flip? }]
@@ -58,6 +58,9 @@ export const Story: React.FC<SceneProps> = ({ scene }) => {
   const placed = actors.map((a, i) => ({ ...a, wx: (a.x ?? defX[i]) * WORLD.W }));
   const cur = [...scene.lines].reverse().find((l) => f >= l.from);
   const speaker = placed.find((a) => a.id === cur?.speaker);
+  // mascot: không ghế, đứng trên mép bàn tiền cảnh (chân ở HIPU của khung) — thấp hơn người ngồi; visH = phần nhìn thấy trên mép bàn (khung)
+  const isMascot = (id: string) => ep.characters.find((c) => c.id === id)?.kind === 'mascot';
+  const visH = (id: string) => (isMascot(id) ? HIPU - mascotBox(HIPU).top : HIPU);
 
   // ── máy quay
   const focus = placed.find((a) => a.id === (p.focus ?? (n === 1 ? actors[0].id : undefined)));
@@ -71,7 +74,7 @@ export const Story: React.FC<SceneProps> = ({ scene }) => {
   const blurBack = shot === 'can' ? 2.2 : shot === 'trung' ? 1 : 0;
 
   // ── nhân vật phụ phía sau (văn phòng)
-  const extraX = set === 'van-phong' && p.extras !== false ? [130, 540, 950].filter((c) => placed.every((a) => Math.abs(a.wx - c) > 212)) : [];
+  const extraX = hasExtras(set) && p.extras !== false ? [130, 540, 950].filter((c) => placed.every((a) => Math.abs(a.wx - c) > 212)) : [];
   const ek = 0.44;
 
   // ── nhãn bật
@@ -94,16 +97,16 @@ export const Story: React.FC<SceneProps> = ({ scene }) => {
           <SetMid set={set} time={p.time} extras={extraX} />
         </div>
         {/* ghế sau lưng nhân vật ngồi bàn */}
-        {set !== 'nha' && (
+        {seatFor(set) && (
           <svg style={{ ...layer }} viewBox={`${-WORLD.bleed} 0 ${WORLD.W + WORLD.bleed * 2} ${WORLD.H}`}>
-            {placed.filter((a) => !a.stand).map((a) => {
-              const den = set === 'hang-o';
-              const w = (den ? 196 : 182) * k, t = DESK - (den ? 500 : 408) * k;
+            {placed.filter((a) => !a.stand && !isMascot(a.id)).map((a) => {
+              const seat = seatFor(set)!;
+              const w = (seat.tall ? 196 : 182) * k, t = DESK - (seat.tall ? 500 : 408) * k;
               return (
                 <g key={a.id}>
-                  <rect x={a.wx - w} y={t} width={w * 2} height={DESK - t + 30} rx={70 * k} fill={den ? '#10121E' : '#3E4658'} />
-                  <rect x={a.wx - w + 16 * k} y={t + 16 * k} width={w * 2 - 32 * k} height={DESK - t} rx={56 * k} fill={den ? '#1A1D2E' : '#4A5368'} />
-                  {den && <><rect x={a.wx - w + 16 * k} y={t + 60 * k} width={22 * k} height={DESK - t} fill="#E2342B" /><rect x={a.wx + w - 38 * k} y={t + 60 * k} width={22 * k} height={DESK - t} fill="#E2342B" /></>}
+                  <rect x={a.wx - w} y={t} width={w * 2} height={DESK - t + 30} rx={70 * k} fill={seat.back} />
+                  <rect x={a.wx - w + 16 * k} y={t + 16 * k} width={w * 2 - 32 * k} height={DESK - t} rx={56 * k} fill={seat.pad} />
+                  {seat.stripe && <><rect x={a.wx - w + 16 * k} y={t + 60 * k} width={22 * k} height={DESK - t} fill={seat.stripe} /><rect x={a.wx + w - 38 * k} y={t + 60 * k} width={22 * k} height={DESK - t} fill={seat.stripe} /></>}
                 </g>
               );
             })}
@@ -126,10 +129,10 @@ export const Story: React.FC<SceneProps> = ({ scene }) => {
           return (
             <React.Fragment key={a.id}>
               <div style={{ position: 'absolute', left: (a.wx - 300 * k) * u, top: (DESK - HIPU * k) * u }}>
-                <Person spec={spec} pose={st.pose} poseFrom={st.poseFrom} poseT={poseT} expr={st.expr} mouth={mouth} frame={scene.from + f} look={look} turn={look * 0.4} height={1200 * k * u} flip={a.flip} face={face} aim={aim} />
+                <Person spec={spec} pose={st.pose} poseFrom={st.poseFrom} poseT={poseT} expr={st.expr} mouth={mouth} frame={scene.from + f} look={look} turn={look * 0.4} height={1200 * k * u} flip={a.flip} face={face} aim={aim} ground={isMascot(a.id) ? HIPU : undefined} />
               </div>
               {/* hộp phần thân nhìn thấy (đầu → mép bàn) cho bộ soát bố cục */}
-              {!scr && <div data-person={a.id} data-exact style={{ position: 'absolute', left: (a.wx - 160 * k) * u, top: (DESK - (HIPU + 8) * k) * u, width: 320 * k * u, height: (HIPU + 8) * k * u }} />}
+              {!scr && <div data-person={a.id} data-exact style={{ position: 'absolute', left: (a.wx - (isMascot(a.id) ? visH(a.id) * 0.42 : 160) * k) * u, top: (DESK - (visH(a.id) + 8) * k) * u, width: (isMascot(a.id) ? visH(a.id) * 0.84 : 320) * k * u, height: (visH(a.id) + 8) * k * u }} />}
             </React.Fragment>
           );
         })}
@@ -159,7 +162,7 @@ export const Story: React.FC<SceneProps> = ({ scene }) => {
         const e = still ? 1 : springAt(f, t0, fps, 10);
         const out = f >= off ? 1 - (f - off) / 6 : 1;
         const a = placed.find((x) => x.id === q.over);
-        const [px, py] = a ? toScreen(a.wx, DESK - (HIPU + 8) * k) : [(q.at?.[0] ?? 0.5) * W, top0 + (q.at?.[1] ?? 0.22) * WORLD.H * u];
+        const [px, py] = a ? toScreen(a.wx, DESK - (visH(a.id) + 8) * k) : [(q.at?.[0] ?? 0.5) * W, top0 + (q.at?.[1] ?? 0.22) * WORLD.H * u];
         const anchor = a ? 'translate(-50%, -100%)' : 'translate(-50%, -50%)';
         const y = a ? py - 22 * u : py;
         const age = f - t0;

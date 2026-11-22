@@ -1,0 +1,36 @@
+{
+  "id": "ep01",
+  "number": 1,
+  "title": "Thử máy",
+  "logline": "Tập mẫu rất ngắn để kiểm tra máy mới dựng được phim (pnpm doctor --thu).",
+  "target": 10,
+  "scenes": [
+    {
+      "id": "s01",
+      "type": "hook",
+      "props": { "kicker": "Thử máy", "text": "Máy đã sẵn sàng *dựng phim*?" },
+      "lines": [{ "text": "Kiểm tra nhanh máy này có dựng được phim không.", "speaker": "tuan" }]
+    },
+    {
+      "id": "s02",
+      "type": "story",
+      "props": {
+        "set": "van-phong", "time": "ngay", "logo": true, "shot": "toan", "label": "Thử máy",
+        "actors": [
+          { "id": "tuan", "x": 0.35, "pose": "giai-thich", "expr": "cuoi" },
+          { "id": "linh", "x": 0.72, "pose": "vui", "expr": "vui" }
+        ]
+      },
+      "lines": [
+        { "text": "Giọng đọc, hình, âm thanh đều chạy.", "speaker": "linh", "expr": "vui" },
+        { "text": "Vào trang misa.vn để xem thêm nhé.", "speaker": "tuan", "pose": "tay-mo" }
+      ]
+    },
+    {
+      "id": "s03",
+      "type": "outro",
+      "props": { "cta": "Xưởng phim đã sẵn sàng", "logo": "misa" },
+      "lines": [{ "text": "Xong rồi!", "speaker": "linh" }]
+    }
+  ]
+}

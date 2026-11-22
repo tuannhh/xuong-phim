@@ -244,8 +244,7 @@
    "props": {
     "logo": "misa",
     "cta": "Lưu sẵn *số tổng đài ngân hàng* của bạn",
-    "handle": "Người MISA cảnh giác",
-    "next": "Sếp gọi video, nhưng không phải sếp"
+    "handle": "Người MISA cảnh giác"
    },
    "lines": [
     { "text": "Lưu sẵn số tổng đài ngân hàng, và chia sẻ cho người thân nhé!" }

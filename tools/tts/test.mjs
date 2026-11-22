@@ -16,7 +16,14 @@ const extra = [
   ['Năm 2026, doanh nghiệp đặt mục tiêu 2026 khách hàng.', 'Năm hai không hai sáu, doanh nghiệp đặt mục tiêu hai nghìn không trăm hai mươi sáu khách hàng.', 'gemini'],
   ['1.005', 'một nghìn không trăm linh năm'], ['1.024', 'một nghìn không trăm hai mươi tư'], ['1.000.005', 'một triệu không trăm linh năm'],
   ['Đừng bấm link lạ trên Zalo', 'Đừng bấm linh lạ trên Da lô', 'vieneu'],
-  ['vào nganhang-xacminh.top ngay', 'vào nganhang gạch ngang xacminh chấm top ngay'],
+  ['vào nganhang-xacminh.top ngay', 'vào nganhang gạch ngang xacminh chấm tóp ngay'],
+  // người dùng 2026-11-22: tên miền, viết tắt công nghệ, tên thương hiệu dính liền
+  ['Chỉ mua và đăng nhập tại misa.vn.', 'Chỉ mua và đăng nhập tại mi xa chấm vi en.'],
+  ['Vào https://www.misa.vn/san-pham nhé', 'Vào vê kép vê kép vê kép chấm mi xa chấm vi en gạch chéo san pham nhé'],
+  ['Tên miền thêm chữ lạ như misavpn.com, misasme.com đều là giả.', 'Tên miền thêm chữ lạ như mi xa vi pi en chấm com, mi xa ét em i chấm com đều là giả.'],
+  ['Tên miền như misavpn, misasme, misavnp', 'Tên miền như mi xa vi pi en, mi xa ét em i, mi xa vi en pi'],
+  ['Tin chính thức xem ở fanpage MISAJSC.', 'Tin chính thức xem ở fanpage mi xa giây ét xi.'],
+  ['bắt tải file APK hoặc IPA', 'bắt tải file ây pi kây hoặc ai pi ây'],
 ];
 let ok = 0, bad = 0;
 const check = (src, want, engine = 'gemini') => {

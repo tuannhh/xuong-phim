@@ -3,7 +3,8 @@
 #   bash setup.sh
 # Cài: Homebrew (nếu thiếu, sẽ hỏi mật khẩu máy) → git, Node, pnpm, uv, ffmpeg → thư viện Node/Python → font, kho SFX,
 #      Chrome headless cho Remotion → giọng đọc VieNeu + lệnh tts-vi → skill /series → Claude Code CLI (cho nút AI trên trang web).
-# Biến tuỳ chọn: XUONG_SKIP_TTS=1 (bỏ giọng đọc), XUONG_SKIP_SKILL=1 (không gắn skill), XUONG_SKIP_CLAUDE=1 (không cài claude CLI).
+# Biến tuỳ chọn: XUONG_SKIP_TTS=1 (bỏ giọng đọc), XUONG_SKIP_SKILL=1 (không gắn skill), XUONG_SKIP_CLAUDE=1 (không cài claude CLI),
+#               XUONG_SKIP_THU=1 (không dựng thử tập mẫu ở cuối).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
@@ -29,13 +30,30 @@ if [ "$OS" = "Darwin" ]; then
   if has node && [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 20 ]; then echo "  Node $(node -v) quá cũ — cần ≥ 20"; need+=(node); fi
   if [ ${#need[@]} -gt 0 ]; then echo "  Cài: ${need[*]}"; brew install "${need[@]}"; fi
 elif [ "$OS" = "Linux" ]; then
+  # Linux và Windows (WSL2, Ubuntu). Gói hệ thống giống Dockerfile: ffmpeg + thư viện Chrome headless của Remotion + font emoji.
+  SUDO=""; [ "$(id -u)" -ne 0 ] && SUDO="sudo"
   if has apt-get; then
-    miss=(); for t in git ffmpeg curl; do has "$t" || miss+=("$t"); done
-    [ ${#miss[@]} -gt 0 ] && sudo apt-get update && sudo apt-get install -y "${miss[@]}"
+    pkgs=(git ffmpeg curl ca-certificates xz-utils libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libxrandr2 libxkbcommon-dev libxfixes3
+          libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 fonts-noto-color-emoji)
+    # libasound2 đổi tên thành libasound2t64 trên Ubuntu 24.04
+    if apt-cache show libasound2t64 >/dev/null 2>&1; then pkgs+=(libasound2t64); else pkgs+=(libasound2); fi
+    miss=(); for p in "${pkgs[@]}"; do dpkg -s "$p" >/dev/null 2>&1 || miss+=("$p"); done
+    if [ ${#miss[@]} -gt 0 ]; then echo "  Cài gói hệ thống (có thể hỏi mật khẩu): ${miss[*]}"; $SUDO apt-get update && $SUDO apt-get install -y --no-install-recommends "${miss[@]}"; fi
+  else
+    echo "  ! Không có apt-get — tự cài git, ffmpeg, curl và thư viện Chrome headless (xem Dockerfile) rồi chạy lại."
   fi
-  has uv || { curl -LsSf https://astral.sh/uv/install.sh | sh; export PATH="$HOME/.local/bin:$PATH"; }
-  has node || { echo "  ✗ Cần Node ≥ 20 (vd: https://nodejs.org hoặc nvm) rồi chạy lại."; exit 1; }
-  has pnpm || { corepack enable 2>/dev/null || npm install -g pnpm@9; }
+  export PATH="$HOME/.local/bin:$PATH"
+  has uv || curl -LsSf https://astral.sh/uv/install.sh | sh
+  if ! has node || [ "$(node -p 'process.versions.node.split(".")[0]')" -lt 20 ]; then
+    # Node 24 bản chính thức vào ~/.local (không cần quyền root, không đụng Node có sẵn của hệ thống)
+    NODE_V=24.11.1; arch="$(uname -m)"; case "$arch" in x86_64) arch=x64;; aarch64|arm64) arch=arm64;; esac
+    echo "  Cài Node $NODE_V vào ~/.local"
+    curl -fsSL "https://nodejs.org/dist/v$NODE_V/node-v$NODE_V-linux-$arch.tar.xz" | tar -xJ -C "$HOME/.local" --strip-components=1
+    hash -r
+  fi
+  has pnpm || npm install -g --prefix "$HOME/.local" pnpm@9.15.9
+  grep -qs 'HOME/.local/bin' "$HOME/.bashrc" || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
+  case "$(pwd)" in /mnt/*) echo "  ! Thư mục đang ở ổ Windows (/mnt/…) — chạy rất chậm. Nên clone vào thư mục nhà của WSL (~/)";; esac
 else
   echo "  ✗ Chỉ hỗ trợ macOS và Linux (Windows: dùng WSL)."; exit 1
 fi
@@ -74,4 +92,8 @@ fi
 
 say "Kiểm tra"
 node tools/doctor.mjs
+if [ "${XUONG_SKIP_TTS:-}" != 1 ] && [ "${XUONG_SKIP_THU:-}" != 1 ]; then
+  say "Dựng thử một tập mẫu ~9 giây (kiểm tra cả dây chuyền + đo tốc độ máy)"
+  node tools/doctor.mjs --thu
+fi
 printf '\nXong. Mở trang web: pnpm web  →  http://localhost:4710\n'

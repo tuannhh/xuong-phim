@@ -10,3 +10,11 @@
 - Cảnh "lỡ cài app lạ" (ngắt mạng, gọi ngân hàng, báo công an/MISA) là lời khuyên chung, không phải số liệu.
 - Tập 1 dùng Tuấn, Linh, Kẻ lừa đảo; thêm cách đọc APK/IPA/MISAJSC/tên miền giả vào bible.pronounce.
 - Bible vẫn khai "Chị Phương Anh" gender nam (cần sửa thành nữ trước tập 2).
+
+# Giai đoạn script — tập 10
+- Tiêu đề trong phim rút gọn thành "Phản xạ: Dừng – Kiểm tra – Báo" (tiêu đề kế hoạch dài 2 dòng che logo MISA trên tường văn phòng).
+- Chị Phương Anh: bible vẫn khai gender `nam`; ở tập này (characterMode moi-tap) khai lại trong `episode.characters` là `nu`, tóc `bob` để giọng và dáng đúng vai nữ. Bible chưa đổi — nên sửa trên form.
+- Dàn nhân vật: Tuấn, Linh, Anh Hoàng, Chị Phương Anh, Kẻ lừa đảo. Không dùng số liệu nào.
+- Nơi báo lừa đảo: canhbao.khonggianmang.vn (hệ thống cảnh báo lừa đảo trực tuyến của Cục An toàn thông tin; nhandan.vn/ocop/canh-giac-voi-nan-lua-dao-truc-tuyen-gia-tang-post804509.html), công an nơi gần nhất, ngân hàng khi lỡ chuyển tiền, báo MISA khi bị mạo danh. Câu tên miền có `say` ("cảnh báo chấm không gian mạng chấm vi en") — nghe lại khi dựng.
+- Chín chiêu ở cảnh s04 lấy theo đúng 9 tập trong kế hoạch; phim không nhắc số tập nên vẫn đứng độc lập.
+- Ước lượng sau khi rút gọn lời: đạt mục tiêu 90 giây (check không còn cảnh báo dài).

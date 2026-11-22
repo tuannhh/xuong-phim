@@ -24,7 +24,7 @@ series/<slug>/
 
 ## `brief.json` (do `tools/web/server.mjs` → `saveBrief` ghi)
 
-`name, channel, idea, audience, platform, episodes (1–30), duration (20–180 giây), format (9:16|16:9|1:1|4:5), theme (preset), style (tinh-huong|thong-tin|ket-hop), sets[] (van-phong|nha|hang-o), tone, music (mood), characterMode (dong-nhat|moi-tap|khong), narrator (id), logo (misa|none), cta, notes, driveAuto (tự đẩy lên Drive sau khi dựng), driveFolder (tên thư mục trong "Xưởng phim", trống = tên series), updated`.
+`name, channel, idea, audience, platform, episodes (1–30), duration (20–180 giây), format (9:16|16:9|1:1|4:5), theme (preset), style (tinh-huong|thong-tin|ket-hop), sets[] (id trong SETS của `shared/catalog.mjs`: van-phong|nha|hang-o|quan-ca-phe|ngan-hang|phong-hop|ngoai-troi|cua-hang|cong-an), tone, music (mood), characterMode (dong-nhat|moi-tap|khong), narrator (id), logo (misa|none), cta, notes, driveAuto (tự đẩy lên Drive sau khi dựng), driveFolder (tên thư mục trong "Xưởng phim", trống = tên series), updated`.
 
 ## `bible.json`
 

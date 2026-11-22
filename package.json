@@ -10,7 +10,8 @@
     "series": "node tools/series.mjs",
     "web": "node tools/web/server.mjs",
     "typecheck": "tsc --noEmit",
-    "doctor": "node tools/doctor.mjs"
+    "doctor": "node tools/doctor.mjs",
+    "thu-may": "node tools/doctor.mjs --thu"
   },
   "dependencies": {
     "@fontsource/barlow": "5.2.5",

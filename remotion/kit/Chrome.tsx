@@ -2,7 +2,8 @@ import React from 'react';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
 import { useEp, useLayout, alpha } from './theme';
 
-// Lớp phủ cố định cả tập: tên kênh, nhãn "Tập n", thanh tiến độ mảnh.
+// Lớp phủ cố định cả tập: tên series, tên kênh, thanh tiến độ mảnh.
+// Không ghi số tập ("TẬP 1/10"): người dùng chỉ duyệt một số tập và đăng không theo thứ tự (yêu cầu 2026-11-22).
 export const Chrome: React.FC = () => {
   const { ep, theme: th } = useEp();
   const f = useCurrentFrame();
@@ -20,11 +21,7 @@ export const Chrome: React.FC = () => {
       <div style={{ position: 'absolute', left: safe.left, right: safe.left, top, display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: th.fontBody, color: alpha(th.fg, 0.85) }}>
         {c.tag ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 * u, fontSize: 30 * u, fontWeight: 700 }}>
-            <span style={{ background: th.accent, color: th.bg, padding: `${6 * u}px ${16 * u}px`, borderRadius: 999, fontWeight: 800 }}>
-              TẬP {ep.episode.number}
-              {ep.episode.total ? `/${ep.episode.total}` : ''}
-            </span>
-            <span style={{ maxWidth: W * 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff', background: 'rgba(15,18,30,.55)', padding: `${4 * u}px ${14 * u}px`, borderRadius: 999 }}>{ep.series.name}</span>
+            <span style={{ maxWidth: W * 0.62, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff', background: 'rgba(15,18,30,.55)', padding: `${4 * u}px ${14 * u}px`, borderRadius: 999 }}>{ep.series.name}</span>
           </div>
         ) : (
           <span />

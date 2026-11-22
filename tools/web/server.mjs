@@ -6,14 +6,21 @@
 // Chỉ nghe ở 127.0.0.1; mọi lệnh ghi yêu cầu header x-xuong để trang web khác không gọi lén được.
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { FORMATS, PRESETS, ROOT, readJSON, writeJSON } from '../lib.mjs';
+import { HAIRS, KINDS, MASCOTS, SETS, allHairs } from '../../shared/catalog.mjs';
+import { WM_DEFAULT, cleanWatermark } from '../../shared/watermark.mjs';
+import { MUSIC_EXT, MUSIC_MAX, musicDir, musicTracks } from '../music-source.mjs';
+import { saveStream } from './upload.mjs';
+import { suggest } from './suggest.mjs';
 import { VIENEU } from '../voices.mjs';
 import * as drive from './drive.mjs';
 import { checks as doctorChecks } from '../doctor.mjs';
 import * as output from '../output.mjs';
 import * as mat from './materials.mjs';
+import { createQueue } from './queue.mjs';
 
 const PORT = +(process.env.PORT ?? 4710);
 const SERIES = path.join(ROOT, 'series');
@@ -86,13 +93,26 @@ const seriesInfo = (slug, full = false) => {
   const base = { slug, name: bible.name, channel: bible.channel, total: bible.episodes, format: bible.format, theme: bible.theme?.preset ?? bible.theme, characters: (bible.characters ?? []).length, planned: plan.episodes.length, done: episodes.filter((e) => e.mp4).length, episodes: episodes.length };
   if (!full) return base;
   const pic = path.join(dir, 'characters.png');
-  return { ...base, bible, brief: readJSON(path.join(dir, 'brief.json'), null), episodes, materials: mat.summary(dir), outputDir: output.displayPath(output.seriesOutputDir(bible.name || slug)), charactersPng: fs.existsSync(pic) ? fs.statSync(pic).mtimeMs : 0, notes: fs.existsSync(path.join(dir, '.studio/ghi-chu.md')) ? fs.readFileSync(path.join(dir, '.studio/ghi-chu.md'), 'utf8') : '' };
+  const aDir = path.join(dir, 'assets');
+  const assets = fs.existsSync(aDir) ? fs.readdirSync(aDir).filter((f) => ASSET_EXT.test(f)).sort() : [];
+  const tracks = musicTracks(dir, bible.music).map((t) => ({ name: path.basename(t), uploaded: path.dirname(t) === musicDir(dir), size: fs.statSync(t).size }));
+  const mPath = bible.music?.path ? String(bible.music.path) : '';
+  return { ...base, bible, assets, music: { tracks, pathOk: !mPath || fs.existsSync(mPath.replace(/^~(?=\/|$)/, os.homedir())) }, brief: readJSON(path.join(dir, 'brief.json'), null), episodes, materials: mat.summary(dir), outputDir: output.displayPath(output.seriesOutputDir(bible.name || slug)), charactersPng: fs.existsSync(pic) ? fs.statSync(pic).mtimeMs : 0, notes: fs.existsSync(path.join(dir, '.studio/ghi-chu.md')) ? fs.readFileSync(path.join(dir, '.studio/ghi-chu.md'), 'utf8') : '' };
 };
 const listSeries = () => (fs.existsSync(SERIES) ? fs.readdirSync(SERIES).filter((d) => SLUG.test(d)).map((d) => seriesInfo(d)).filter(Boolean) : []);
 
+const ASSET_EXT = /\.(png|webp|jpe?g|svg)$/i;
+// nhạc nền: nguồn (tự tổng hợp theo mood / nhạc của tôi), âm lượng 0..0.3 (thanh 0–100% trên trang), đường dẫn trên máy
+const cleanMusic = (f, old = {}) => {
+  const vol = f.musicVolume != null && Number.isFinite(+f.musicVolume) ? Math.min(0.3, Math.max(0, +f.musicVolume)) : old.volume ?? 0.12;
+  const out = { ...old, volume: +vol.toFixed(3), mood: String(f.music ?? old.mood ?? 'tension'), source: (f.musicSource ?? old.source) === 'file' ? 'file' : 'tao' };
+  const mp = 'musicPath' in f ? String(f.musicPath ?? '').trim().slice(0, 500) : old.path ?? '';
+  if (mp) out.path = mp; else delete out.path;
+  return out;
+};
 // form → brief.json + bible.json (+ brief.md cho người đọc)
 const cleanChar = (c, i) => {
-  const out = { id: slugify(c.id || c.name || `nv${i + 1}`).replace(/-/g, '') || `nv${i + 1}`, name: String(c.name || `Nhân vật ${i + 1}`).slice(0, 40), gender: c.gender === 'nu' ? 'nu' : 'nam', kind: ['misa', 'so-mi', 'vest', 'hoodie', 'ao-thun', 'cardigan'].includes(c.kind) ? c.kind : 'misa', hair: c.hair || (c.gender === 'nu' ? 'dai' : 'ngan') };
+  const out = { id: slugify(c.id || c.name || `nv${i + 1}`).replace(/-/g, '') || `nv${i + 1}`, name: String(c.name || `Nhân vật ${i + 1}`).slice(0, 40), gender: c.gender === 'nu' ? 'nu' : 'nam', kind: KINDS[c.kind] || c.kind === 'mascot' ? c.kind : 'misa', hair: allHairs()[c.hair] ? c.hair : c.gender === 'nu' ? 'dai' : 'ngan' };
   if (out.kind !== 'misa' && /^#[0-9a-fA-F]{6}$/.test(c.outfitColor ?? '')) out.outfitColor = c.outfitColor;
   if (c.bottom === 'vay' && out.gender === 'nu') out.bottom = 'vay';
   if (/^#[0-9a-fA-F]{6}$/.test(c.hairColor ?? '')) out.hairColor = c.hairColor;
@@ -104,6 +124,13 @@ const cleanChar = (c, i) => {
   if (c.role) out.role = String(c.role).slice(0, 120);
   for (const k of ['beard', 'logo']) if (typeof c[k] === 'boolean') out[k] = c[k];
   for (const k of ['skin', 'bottomColor']) if (/^#[0-9a-fA-F]{6}$/.test(c[k] ?? '')) out[k] = c[k];
+  if (out.kind === 'mascot') {
+    // mascot vẽ sẵn (MASCOTS) hoặc ảnh người dùng tải lên series/<slug>/assets/ (Remotion đọc ở series-assets/)
+    const img = String(c.image ?? '').replace(/^series-assets\//, '');
+    if (c.mascot === 'anh' && ASSET_EXT.test(img) && !img.includes('/')) Object.assign(out, { mascot: 'anh', image: `series-assets/${img}` });
+    else out.mascot = MASCOTS[c.mascot] ? c.mascot : Object.keys(MASCOTS)[0] ?? 'anh';
+    delete out.hair;
+  }
   return out;
 };
 const saveBrief = (slug, f, isNew) => {
@@ -115,9 +142,9 @@ const saveBrief = (slug, f, isNew) => {
   const narrator = characters.find((c) => c.id === f.narrator || c.name === f.narrator)?.id ?? characters.find((c) => !c.villain)?.id ?? null;
   const brief = {
     name: String(f.name).slice(0, 80), channel: String(f.channel ?? '').slice(0, 60), idea: String(f.idea ?? ''), audience: String(f.audience ?? ''), platform: String(f.platform ?? ''),
-    episodes: Math.max(1, Math.min(30, +f.episodes || 5)), duration: Math.max(20, Math.min(180, +f.duration || 60)), format: FORMATS[f.format] ? f.format : '9:16',
+    episodes: Math.max(1, Math.min(30, +f.episodes || 5)), duration: Math.max(20, Math.min(300, +f.duration || 60)), format: FORMATS[f.format] ? f.format : '9:16',
     theme: PRESETS[f.theme] ? f.theme : 'misa-vang', style: ['tinh-huong', 'thong-tin', 'ket-hop'].includes(f.style) ? f.style : 'tinh-huong',
-    sets: (f.sets ?? []).filter((s) => ['van-phong', 'nha', 'hang-o'].includes(s)), tone: String(f.tone ?? ''), music: String(f.music ?? 'tension'),
+    sets: (f.sets ?? []).filter((s) => SETS[s]), tone: String(f.tone ?? ''), music: String(f.music ?? 'tension'),
     characterMode: mode, narrator, logo: f.logo === 'none' ? 'none' : 'misa', cta: String(f.cta ?? ''), notes: String(f.notes ?? ''),
     sourceMode: mat.MODES[f.sourceMode] ? f.sourceMode : 'claude', materials: mat.cleanMaterials(f.materials),
     driveAuto: !!f.driveAuto, driveFolder: String(f.driveFolder ?? '').replace(/[\\/]+/g, ' ').trim().slice(0, 80), updated: new Date().toISOString(),
@@ -128,7 +155,8 @@ const saveBrief = (slug, f, isNew) => {
     ...old, name: brief.name, slug, channel: brief.channel, episodes: brief.episodes, format: brief.format, fps: old.fps ?? 30, engine: old.engine ?? 'remotion',
     theme: { ...(typeof old.theme === 'object' ? old.theme : {}), preset: brief.theme }, captions: old.captions ?? 'pill',
     voice: characters.find((c) => c.id === narrator)?.voice ?? old.voice ?? 'Hải Đăng', narrator, characterMode: mode, characters,
-    music: { volume: 0.12, ...(old.music ?? {}), mood: brief.music }, sfx: old.sfx ?? { auto: true, volume: 0.6 }, transition: old.transition ?? { type: 'slide', frames: 12 },
+    music: cleanMusic(f, old.music),
+    watermark: 'watermark' in f ? cleanWatermark(f.watermark) : old.watermark ?? null, sfx: old.sfx ?? { auto: true, volume: 0.6 }, transition: old.transition ?? { type: 'slide', frames: 12 },
     chrome: old.chrome ?? { handle: false, progress: true, tag: true }, pronounce: old.pronounce ?? {},
   });
   if (isNew) writeJSON(path.join(dir, 'plan.json'), { brief: {}, episodes: [] });
@@ -155,7 +183,29 @@ const finish = (j, code) => {
   j.status = j.status === 'stopping' ? 'stopped' : code === 0 && !j.failed ? 'done' : 'error';
   j.ended = Date.now();
   logLine(j, j.status === 'done' ? '✓ Xong.' : j.status === 'stopped' ? '■ Đã dừng.' : `✗ Lỗi (mã ${code}).`);
+  if (j.queued) queue.done({ slug: j.slug, episode: j.episode }, j.status);
+  // bấm Dừng = dừng tập đang dựng và TẠM DỪNG hàng đợi (không tự nhảy sang tập sau); tập lỗi thì vẫn dựng tiếp tập sau
+  if (j.status === 'stopped' && queue.size) queue.pause();
+  setImmediate(pump);
 };
+
+// ───────── hàng đợi dựng phim (tools/web/queue.mjs): bấm dựng khi máy đang bận → xếp hàng; xong việc này tự dựng tập kế
+const queue = createQueue(path.join(output.CONF_DIR, 'queue.json'));
+const queueTitle = (i) => {
+  const ep = readJSON(path.join(seriesDir(i.slug), 'episodes', epId(i.episode), 'episode.json'), null);
+  return `${readJSON(path.join(seriesDir(i.slug), 'bible.json'), {}).name ?? i.slug} · Tập ${i.episode}${ep?.title ? `: ${ep.title}` : ''}`;
+};
+const busyNow = () => job?.status === 'running' || job?.status === 'stopping';
+const renderDir = (slug, n) => path.join('series', slug, 'episodes', epId(n));
+const startRender = (slug, n, queued = false) =>
+  startJob({ action: 'render', slug, episode: n, queued }, process.execPath, ['tools/ep.mjs', renderDir(slug, n), 'all'], { after: autoUpload(slug, n) });
+function pump() {
+  if (busyNow()) return;
+  for (let it = queue.take(); it; it = queue.take()) {
+    if (SLUG.test(it.slug) && fs.existsSync(path.join(ROOT, renderDir(it.slug, it.episode), 'episode.json'))) return void startRender(it.slug, it.episode, true);
+    queue.done(it, 'skipped'); // tập đã bị xoá / chưa có kịch bản
+  }
+}
 const pipeLines = (stream, onLine) => {
   let buf = '';
   stream.setEncoding('utf8');
@@ -302,11 +352,23 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, {
         themes: Object.entries(PRESETS).map(([id, t]) => ({ id, bg: t.bg, fg: t.fg, accent: t.accent, accent2: t.accent2, card: t.card })),
         voices: VIENEU, formats: Object.keys(FORMATS), claude: !!CLAUDE, root: ROOT, docker: !!process.env.XUONG_DOCKER, sourceModes: mat.MODES,
-        hairs: { nam: ['ngan', 'vuot', 'tia', 'xoan', 'hoi'], nu: ['dai', 'buoc', 'bob', 'bui'] }, kinds: ['misa', 'so-mi', 'vest', 'hoodie', 'ao-thun', 'cardigan'],
+        hairs: HAIRS, kinds: KINDS, sets: Object.fromEntries(Object.entries(SETS).map(([k, v]) => [k, v.label])), mascots: MASCOTS, wmDefault: WM_DEFAULT,
         moods: ['tension', 'lofi', 'upbeat', 'inspire', 'playful', 'calm'],
       });
     if (req.method === 'GET' && p === '/api/series') return send(res, 200, listSeries());
-    if (req.method === 'GET' && p === '/api/job') return send(res, 200, { job: jobView(job, +(url.searchParams.get('from') ?? 0)) });
+    if (req.method === 'POST' && p === '/api/suggest') {
+      const b = await readBody(req);
+      try { return send(res, 200, { items: await suggest(CLAUDE, childEnv(true), String(b.field ?? ''), b.context ?? {}) }); }
+      catch (e) { return fail(res, e.code ?? 500, e.message); }
+    }
+    if (req.method === 'GET' && p === '/api/job') return send(res, 200, { job: jobView(job, +(url.searchParams.get('from') ?? 0)), queue: queue.view(queueTitle) });
+    if (p === '/api/queue' && req.method === 'DELETE') {
+      const slug = url.searchParams.get('slug'), n = +url.searchParams.get('episode');
+      if (slug) queue.remove(slug, n); else queue.clear();
+      return send(res, 200, { queue: queue.view(queueTitle) });
+    }
+    if (p === '/api/queue/pause' && req.method === 'POST') { queue.pause(); return send(res, 200, { queue: queue.view(queueTitle) }); }
+    if (p === '/api/queue/resume' && req.method === 'POST') { queue.resume(); pump(); return send(res, 200, { job: jobView(job), queue: queue.view(queueTitle) }); }
 
     if (req.method === 'POST' && p === '/api/series') {
       const f = await readBody(req);
@@ -371,6 +433,19 @@ const server = http.createServer(async (req, res) => {
           if (req.method === 'DELETE') { mat.removeUpload(dir, name); return send(res, 200, mat.summary(dir)); }
         } catch (e) { return fail(res, 400, e.message); }
       }
+      if (m[2] === '/asset' || m[2] === '/music') {
+        // ảnh dùng chung của series (logo watermark, ảnh mascot) → assets/; nhạc nền → nhac/  (cả hai ngoài git)
+        const isMusic = m[2] === '/music';
+        const base = isMusic ? musicDir(dir) : path.join(dir, 'assets');
+        const raw = mat.safeName(url.searchParams.get('name') ?? '');
+        const kind = ['logo', 'mascot'].includes(url.searchParams.get('kind')) ? url.searchParams.get('kind') : 'anh';
+        const name = isMusic || req.method === 'DELETE' ? raw : `${kind}-${raw}`.replace(/\s+/g, '-');
+        try {
+          if (!name || !(isMusic ? MUSIC_EXT : ASSET_EXT).test(name)) throw new Error(isMusic ? 'Chỉ nhận nhạc MP3, WAV, M4A, AAC, OGG, FLAC.' : 'Chỉ nhận ảnh PNG (nên nền trong suốt), WEBP, JPG, SVG.');
+          if (req.method === 'POST') return send(res, 200, await saveStream(base, name, req, isMusic ? MUSIC_MAX : 15 * 1024 * 1024, isMusic ? 'File nhạc quá 80 MB.' : 'Ảnh quá 15 MB.'));
+          if (req.method === 'DELETE') { fs.rmSync(path.join(base, name), { force: true }); return send(res, 200, { ok: true }); }
+        } catch (e) { return fail(res, 400, e.message); }
+      }
       if (m[2] === '/lines') {
         const n = Math.floor(+(url.searchParams.get('episode') ?? 0));
         if (!(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
@@ -388,9 +463,28 @@ const server = http.createServer(async (req, res) => {
         writeJSON(path.join(dir, 'plan.json'), plan);
         return send(res, 200, { ok: true });
       }
-      if (req.method === 'POST' && m[2] === '/jobs') {
-        if (job?.status === 'running' || job?.status === 'stopping') return fail(res, 409, `Đang chạy: ${job.label}. Chờ xong hoặc bấm Dừng.`);
+      // xếp hàng dựng nhiều tập: { episodes: [n…] } — chỉ tập đã có kịch bản
+      if (req.method === 'POST' && m[2] === '/queue') {
         const b = await readBody(req);
+        const eps = [...new Set((Array.isArray(b.episodes) ? b.episodes : []).map(Number))].filter((n) => Number.isInteger(n) && n > 0 && n < 100 && fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json')));
+        if (!eps.length) return fail(res, 400, 'Chưa chọn tập nào có kịch bản.');
+        const running = busyNow() && job.action === 'render' && job.slug === slug ? job.episode : null;
+        const added = queue.add(slug, eps.filter((n) => n !== running));
+        if (!busyNow()) { queue.resume(); pump(); }
+        return send(res, 200, { added, job: jobView(job), queue: queue.view(queueTitle) });
+      }
+      if (req.method === 'POST' && m[2] === '/jobs') {
+        const b = await readBody(req);
+        // dựng phim khi máy đang bận → xếp hàng thay vì báo lỗi
+        if (b.action === 'render' && busyNow()) {
+          const n = Math.floor(+b.episode);
+          if (!(n > 0 && n < 100) || !fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json'))) return fail(res, 400, 'Tập này chưa có kịch bản.');
+          if (job.action === 'render' && job.slug === slug && job.episode === n) return fail(res, 409, 'Tập này đang được dựng.');
+          queue.add(slug, [n]);
+          const v = queue.view(queueTitle);
+          return send(res, 200, { queued: v.items.findIndex((i) => i.slug === slug && i.episode === n) + 1, queue: v });
+        }
+        if (busyNow()) return fail(res, 409, `Đang chạy: ${job.label}. Chờ xong hoặc bấm Dừng.`);
         const n = b.episode ? Math.floor(+b.episode) : null;
         const fb = String(b.feedback ?? '').trim();
         if (['script', 'fix', 'render', 'upload', 'storyboard'].includes(b.action) && !(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
@@ -408,9 +502,9 @@ const server = http.createServer(async (req, res) => {
           return send(res, 200, { job: jobView(j) });
         }
         if (b.action === 'render') {
-          const ed = path.join('series', slug, 'episodes', epId(n));
-          if (!fs.existsSync(path.join(ROOT, ed, 'episode.json'))) return fail(res, 400, 'Tập này chưa có kịch bản.');
-          return send(res, 200, { job: jobView(startJob({ action: 'render', slug, episode: n }, process.execPath, ['tools/ep.mjs', ed, 'all'], { after: autoUpload(slug, n) })) });
+          if (!fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json'))) return fail(res, 400, 'Tập này chưa có kịch bản.');
+          queue.remove(slug, n); // bấm dựng ngay thì bỏ khỏi hàng đợi (nếu có)
+          return send(res, 200, { job: jobView(startRender(slug, n)) });
         }
         if (b.action === 'storyboard') {
           const ed = path.join('series', slug, 'episodes', epId(n));

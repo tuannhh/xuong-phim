@@ -25,3 +25,16 @@ series/*/episodes/*/out/export.json
 !.env.example
 # bảng soát hướng cử chỉ (sinh lại được)
 series/*/characters-huong.png
+
+# tập mẫu tự kiểm tra (pnpm thu-may) chạy trong thư mục tạm; phòng khi chạy nhầm tại chỗ
+tools/selftest/*/episodes/*/build/
+tools/selftest/*/episodes/*/out/
+tools/selftest/*/episodes/*/voice/
+tools/selftest/*/episodes/*/storyboard/
+
+# ảnh dùng chung của series (logo watermark, mascot) và nhạc nền người dùng tải lên — tài sản riêng, không lên GitHub
+series/*/assets/
+series/*/nhac/
+
+# lựa chọn cách chạy của start.sh (chạy thẳng / Docker) — riêng từng máy
+.xuong-mode

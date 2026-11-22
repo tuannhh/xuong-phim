@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const CONF_DIR = process.env.XUONG_CONFIG_DIR || path.join(os.homedir(), '.config', 'xuong-phim');
+export const CONF_DIR = process.env.XUONG_CONFIG_DIR || path.join(os.homedir(), '.config', 'xuong-phim');
 const SETTINGS = path.join(CONF_DIR, 'settings.json');
 const readJSON = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 

@@ -362,8 +362,7 @@
    "props": {
     "logo": "misa",
     "cta": "Chia sẻ để *cùng cảnh giác*",
-    "handle": "Người MISA cảnh giác",
-    "next": "Cuộc gọi từ “cơ quan chức năng”"
+    "handle": "Người MISA cảnh giác"
    },
    "hold": 2.6,
    "transition": "fade"

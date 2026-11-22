@@ -49,7 +49,7 @@ export const Hook: React.FC<SceneProps> = ({ scene }) => {
   );
 };
 
-// ───────── title: thẻ tên tập. props: { title, sub?, number? }
+// ───────── title: thẻ tên tập. props: { title, sub?, number? } — số to chỉ hiện khi ghi rõ `number` (không tự lấy số tập: tập đăng không theo thứ tự)
 export const Title: React.FC<SceneProps> = ({ scene }) => {
   const th = useTheme();
   const { ep } = useEp();
@@ -57,13 +57,15 @@ export const Title: React.FC<SceneProps> = ({ scene }) => {
   const { fps } = useVideoConfig();
   const { u } = useLayout();
   const p = springAt(f, 0, fps, 12);
-  const num = scene.props.number ?? ep.episode.number;
+  const num = scene.props.number;
   return (
     <SceneShell scene={scene}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ display: 'inline-block', fontFamily: th.fontDisplay, fontWeight: 900, fontSize: 200 * u, lineHeight: 1, color: 'transparent', WebkitTextStroke: `${4 * u}px ${th.accent}`, transform: `scale(${0.6 + 0.4 * p})`, opacity: p }}>
-          {String(num).padStart(2, '0')}
-        </div>
+        {num != null && (
+          <div style={{ display: 'inline-block', fontFamily: th.fontDisplay, fontWeight: 900, fontSize: 200 * u, lineHeight: 1, color: 'transparent', WebkitTextStroke: `${4 * u}px ${th.accent}`, transform: `scale(${0.6 + 0.4 * p})`, opacity: p }}>
+            {String(num).padStart(2, '0')}
+          </div>
+        )}
         <div style={{ height: 8 * u, width: `${ease(f, 6, 16) * 40}%`, margin: `${24 * u}px auto`, background: th.accent, borderRadius: 8 * u }} />
         <Heading text={scene.props.title ?? ep.episode.title} at={8} size={84} align="center" />
         {scene.props.sub && <div style={{ fontFamily: th.fontBody, fontSize: 40 * u, color: th.muted, opacity: ease(f, 16, 14) }}><RichText text={scene.props.sub} /></div>}
@@ -310,7 +312,8 @@ export const Kinetic: React.FC<SceneProps> = ({ scene }) => {
   );
 };
 
-// ───────── outro: lời kêu gọi + tập sau. props: { cta?, next?, handle?, logo? ('misa') }
+// ───────── outro: lời kêu gọi + kênh. props: { cta?, handle?, logo? ('misa') }
+// Không có dòng "Tập sau": tập nào được duyệt/đăng và đăng theo thứ tự nào là việc của người dùng — báo trước tập sau dễ sai (người dùng 2026-11-22).
 export const Outro: React.FC<SceneProps> = ({ scene }) => {
   const th = useTheme();
   const { ep } = useEp();
@@ -331,11 +334,6 @@ export const Outro: React.FC<SceneProps> = ({ scene }) => {
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 16 * u, background: th.accent, color: th.bg, fontFamily: th.fontDisplay, fontWeight: 900, fontSize: 44 * u, padding: `${22 * u}px ${44 * u}px`, borderRadius: 999, transform: `scale(${springAt(f, 10, fps, 9) * pulse})` }}>
           <Icon name="bell-ring" size={46 * u} color={th.bg} /> {scene.props.handle ?? ep.series.channel ?? 'Theo dõi'}
         </div>
-        {scene.props.next && (
-          <div style={{ marginTop: 50 * u, fontFamily: th.fontBody, fontSize: 36 * u, color: th.muted, opacity: ease(f, 22, 14) }}>
-            Tập sau: <b style={{ color: th.fg }}><RichText text={scene.props.next} /></b>
-          </div>
-        )}
       </div>
     </SceneShell>
   );

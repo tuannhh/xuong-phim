@@ -1,12 +1,16 @@
 import React, { useId } from 'react';
+import { Img, staticFile } from 'remotion';
 import { MisaLogo, MISA_LOGO_RATIO } from './MisaLogo';
+import { useStill } from './theme';
 import type { CharacterSpec } from '../types';
 
 // Nhân vật người — minh hoạ phẳng, TOÀN THÂN, dáng ĐẦY ĐẶN (~6 đầu: vai rộng, thân dày, tay chân to vừa phải), khung 600×1200, gốc trên-trái.
 // Mốc: đỉnh đầu y≈14 · cằm 204 · vai 290 · eo 480 · hông 640 · gối 886 · mắt cá 1120 · đế giày 1164.
 // Cách vẽ: mỗi khối (tay, quần, mặt, tóc…) vẽ HAI LƯỢT — lượt viền (nét cùng tông màu, đậm hơn) rồi lượt tô — nên các đoạn
 // trong cùng một khối liền nhau, không lộ khớp khuỷu/gối/cổ tay. Có khớp vai/khuỷu/cổ tay/hông/gối → tư thế chuyển dần.
-// Trang phục: misa (polo vàng đồng phục: cổ + nẹp than, sọc đỏ, logo MISA đầy đủ ngực trái) · so-mi · vest · hoodie · ao-thun · cardigan; quần hoặc váy.
+// Trang phục: misa (polo vàng đồng phục: cổ + nẹp than, sọc đỏ, logo MISA đầy đủ ngực trái) · so-mi · vest · hoodie · ao-thun · cardigan
+//   · ao-dai (áo dài: cổ đứng, vạt chéo, tà trước/sau, quần ống rộng) · vay-lien · blazer-nu · ao-len · polo (trơn) · ao-khoac (bomber) · dong-phuc (công việc chung) · ao-so-mi-ke; quần hoặc váy.
+// Mascot (kind 'mascot'): xem mục MASCOT cuối file.
 // Khung máy (FRAMING): toan-than · trung-canh (tới trên gối) · can-canh (tới ngực).
 
 export const SHIRT = { yellow: '#F6D21F', yellowShade: '#E3B90C', dark: '#2B2E36', red: '#E2342B', button: '#C9CCD3' };
@@ -110,10 +114,16 @@ const FACE_M = 'M -98 -20 C -100 -96 -60 -135 0 -135 C 60 -135 100 -96 98 -20 C 
 const FACE_F = 'M -95 -22 C -97 -96 -58 -135 0 -135 C 58 -135 97 -96 95 -22 C 95 28 84 66 55 97 C 38 115 19 122 0 122 C -19 122 -38 115 -55 97 C -84 66 -95 28 -95 -22 Z';
 
 // ───── tóc
-type HairDef = { back?: string[]; front: string[]; hi?: string[]; lines?: string[]; tie?: V };
+// fade = phần tóc cắt sát (undercut, húi cua) — tô màu tóc pha da, không viền; tieF = dây buộc vẽ ở lớp trước (bím tóc)
+type HairDef = { back?: string[]; front: string[]; hi?: string[]; lines?: string[]; tie?: V; fade?: string[]; tieF?: V; soft?: boolean }; // soft: lớp trước không viền đậm (tóc cắt sát)
 const LOCK = 'M -100 -14 C -114 60 -112 170 -98 262 C -86 276 -66 268 -62 250 C -74 170 -78 84 -82 6 Z';
 const BOB_SIDE = 'M -103 -6 C -113 36 -114 80 -108 116 C -98 124 -86 122 -80 112 C -86 72 -86 30 -85 -22 Z';
 const HOI_SIDE = 'M -101 10 C -110 -30 -106 -72 -89 -96 C -80 -72 -77 -40 -79 -2 Z';
+const WAVE_LOCK = 'M -100 -14 C -118 40 -100 84 -116 132 C -128 182 -104 222 -114 264 C -98 286 -70 278 -64 258 C -80 222 -66 182 -78 140 C -88 100 -74 52 -82 6 Z';
+const UNDER_SIDE = 'M -101 4 C -108 -40 -107 -92 -94 -114 L -66 -100 L -80 -74 C -89 -48 -97 -22 -101 4 Z';
+const PIXIE_SIDE = 'M -100 -12 C -106 10 -104 30 -96 46 C -91 30 -89 8 -87 -22 Z';
+const braid = (x0: number, y0: number, n: number, dx: number, dy: number) =>
+  Array.from({ length: n }, (_, i) => ell(x0 + i * dx + (i % 2 ? 7 : -7), y0 + i * dy, 25 - i * 0.9, 27 - i * 0.6));
 const HAIR: Record<string, HairDef> = {
   ngan: {
     front: ['M -102 8 C -113 -62 -92 -151 2 -153 C 92 -153 115 -64 102 8 C 99 -20 94 -44 84 -64 C 62 -78 22 -72 -8 -97 C -28 -77 -60 -67 -86 -62 C -94 -42 -99 -18 -102 8 Z'],
@@ -153,14 +163,86 @@ const HAIR: Record<string, HairDef> = {
     front: ['M -102 8 C -113 -68 -86 -151 0 -153 C 86 -151 113 -68 102 8 C 96 -40 74 -86 6 -98 L -6 -98 C -74 -86 -96 -40 -102 8 Z'],
     lines: ['M 0 -150 L 0 -100', 'M -22 -176 Q 0 -192 22 -174'],
   },
+  // ── nam (thêm 23/11/2026)
+  'hui-cua': {
+    // húi cua: cả đầu cắt sát sát da (màu tóc hơi pha da, không viền), chân tóc trán có góc lùi ở thái dương, chấm lấm tấm chân tóc
+    front: ['M -101 2 C -109 -70 -88 -149 0 -150 C 88 -149 109 -70 101 2 C 98 -26 95 -44 90 -58 L 80 -72 C 56 -82 28 -86 0 -86 C -28 -86 -56 -82 -80 -72 L -90 -58 C -95 -44 -98 -26 -101 2 Z'],
+    soft: true,
+    hi: ['M -40 -128 C 0 -142 52 -136 76 -110 C 46 -124 6 -128 -34 -120 Z'],
+    lines: ['M -58 -100 L -56 -108', 'M -30 -106 L -29 -116', 'M 0 -108 L 0 -118', 'M 30 -106 L 29 -116', 'M 58 -100 L 56 -108', 'M -44 -126 L -42 -134', 'M 14 -130 L 14 -138', 'M 46 -124 L 44 -132', 'M -84 -40 L -86 -48', 'M 84 -40 L 86 -48'],
+  },
+  mai: {
+    // mái ngố: tóc phủ trán, đuôi mái so le (không che lông mày)
+    front: ['M -102 6 C -114 -66 -92 -158 0 -160 C 92 -158 114 -66 102 6 C 99 -18 96 -38 91 -54 L 78 -60 L 66 -52 L 50 -64 L 34 -55 L 16 -66 L 0 -57 L -18 -66 L -36 -56 L -54 -65 L -70 -55 L -84 -61 L -91 -54 C -96 -38 -99 -18 -102 6 Z'],
+    hi: ['M -40 -134 C 0 -150 56 -142 82 -108 C 50 -126 6 -130 -34 -122 Z'],
+    lines: ['M -50 -110 L -40 -72', 'M 0 -116 L 4 -70', 'M 46 -108 L 40 -72'],
+  },
+  're-ngoi': {
+    // rẽ ngôi lệch: ngôi bên phải nhân vật, tóc chải sang bên kia
+    front: ['M -102 8 C -112 -62 -100 -134 -48 -151 C 10 -169 92 -150 105 -80 C 109 -50 105 -20 102 8 C 98 -24 92 -46 82 -62 C 48 -84 -2 -88 -36 -106 L -42 -94 C -62 -82 -80 -72 -88 -62 C -95 -42 -99 -18 -102 8 Z'],
+    hi: ['M -30 -128 C 10 -150 66 -142 92 -104 C 56 -126 12 -128 -24 -116 Z'],
+    lines: ['M -40 -108 C -6 -134 46 -132 86 -96', 'M -42 -96 C -70 -84 -86 -70 -92 -50'],
+  },
+  undercut: {
+    // undercut: hai bên cắt sát, đỉnh để dài vuốt cao
+    fade: [UNDER_SIDE, mir(UNDER_SIDE)],
+    front: ['M -90 -104 C -100 -136 -72 -166 -10 -170 C 56 -174 102 -148 92 -102 C 76 -84 50 -76 24 -78 C 0 -80 -30 -70 -58 -74 C -72 -78 -84 -90 -90 -104 Z'],
+    hi: ['M -40 -150 C 0 -170 58 -166 84 -128 C 50 -148 4 -152 -34 -140 Z'],
+    lines: ['M -56 -84 C -40 -132 10 -160 70 -152', 'M -16 -72 C 0 -120 40 -146 86 -130'],
+  },
+  'dai-buoc': {
+    // tóc dài buộc gọn sau gáy (búi nhỏ trên đỉnh nhìn thấy từ phía trước)
+    back: [ell(0, -166, 36, 30)],
+    front: ['M -101 6 C -111 -54 -105 -113 -63 -141 C -20 -170 76 -168 101 -112 C 113 -72 107 -30 101 6 C 98 -24 92 -48 82 -68 C 40 -95 -40 -97 -81 -70 C -92 -48 -98 -22 -101 6 Z'],
+    lines: ['M -62 -92 C -44 -130 0 -150 -2 -150', 'M 62 -92 C 44 -130 2 -150 2 -150', 'M -14 -180 Q 0 -190 16 -178'],
+  },
+  // ── nữ (thêm 23/11/2026)
+  'xoa-dai': {
+    // dài xoã gợn sóng
+    back: ['M -110 -20 C -120 -112 -60 -158 0 -158 C 60 -158 120 -112 110 -20 C 128 40 112 100 132 160 C 148 220 124 262 142 302 C 110 330 70 318 54 296 L 0 200 L -54 296 C -70 318 -110 330 -142 302 C -124 262 -148 220 -132 160 C -112 100 -128 40 -110 -20 Z'],
+    front: ['M -104 12 C -115 -70 -88 -155 0 -157 C 88 -155 115 -70 104 12 C 100 -24 94 -52 82 -74 C 50 -84 10 -104 -18 -126 C -36 -96 -66 -74 -88 -60 C -96 -40 -101 -16 -104 12 Z', WAVE_LOCK, mir(WAVE_LOCK)],
+    hi: ['M 0 -136 C 34 -146 76 -128 90 -90 C 62 -114 30 -124 2 -124 Z'],
+    lines: ['M -104 60 C -96 100 -110 130 -100 170', 'M 104 60 C 96 100 110 130 100 170', 'M -24 -122 C -50 -96 -72 -80 -86 -72'],
+  },
+  'duoi-ngua': {
+    // đuôi ngựa buộc cao sau đỉnh đầu
+    back: ['M 26 -162 C 96 -206 168 -150 154 -56 C 146 12 128 76 104 118 C 112 52 106 -10 90 -60 C 78 -100 58 -128 26 -140 Z'],
+    tie: [40, -152],
+    front: ['M -102 10 C -113 -66 -88 -153 0 -155 C 88 -153 113 -66 102 10 C 98 -28 88 -60 66 -84 C 34 -96 -20 -98 -50 -88 C -76 -72 -94 -40 -102 10 Z'],
+    hi: ['M -34 -132 C 10 -148 62 -136 84 -100 C 54 -120 12 -124 -28 -120 Z'],
+    lines: ['M -50 -88 C -20 -120 20 -140 40 -150', 'M 66 -84 C 56 -116 48 -136 40 -150'],
+  },
+  'toc-ngan': {
+    // tóc tém (pixie): ngắn, mái lệch phủ một bên trán
+    front: ['M -100 0 C -110 -72 -88 -154 0 -156 C 90 -154 112 -72 100 0 C 98 -22 96 -38 92 -50 C 78 -62 60 -66 44 -72 C 16 -80 -14 -66 -42 -60 C -66 -56 -84 -54 -92 -42 C -96 -28 -99 -14 -100 0 Z', PIXIE_SIDE, mir(PIXIE_SIDE)],
+    hi: ['M -30 -132 C 10 -148 62 -138 86 -102 C 54 -122 14 -126 -24 -120 Z'],
+    lines: ['M 40 -76 C 10 -100 -30 -104 -70 -76', 'M 70 -96 C 40 -120 0 -124 -40 -110'],
+  },
+  'mai-thua': {
+    // dài có mái thưa ngang trán
+    back: ['M -108 -20 C -118 -112 -60 -157 0 -157 C 60 -157 118 -112 108 -20 C 112 80 124 190 130 290 C 100 318 62 310 46 290 L 0 190 L -46 290 C -62 310 -100 318 -130 290 C -124 190 -112 80 -108 -20 Z'],
+    front: ['M -104 12 C -116 -70 -90 -157 0 -159 C 90 -157 116 -70 104 12 C 101 -16 97 -36 92 -50 C 70 -56 52 -54 40 -60 C 26 -54 12 -56 0 -61 C -12 -56 -26 -54 -40 -60 C -52 -54 -70 -56 -92 -50 C -97 -36 -101 -16 -104 12 Z', LOCK, mir(LOCK)],
+    hi: ['M -40 -136 C 0 -150 56 -142 84 -108 C 50 -126 6 -130 -34 -124 Z'],
+    lines: ['M -60 -100 L -56 -62', 'M -20 -104 L -20 -64', 'M 20 -104 L 20 -64', 'M 60 -100 L 56 -62'],
+  },
+  'toc-tet': {
+    // tết một bím vắt qua vai trái nhân vật (phía phải khung vẽ)
+    back: ['M -108 -20 C -118 -112 -60 -157 0 -157 C 60 -157 118 -112 108 -20 C 108 20 104 40 96 50 L -96 50 C -104 40 -108 20 -108 -20 Z'],
+    front: ['M -102 10 C -113 -66 -88 -153 0 -155 C 88 -153 113 -66 102 10 C 98 -28 88 -60 66 -84 C 34 -96 -20 -98 -50 -88 C -76 -72 -94 -40 -102 10 Z', 'M 64 -86 C 100 -64 112 -24 106 22 L 82 18 C 88 -16 84 -52 58 -78 Z', ...braid(98, 34, 8, 2.6, 34), 'M 108 296 L 92 344 L 106 336 L 116 352 L 124 334 L 138 340 L 124 294 Z'],
+    hi: ['M -34 -132 C 10 -148 62 -136 84 -100 C 54 -120 12 -124 -28 -120 Z'],
+    tieF: [114, 292],
+  },
 };
-const Hair: React.FC<{ style: string; c: string; layer: 'back' | 'front' }> = ({ style, c, layer }) => {
+export const HAIR_LIST = Object.keys(HAIR);
+const Hair: React.FC<{ style: string; c: string; layer: 'back' | 'front'; skin?: string }> = ({ style, c, layer, skin = '#F2C3A0' }) => {
   const h = HAIR[style] ?? HAIR.ngan;
   const ds = layer === 'back' ? h.back : h.front;
   if (!ds?.length) return null;
   return (
     <g>
-      <Two r={(p) => ds.map((d, i) => sp(p, d, c, i))} />
+      {layer === 'front' && h.fade?.map((d, i) => <path key={'fd' + i} d={d} fill={mix(c, skin, 0.42)} />)}
+      {layer === 'front' && h.soft ? ds.map((d, i) => <path key={i} d={d} fill={mix(c, skin, 0.1)} stroke={mix(c, skin, 0.3)} strokeWidth={2} />) : <Two r={(p) => ds.map((d, i) => sp(p, d, c, i))} />}
+      {layer === 'front' && h.tieF && <ellipse cx={h.tieF[0]} cy={h.tieF[1]} rx={17} ry={11} fill={SHIRT.red} stroke={ol(SHIRT.red)} strokeWidth={LW} />}
       {layer === 'front' && h.hi?.map((d, i) => <path key={i} d={d} fill={light(c, 0.3)} opacity={0.5} />)}
       {layer === 'front' && h.lines?.map((d, i) => <path key={i} d={d} fill="none" stroke={light(c, 0.34)} strokeWidth={3.5} strokeLinecap="round" opacity={0.6} />)}
       {layer === 'back' && h.tie && <ellipse cx={h.tie[0]} cy={h.tie[1]} rx={15} ry={19} fill={SHIRT.red} stroke={ol(SHIRT.red)} strokeWidth={LW} />}
@@ -403,16 +485,36 @@ const solveArm = (d: ArmDef, b: Body): ArmDef => {
 };
 
 // ───── trang phục
-type Outfit = { kind: string; top: string; topS: string; sleeve: 'short' | 'long'; bottom: string; bottomKind: 'quan' | 'vay'; shoe: string; hemY: number; hemW: number; tucked: boolean };
-const outfitOf = (spec: CharacterSpec, f: boolean): Outfit => {
+// pad = tay áo dài rộng hơn cánh tay bao nhiêu; cuff = kiểu cổ tay áo (band: viền màu cuffC · rib: bo len có sọc · none: liền tay như áo dài)
+// pat = id pattern kẻ ô (áo sơ mi kẻ) phủ lên thân + tay; wideLeg = quần ống rộng (áo dài)
+type Outfit = { kind: string; top: string; topS: string; sleeve: 'short' | 'long'; bottom: string; bottomKind: 'quan' | 'vay'; shoe: string; hemY: number; hemW: number; tucked: boolean; pad: number; padW: number; cuff: 'band' | 'rib' | 'none'; cuffC: string; cuff0: number; pat?: string; wideLeg?: boolean };
+// màu áo mặc định của từng kiểu (kind khác misa đổi bằng outfitColor)
+const TOP_DEF: Record<string, string> = {
+  misa: SHIRT.yellow, 'so-mi': '#EAF1FA', vest: '#2C3346', hoodie: '#3B404C', 'ao-thun': '#4C8BF5', cardigan: '#C9A27E',
+  'ao-dai': '#B8283A', 'vay-lien': '#3F6FB5', 'blazer-nu': '#3A4A6E', 'ao-len': '#8E3B4A', polo: '#2F7A5A', 'ao-khoac': '#4A5A44', 'dong-phuc': '#5E7FA3', 'ao-so-mi-ke': '#C2463C',
+};
+const outfitOf = (spec: CharacterSpec, f: boolean, pat?: string): Outfit => {
   const k = spec.kind ?? 'misa';
-  const def: Record<string, string> = { misa: SHIRT.yellow, 'so-mi': '#EAF1FA', vest: '#2C3346', hoodie: '#3B404C', 'ao-thun': '#4C8BF5', cardigan: '#C9A27E' };
-  const top = k === 'misa' ? SHIRT.yellow : spec.outfitColor ?? def[k] ?? '#4C8BF5';
-  const vay = spec.bottom === 'vay';
-  const bottom = spec.bottomColor ?? (k === 'hoodie' ? '#46689A' : k === 'vest' ? shade(top, 0.06) : vay ? '#2E3445' : '#2F3B57');
-  const hem: Record<string, [number, number]> = { misa: [640, f ? 122 : 128], 'ao-thun': [640, f ? 122 : 128], hoodie: [650, f ? 126 : 133], 'so-mi': [602, f ? 110 : 124], vest: [690, f ? 127 : 134], cardigan: [684, f ? 128 : 132] };
+  const top = k === 'misa' ? SHIRT.yellow : spec.outfitColor ?? TOP_DEF[k] ?? '#4C8BF5';
+  // váy liền: phần váy cùng màu áo; áo dài luôn mặc quần (ống rộng, mặc định trắng)
+  const vay = k === 'vay-lien' || (spec.bottom === 'vay' && k !== 'ao-dai');
+  const bottom = spec.bottomColor ?? (k === 'vay-lien' ? top : k === 'ao-dai' ? '#F4F1EA' : k === 'hoodie' ? '#46689A' : k === 'vest' || k === 'blazer-nu' ? shade(top, 0.06) : k === 'dong-phuc' ? '#2E3646' : vay ? '#2E3445' : '#2F3B57');
+  const hem: Record<string, [number, number]> = {
+    misa: [640, f ? 122 : 128], 'ao-thun': [640, f ? 122 : 128], hoodie: [650, f ? 126 : 133], 'so-mi': [602, f ? 110 : 124], vest: [690, f ? 127 : 134], cardigan: [684, f ? 128 : 132],
+    'ao-dai': [f ? 500 : 520, f ? 101 : 131], 'vay-lien': [600, f ? 116 : 124], 'blazer-nu': [672, f ? 126 : 133], 'ao-len': [650, f ? 125 : 131], polo: [640, f ? 122 : 128],
+    'ao-khoac': [640, f ? 124 : 131], 'dong-phuc': [602, f ? 110 : 124], 'ao-so-mi-ke': [646, f ? 124 : 130],
+  };
   const [hemY, hemW] = hem[k] ?? hem.misa;
-  return { kind: k, top, topS: k === 'misa' ? SHIRT.yellowShade : shade(top, 0.14), sleeve: k === 'ao-thun' || k === 'misa' ? 'short' : 'long', bottom, bottomKind: vay ? 'vay' : 'quan', shoe: k === 'hoodie' ? '#F1F3F7' : f ? '#3A2A2A' : '#26282E', hemY, hemW, tucked: k === 'so-mi' };
+  const sleeve = k === 'ao-thun' || k === 'misa' || k === 'polo' || k === 'vay-lien' ? 'short' : 'long';
+  const pad = ({ hoodie: 10, vest: 8, 'blazer-nu': 7, 'ao-dai': 2, 'ao-len': 9, 'ao-khoac': 11 } as Record<string, number>)[k] ?? 6;
+  const padW = k === 'hoodie' || k === 'ao-khoac' ? 1.1 : k === 'ao-len' ? 1 : 0.8;
+  const cuffC = k === 'vest' || k === 'blazer-nu' ? '#F4F6FA' : k === 'so-mi' ? light(top, 0.45) : k === 'hoodie' ? shade(top, 0.14) : k === 'ao-khoac' ? shade(top, 0.3) : k === 'ao-so-mi-ke' ? top : shade(top, 0.1);
+  return {
+    kind: k, top, topS: k === 'misa' ? SHIRT.yellowShade : shade(top, 0.14), sleeve, bottom, bottomKind: vay ? 'vay' : 'quan',
+    shoe: k === 'hoodie' ? '#F1F3F7' : f ? '#3A2A2A' : '#26282E', hemY, hemW, tucked: k === 'so-mi' || k === 'dong-phuc',
+    pad, padW, cuff: k === 'ao-dai' ? 'none' : k === 'hoodie' || k === 'ao-len' || k === 'ao-khoac' ? 'rib' : 'band', cuffC, cuff0: k === 'vest' || k === 'blazer-nu' ? 0.92 : 0.86,
+    pat: k === 'ao-so-mi-ke' ? pat : undefined, wideLeg: k === 'ao-dai',
+  };
 };
 
 // ───── bàn tay (hệ toạ độ cẳng tay: gốc ở cổ tay, +y hướng ra đầu ngón; tx = ±1 phía đặt ngón cái)
@@ -459,11 +561,12 @@ const Arm: React.FC<{ S: V; def: ArmDef; side: 1 | -1; skin: string; o: Outfit; 
   const flat = def.hand === 'palm' || def.hand === 'open';
   const tx = flat ? side : Math.cos(rad(a2)) * side * 0.6 - Math.sin(rad(a2)) >= 0 ? 1 : -1;
   const long = o.sleeve === 'long';
-  const pad = long ? (o.kind === 'hoodie' ? 10 : o.kind === 'vest' ? 8 : 6) : 0;
-  const wU = b.wU + pad, wE = b.wE + pad, wW = b.wW + pad * (o.kind === 'hoodie' ? 1.1 : 0.8);
+  const pad = long ? o.pad : 0;
+  const wU = b.wU + pad, wE = b.wE + pad, wW = b.wW + pad * o.padW;
   const armC = long ? o.top : skin;
-  const cuff0 = o.kind === 'vest' ? 0.92 : 0.86;
-  const cuffC = o.kind === 'vest' ? '#F4F6FA' : o.kind === 'so-mi' ? light(o.top, 0.45) : o.kind === 'hoodie' ? o.topS : shade(o.top, 0.1);
+  const { cuff0, cuffC } = o;
+  const cuffOn = long && o.cuff !== 'none';
+  const patF = long && o.pat ? `url(#${o.pat})` : null; // kẻ ô phủ lên tay áo (sơ mi kẻ)
   const mid = lerpV(S, E, 0.5);
   const sW = b.wU + 10;
   const shadeC = mix(armC, shade(armC, 0.1), 0.75);
@@ -480,6 +583,7 @@ const Arm: React.FC<{ S: V; def: ArmDef; side: 1 | -1; skin: string; o: Outfit; 
       {p === 'f' && (
         <>
           <path d={shadeStrip(S, J, wU, wJ, side)} fill={shadeC} />
+          {patF && <path d={limb(S, E, wU, wE)} fill={patF} />}
           {!long && <path d={limb(S, mid, sW, sW - 5, true, false)} fill={o.top} />}
           {!long && o.kind === 'misa' && <path d={band(lerpV(S, E, 0.405), mid, sW - 4, sW - 5)} fill={SHIRT.dark} />}
           {!long && o.kind === 'misa' && <path d={band(lerpV(S, E, 0.438), lerpV(S, E, 0.458), sW - 4.4, sW - 4.6)} fill={SHIRT.red} />}
@@ -494,14 +598,16 @@ const Arm: React.FC<{ S: V; def: ArmDef; side: 1 | -1; skin: string; o: Outfit; 
       <g transform={`translate(${W[0].toFixed(1)} ${W[1].toFixed(1)}) rotate(${a2.toFixed(1)})`}>
         <HandG pass={p} kind={def.hand ?? 'relax'} skin={skin} dir={a2} tx={tx} k={b.hand} />
       </g>
-      {long && sp(p, band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4), cuffC)}
+      {cuffOn && sp(p, band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4), cuffC)}
       {p === 'f' && (
         <>
           <path d={limb(J, E, wJ, wE, false, true)} fill={armC} />
           <path d={shadeStrip(E, W, wE, wW, side)} fill={shadeC} />
-          {long && <path d={band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4)} fill={cuffC} />}
-          {long && o.kind === 'hoodie' && [0.9, 0.94, 0.98].map((t) => <path key={t} d={band(lerpV(E, W, t), lerpV(E, W, t + 0.008), wW + 4)} fill={shade(o.top, 0.3)} />)}
-          {long && o.kind === 'so-mi' && <circle cx={lerpV(E, W, 0.94)[0]} cy={lerpV(E, W, 0.94)[1]} r={2.6} fill={shade(o.top, 0.3)} />}
+          {patF && <><path d={limb(J, E, wJ, wE, false, true)} fill={patF} /><path d={limb(E, W, wE, wW, false, false)} fill={patF} /></>}
+          {cuffOn && <path d={band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4)} fill={cuffC} />}
+          {cuffOn && patF && <path d={band(lerpV(E, W, cuff0), lerpV(E, W, 1.02), wW + 5, wW + 4)} fill={patF} />}
+          {cuffOn && o.cuff === 'rib' && [0.9, 0.94, 0.98].map((t) => <path key={t} d={band(lerpV(E, W, t), lerpV(E, W, t + 0.008), wW + 4)} fill={shade(o.top, 0.3)} />)}
+          {cuffOn && (o.kind === 'so-mi' || o.kind === 'dong-phuc' || o.kind === 'ao-so-mi-ke') && <circle cx={lerpV(E, W, 0.94)[0]} cy={lerpV(E, W, 0.94)[1]} r={2.6} fill={shade(o.top, 0.3)} />}
         </>
       )}
     </>
@@ -533,10 +639,11 @@ const symPath = (top: V, segs: [V, V, V][]) => {
   for (let i = segs.length - 1; i >= 0; i--) d += ` C ${m(segs[i][1])} ${m(segs[i][0])} ${m(i ? segs[i - 1][2] : top)}`;
   return d + ' Z';
 };
+// gấu ngắn tới eo (áo dài: thân ôm tới eo rồi xẻ tà) → đoạn cuối đi thẳng xuống, không vòng ngược
 const torsoD = (f: boolean, hemY: number, hw: number, belly = 0) =>
   f
-    ? symPath([278, 232], [[[258, 234], [228, 240], [202, 248]], [[176, 252], [160, 266], [160, 288]], [[160, 312], [174, 336], [182, 360]], [[188, 394], [200, 432], [200, 470]], [[200, 514], [300 - hw - 4, hemY - 70], [300 - hw, hemY]]])
-    : symPath([272, 232], [[[248, 234], [212, 240], [182, 250]], [[154, 255], [138, 270], [138, 294]], [[138, 322], [150, 352], [158, 386]], [[164, 422], [168 - belly, 454], [170 - belly, 488]], [[172 - belly, 534], [300 - hw - 2, hemY - 56], [300 - hw, hemY]]]);
+    ? symPath([278, 232], [[[258, 234], [228, 240], [202, 248]], [[176, 252], [160, 266], [160, 288]], [[160, 312], [174, 336], [182, 360]], [[188, 394], [200, 432], [200, 470]], hemY < 560 ? [[200, 480], [300 - hw, hemY - 12], [300 - hw, hemY]] : [[200, 514], [300 - hw - 4, hemY - 70], [300 - hw, hemY]]])
+    : symPath([272, 232], [[[248, 234], [212, 240], [182, 250]], [[154, 255], [138, 270], [138, 294]], [[138, 322], [150, 352], [158, 386]], [[164, 422], [168 - belly, 454], [170 - belly, 488]], hemY < 560 ? [[172 - belly, 498], [300 - hw, hemY - 12], [300 - hw, hemY]] : [[172 - belly, 534], [300 - hw - 2, hemY - 56], [300 - hw, hemY]]]);
 
 const Torso: React.FC<{ o: Outfit; f: boolean; skin: string; logo: boolean; flip: boolean; uid: string; belly: number }> = ({ o, f, skin, logo, flip, uid, belly }) => {
   const body = torsoD(f, o.hemY, o.hemW, belly);
@@ -611,6 +718,115 @@ const Torso: React.FC<{ o: Outfit; f: boolean; skin: string; logo: boolean; flip
         {[450, 530, 610].map((y) => <circle key={y} cx={250 + (y - 450) * 0.12} cy={y} r={4.6} fill={shade(o.top, 0.4)} />)}
       </g>
     );
+  else if (o.kind === 'ao-dai') {
+    // áo dài: cổ đứng (cổ tàu), vạt cài chéo từ cổ sang nách phải người mặc (bên trái khung vẽ), thân ôm tới eo; vạt trước/sau vẽ ở Person
+    const nk = f ? 26 : 30, sx0 = f ? 196 : 172;
+    detail = (
+      <g>
+        <path d={`M ${300 - nk - 2} 238 Q ${260} ${252} ${sx0} ${f ? 296 : 302}`} {...lineP} stroke={shade(o.top, 0.32)} strokeWidth={2.6} />
+        {[0.3, 0.62].map((t) => { const x = lerp(300 - nk - 2, sx0, t), y = lerp(238, f ? 296 : 302, t) - Math.sin(t * Math.PI) * 6; return <circle key={t} cx={x} cy={y} r={3.4} fill={light(o.top, 0.55)} stroke={shade(o.top, 0.35)} strokeWidth={1.2} />; })}
+        <Two r={(p) => sp(p, `M ${300 - nk - 4} 204 L ${300 + nk + 4} 204 L ${300 + nk + 6} 236 Q 300 246 ${300 - nk - 6} 236 Z`, o.top)} />
+        <path d={`M ${300 - nk - 5} 212 L ${300 + nk + 5} 212`} stroke={light(o.top, 0.4)} strokeWidth={2.2} opacity={0.8} />
+        <path d={`M ${300 - nk - 1} 205 L ${300 - nk - 1} 236`} stroke={shade(o.top, 0.3)} strokeWidth={2} opacity={0.7} />
+        <path d={f ? 'M 230 372 Q 260 400 292 386 M 308 386 Q 340 400 370 372' : 'M 214 560 Q 250 572 280 566'} fill="none" stroke={crease} strokeWidth={2} strokeLinecap="round" opacity={0.35} />
+      </g>
+    );
+  } else if (o.kind === 'vay-lien')
+    // váy liền: cổ tròn có viền, thắt đai eo; phần váy là lowerBody 'vay' cùng màu áo
+    detail = (
+      <g>
+        <path d="M 272 230 Q 300 270 328 230 Z" fill={skin} />
+        <path d="M 270 229 Q 300 274 330 229" fill="none" stroke={light(o.top, 0.35)} strokeWidth={5} strokeLinecap="round" />
+        <Two r={(p) => sp(p, f ? 'M 201 462 L 399 462 L 399 482 L 201 482 Z' : 'M 168 478 L 432 478 L 432 498 L 168 498 Z', shade(o.top, 0.28))} />
+        <path d={f ? 'M 292 460 L 308 460 L 308 484 L 292 484 Z' : 'M 292 476 L 308 476 L 308 500 L 292 500 Z'} fill={light(o.top, 0.5)} stroke={shade(o.top, 0.4)} strokeWidth={1.6} />
+        <path d={f ? 'M 236 488 Q 234 540 222 596 M 364 488 Q 366 540 378 596' : 'M 206 504 Q 204 556 194 600 M 394 504 Q 396 556 406 600'} fill="none" stroke={crease} strokeWidth={2} strokeLinecap="round" opacity={0.4} />
+      </g>
+    );
+  else if (o.kind === 'blazer-nu') {
+    // blazer + áo blouse cổ tròn bên trong, một khuy ở eo
+    const inner = '#F7F4EF';
+    detail = (
+      <g>
+        <path d="M 266 228 L 300 420 L 334 228 Z" fill={inner} />
+        <path d="M 280 230 Q 300 258 320 230 Z" fill={skin} />
+        <path d="M 278 231 Q 300 262 322 231" fill="none" stroke={shade(inner, 0.18)} strokeWidth={2.4} />
+        {wing('M 268 226 L 242 250 L 260 320 L 248 332 L 300 430 L 300 402 Z', shade(o.top, 0.1))}
+        <path d={`M 300 430 Q 304 540 298 ${o.hemY}`} {...lineP} />
+        <circle cx={307} cy={452} r={5.5} fill={shade(o.top, 0.42)} />
+        <path d={f ? 'M 212 598 L 252 594 M 348 594 L 388 598' : 'M 200 600 L 244 596 M 356 596 L 400 600'} stroke={crease} strokeWidth={2.4} strokeLinecap="round" />
+      </g>
+    );
+  } else if (o.kind === 'ao-len') {
+    // áo len cổ tròn: cổ, gấu bo len có sọc + hai đường vặn thừng mờ
+    const rib = shade(o.top, 0.1);
+    detail = (
+      <g>
+        <path d="M 272 230 Q 300 262 328 230 Z" fill={skin} />
+        <Two r={(p) => sp(p, 'M 262 228 Q 300 286 338 228 L 326 229 Q 300 264 274 229 Z', rib)} />
+        {[-24, -12, 0, 12, 24].map((x) => <path key={x} d={`M ${300 + x * 1.2} ${250 + Math.abs(x) * -0.6 + 12} l ${x * 0.08} 12`} stroke={shade(o.top, 0.3)} strokeWidth={1.6} opacity={0.6} />)}
+        {[262, 338].map((x) => <path key={x} d={`M ${x} 300 ${Array.from({ length: 8 }, (_, i) => `q ${i % 2 ? 7 : -7} 20 0 40`).join(' ')}`} fill="none" stroke={shade(o.top, 0.22)} strokeWidth={2.4} opacity={0.4} />)}
+        <path d={`M ${300 - o.hemW + 1} ${o.hemY - 24} L ${300 + o.hemW - 1} ${o.hemY - 24} L ${300 + o.hemW} ${o.hemY} L ${300 - o.hemW} ${o.hemY} Z`} fill={rib} />
+        {Array.from({ length: 15 }, (_, i) => <path key={i} d={`M ${300 - o.hemW + 10 + i * ((o.hemW * 2 - 20) / 14)} ${o.hemY - 21} l 0 18`} stroke={shade(o.top, 0.32)} strokeWidth={1.8} opacity={0.6} />)}
+      </g>
+    );
+  } else if (o.kind === 'polo')
+    // polo trơn (không logo): cổ bẻ + nẹp cùng màu áo, 2 khuy
+    detail = (
+      <g>
+        <path d="M 274 230 L 300 282 L 326 230 Z" fill={skin} />
+        <Two r={(p) => sp(p, 'M 291 278 L 309 278 L 309 362 Q 309 366 305 366 L 295 366 Q 291 366 291 362 Z', o.top)} />
+        <circle cx={300} cy={304} r={3.2} fill={light(o.top, 0.6)} />
+        <circle cx={300} cy={336} r={3.2} fill={light(o.top, 0.6)} />
+        {wing('M 271 224 L 241 247 L 262 304 L 300 283 L 279 234 Z', light(o.top, 0.08))}
+        <path d={`M ${300 - o.hemW + 4} ${o.hemY - 9} L ${300 + o.hemW - 4} ${o.hemY - 9}`} stroke={crease} strokeWidth={2} opacity={0.5} />
+      </g>
+    );
+  else if (o.kind === 'ao-khoac') {
+    // áo khoác bomber: cổ + gấu bo len sẫm, khoá kéo giữa, túi chéo hai bên
+    const rib = shade(o.top, 0.3);
+    detail = (
+      <g>
+        <path d="M 276 230 Q 300 250 324 230 Z" fill={skin} />
+        <Two r={(p) => sp(p, 'M 260 226 Q 300 262 340 226 L 344 244 Q 300 284 256 244 Z', rib)} />
+        {[-30, -15, 0, 15, 30].map((x) => <path key={x} d={`M ${300 + x} ${252 + Math.abs(x) * -0.3} l 0 12`} stroke={shade(o.top, 0.45)} strokeWidth={1.6} opacity={0.6} />)}
+        <path d={`M 300 262 L 300 ${o.hemY - 24}`} stroke={shade(o.top, 0.4)} strokeWidth={6} />
+        <path d={`M 300 262 L 300 ${o.hemY - 24}`} stroke="#C9CCD3" strokeWidth={2.4} strokeDasharray="3 4" />
+        <rect x={295} y={276} width={10} height={20} rx={3} fill="#C9CCD3" stroke="#7A7F8A" strokeWidth={1.6} />
+        <path d={f ? 'M 226 500 L 246 574 M 374 500 L 354 574' : 'M 206 502 L 230 580 M 394 502 L 370 580'} stroke={shade(o.top, 0.35)} strokeWidth={4} strokeLinecap="round" />
+        <path d={`M ${300 - o.hemW + 1} ${o.hemY - 26} L ${300 + o.hemW - 1} ${o.hemY - 26} L ${300 + o.hemW - 4} ${o.hemY} L ${300 - o.hemW + 4} ${o.hemY} Z`} fill={rib} />
+        {Array.from({ length: 15 }, (_, i) => <path key={i} d={`M ${300 - o.hemW + 10 + i * ((o.hemW * 2 - 20) / 14)} ${o.hemY - 23} l 0 19`} stroke={shade(o.top, 0.45)} strokeWidth={1.8} opacity={0.6} />)}
+      </g>
+    );
+  } else if (o.kind === 'dong-phuc')
+    // đồng phục công việc chung (không phù hiệu, không cầu vai): đô vai sẫm, hai túi ngực nắp, bảng tên trống
+    detail = (
+      <g>
+        <g clipPath={`url(#${uid}t)`}><path d="M 0 220 L 600 220 L 600 292 Q 300 306 0 292 Z" fill={shade(o.top, 0.2)} /></g>
+        <path d="M 0 292 Q 300 306 600 292" clipPath={`url(#${uid}t)`} fill="none" stroke={shade(o.top, 0.36)} strokeWidth={2.2} />
+        <path d="M 280 230 L 300 266 L 320 230 Z" fill={skin} />
+        <path d={`M 300 266 L 300 ${o.hemY}`} stroke={crease} strokeWidth={2.4} opacity={0.8} />
+        {[318, 380, 442, 504, 566].map((y) => <circle key={y} cx={306} cy={y} r={3} fill={shade(o.top, 0.36)} />)}
+        {wing('M 272 224 L 247 241 L 266 286 L 300 266 L 280 232 Z', light(o.top, 0.12))}
+        {[1, -1].map((s) => (
+          <g key={s} transform={s < 0 ? 'translate(600 0) scale(-1 1)' : undefined}>
+            <path d="M 222 336 L 272 334 L 273 382 Q 247 394 223 384 Z" {...lineP} stroke={crease} strokeWidth={2.2} />
+            <Two r={(p) => sp(p, 'M 220 328 L 274 326 L 274 346 Q 247 352 220 348 Z', o.top)} />
+          </g>
+        ))}
+        <rect x={330} y={300} width={40} height={16} rx={3} fill="#F7F8FA" stroke={shade(o.top, 0.36)} strokeWidth={1.6} />
+      </g>
+    );
+  else if (o.kind === 'ao-so-mi-ke')
+    // sơ mi kẻ ô, bỏ ngoài quần (pattern phủ ở dưới)
+    detail = (
+      <g>
+        <path d="M 278 230 L 300 270 L 322 230 Z" fill={skin} />
+        <path d={`M 300 270 L 300 ${o.hemY}`} stroke={shade(o.top, 0.3)} strokeWidth={2.6} opacity={0.8} />
+        {[310, 362, 414, 466, 518, 570].map((y) => <circle key={y} cx={306} cy={y} r={3} fill={light(o.top, 0.7)} stroke={shade(o.top, 0.4)} strokeWidth={1} />)}
+        {wing('M 272 224 L 247 241 L 266 288 L 300 268 L 280 232 Z', o.top)}
+        <path d="M 336 330 L 384 327 L 385 366 Q 361 380 337 370 Z" {...lineP} stroke={shade(o.top, 0.36)} strokeWidth={2.2} />
+      </g>
+    );
   else
     detail = (
       <g>
@@ -627,8 +843,9 @@ const Torso: React.FC<{ o: Outfit; f: boolean; skin: string; logo: boolean; flip
         <path d={body} fill={o.topS} opacity={0.75} />
         <path d={body} fill={o.top} transform="translate(-24 0)" />
       </g>
+      {o.pat && <path d={body} fill={`url(#${o.pat})`} />}
       {f && <path d="M 226 366 Q 256 404 292 382 M 308 382 Q 344 404 374 366" fill="none" stroke={crease} strokeWidth={2.4} strokeLinecap="round" opacity={0.5} />}
-      {!f && o.kind !== 'vest' && <path d="M 214 566 Q 248 580 276 572 M 326 574 Q 352 580 386 566" fill="none" stroke={crease} strokeWidth={2.2} strokeLinecap="round" opacity={0.45} />}
+      {!f && o.kind !== 'vest' && o.kind !== 'ao-dai' && o.kind !== 'blazer-nu' && <path d="M 214 566 Q 248 580 276 572 M 326 574 Q 352 580 386 566" fill="none" stroke={crease} strokeWidth={2.2} strokeLinecap="round" opacity={0.45} />}
       {detail}
     </g>
   );
@@ -651,10 +868,14 @@ export type PersonProps = {
   face?: number; // nhân vật đang quay về phía nào TRÊN MÀN HÌNH để nói chuyện (+1 phải, −1 trái, 0 thẳng) → tay cử chỉ hướng về đó, tay kia gập trước bụng. Không truyền thì suy từ `look`.
   aim?: number; // đứng một mình lệch một bên: phía giữa khung hình (+1/−1) → cử chỉ một tay (chi, tay-mo…) quay vào trong, không gập tay kia
   walk?: number; // pha bước chân (khi pose = di-bo)
+  ground?: number; // mascot: y khung nơi đặt chân (mặc định 1164 = sàn khi toàn thân; cảnh truyền theo khung máy / mép bàn — xem MASCOT_GROUND)
   style?: React.CSSProperties;
 };
 
-export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, poseT = 1, expr, mouth = 0, frame = 0, look: lookS = 0, turn: turnS = 0, height, flip, face, aim, walk, style }) => {
+// Nhân vật: người (Human) hoặc mascot (kind 'mascot') — mọi cảnh gọi qua đây nên mascot dùng được như một diễn viên.
+export const Person: React.FC<PersonProps> = (props) => (props.spec.kind === 'mascot' ? <Mascot {...props} /> : <Human {...props} />);
+
+const Human: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, poseT = 1, expr, mouth = 0, frame = 0, look: lookS = 0, turn: turnS = 0, height, flip, face, aim, walk, style }) => {
   // `flip` lật ngang cả khung vẽ → mọi hướng tính theo màn hình phải đổi dấu, nếu không nhân vật lật sẽ nhìn/quay/đưa tay ngược phía
   const sx = flip ? -1 : 1;
   const look = lookS * sx, turn = turnS * sx;
@@ -676,10 +897,10 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
   const skin = spec.skin ?? '#F2C3A0';
   const hairC = spec.hairColor ?? '#2A1D18';
   const hair = spec.hair ?? (f ? 'dai' : 'ngan');
-  const o = outfitOf(spec, f);
+  const o = outfitOf(spec, f, `${uid}pk`);
   const seed = hash(spec.id);
   const period = 96 + (seed % 34);
-  const blink = (frame + (seed % period)) % period < 4;
+  const blink = !useStill() && (frame + (seed % period)) % period < 4;
   const breathe = Math.sin(frame / 26 + seed) * 2.2;
   const talking = mouth > 0.06;
 
@@ -718,7 +939,11 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
       {o.kind === 'hoodie' && <path d={`M ${A[0] - dir * 8} ${A[1] + 6} l ${dir * 22} 8 M ${A[0] - dir * 4} ${A[1] + 16} l ${dir * 22} 8`} stroke="#B9BEC9" strokeWidth={2.6} strokeLinecap="round" />}
     </g>
   ));
-  const pelvis = f ? 'M 186 588 L 414 588 L 418 690 L 300 714 L 182 690 Z' : 'M 180 590 L 420 590 L 424 692 L 300 718 L 176 692 Z';
+  const wK = b.wK * (o.wideLeg ? 1.14 : 1), wHem = b.wHem * (o.wideLeg ? 1.6 : 1); // áo dài: quần ống rộng
+  // áo dài: thân áo chỉ tới eo → cạp quần kéo lên tới eo để chỗ xẻ tà hai bên hông lộ quần (không hở nền)
+  const pelvis = o.wideLeg
+    ? f ? 'M 202 478 L 398 478 C 408 520 414 560 414 588 L 418 690 L 300 714 L 182 690 L 186 588 C 186 560 192 520 202 478 Z' : 'M 172 494 L 428 494 C 424 540 420 570 420 590 L 424 692 L 300 718 L 176 692 L 180 590 C 180 570 176 540 172 494 Z'
+    : f ? 'M 186 588 L 414 588 L 418 690 L 300 714 L 182 690 Z' : 'M 180 590 L 420 590 L 424 692 L 300 718 L 176 692 Z';
   const bShade = shade(o.bottom, 0.14);
   const lowerBody = vay ? (
     <g>
@@ -732,11 +957,11 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
   ) : (
     <g>
       {shoes}
-      <Two r={(p) => <>{sp(p, pelvis, o.bottom)}{LEGS.map(([H, K, A], i) => <React.Fragment key={i}>{sp(p, limb(H, K, b.wT, b.wK), o.bottom)}{sp(p, limb(K, [A[0], A[1] + 2], b.wK, b.wHem, true, false), o.bottom)}</React.Fragment>)}</>} />
+      <Two r={(p) => <>{sp(p, pelvis, o.bottom)}{LEGS.map(([H, K, A], i) => <React.Fragment key={i}>{sp(p, limb(H, K, b.wT, wK), o.bottom)}{sp(p, limb(K, [A[0], A[1] + 2], wK, wHem, true, false), o.bottom)}</React.Fragment>)}</>} />
       {LEGS.map(([H, K, A, dir], i) => (
         <g key={i}>
-          <path d={shadeStrip(H, K, b.wT, b.wK, -dir)} fill={bShade} opacity={0.8} />
-          <path d={shadeStrip(K, A, b.wK, b.wHem, -dir)} fill={bShade} opacity={0.8} />
+          <path d={shadeStrip(H, K, b.wT, wK, -dir)} fill={bShade} opacity={0.8} />
+          <path d={shadeStrip(K, A, wK, wHem, -dir)} fill={bShade} opacity={0.8} />
           <path d={`M ${H[0] - dir * 2} ${HIP_Y + 90} L ${K[0]} ${K[1]} L ${A[0]} ${A[1] - 4}`} fill="none" stroke={shade(o.bottom, 0.3)} strokeWidth={1.8} strokeLinejoin="round" opacity={0.5} />
         </g>
       ))}
@@ -752,6 +977,29 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
     </g>
   );
 
+  // áo dài: tà trước buông từ eo phủ trước quần, tà sau (sẫm hơn) lộ ra giữa hai ống quần; xẻ tà hai bên hông để lộ quần
+  let flapBack: React.ReactNode = null, flapFront: React.ReactNode = null, flapSeam: React.ReactNode = null;
+  if (o.kind === 'ao-dai') {
+    const y0 = o.hemY - 24, y1 = f ? 1010 : 930, w1 = o.hemW - 9, w2 = o.hemW - 1;
+    // che nét gấu thân áo ở eo: tà trước liền một mảnh với thân (không thành áo + váy)
+    const wm = w1 + (w2 - w1) * (36 / (y1 - y0));
+    flapSeam = <g><path d={`M ${300 - w1 + 1} ${o.hemY - 30} L ${300 + w1 - 1} ${o.hemY - 30} L ${300 + wm - 1} ${o.hemY + 12} L ${300 - wm + 1} ${o.hemY + 12} Z`} fill={o.top} /><path d={`M ${300 + w1 - 30} ${o.hemY - 30} L ${300 + w1 - 2} ${o.hemY - 30} L ${300 + wm - 2} ${o.hemY + 12} L ${300 + w1 - 28} ${o.hemY + 12} Z`} fill={o.topS} opacity={0.7} /></g>;
+    const flap = (a: number, c: number, y: number) => `M ${300 - a} ${y0} L ${300 + a} ${y0} L ${300 + c} ${y - 14} Q ${300 + c} ${y} ${300 + c - 14} ${y} L ${300 - c + 14} ${y} Q ${300 - c} ${y} ${300 - c} ${y - 14} Z`;
+    flapBack = <Two r={(p) => sp(p, flap(w1, w2 + 12, y1 - 6), shade(o.top, 0.2))} />;
+    flapFront = (
+      <g>
+        <Two r={(p) => sp(p, flap(w1, w2, y1), o.top)} />
+        <path d={`M ${300 + w1 - 30} ${y0} L ${300 + w2 - 22} ${y1 - 8} L ${300 + w2 - 2} ${y1 - 8} L ${300 + w1 - 2} ${y0} Z`} fill={o.topS} opacity={0.7} />
+        <path d={`M ${300 - 34} ${y0 + 60} Q ${300 - 40} ${(y0 + y1) / 2} ${300 - 30} ${y1 - 20}`} fill="none" stroke={shade(o.top, 0.22)} strokeWidth={2.2} strokeLinecap="round" opacity={0.45} />
+        {f && [[262, y1 - 120, 1], [300, y1 - 70, 0.8], [334, y1 - 150, 0.9]].map(([x, y, s], i) => (
+          <g key={i} transform={`translate(${x} ${y}) scale(${s})`} fill={light(o.top, 0.42)} opacity={0.9}>
+            {[0, 72, 144, 216, 288].map((a) => <ellipse key={a} cx={0} cy={-11} rx={7} ry={11} transform={`rotate(${a})`} />)}
+            <circle r={5} fill={SHIRT.yellow} />
+          </g>
+        ))}
+      </g>
+    );
+  }
   const shL: V = [300 - b.sh, b.shY - shrug], shR: V = [300 + b.sh, b.shY - shrug];
   // tư thế hai tay: tay phía gần người nghe lắc mạnh, tay phía xa (đang gập trước bụng) chỉ nhúc nhích
   const gL = gSub ? (dir < 0 ? gMain : -gSub * (dir > 0 ? 0.5 : 1)) : flipped ? gMain : 0;
@@ -769,7 +1017,19 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
   return (
     <svg viewBox="0 0 600 1200" width={w} height={height} style={{ overflow: 'visible', transform: flip ? 'scaleX(-1)' : undefined, ...style }}>
       <ellipse cx={300} cy={1168} rx={vay ? 140 : 176} ry={14} fill="#000" opacity={0.16} />
+      {o.pat && (
+        <defs>
+          <pattern id={o.pat} width={46} height={46} patternUnits="userSpaceOnUse">
+            <rect x={0} y={0} width={16} height={46} fill={shade(o.top, 0.5)} opacity={0.32} />
+            <rect x={0} y={0} width={46} height={16} fill={shade(o.top, 0.5)} opacity={0.32} />
+            <rect x={28} y={0} width={4} height={46} fill="#fff" opacity={0.35} />
+            <rect x={0} y={28} width={46} height={4} fill="#fff" opacity={0.35} />
+          </pattern>
+        </defs>
+      )}
+      {flapBack}
       {lowerBody}
+      {flapFront}
       <g transform={`translate(0 ${bodyY.toFixed(2)}) rotate(${lean.toFixed(2)} 300 ${HIP_Y})`}>
         {o.kind === 'hoodie' && <Two r={(p) => sp(p, 'M 214 258 C 196 188 250 146 300 146 C 350 146 404 188 386 258 Z', o.topS)} />}
         <g transform={headT}><Hair style={hair} c={hairC} layer="back" /></g>
@@ -778,6 +1038,7 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
         <g transform={`translate(300 300) scale(1 ${(1 + breathe / 600).toFixed(4)}) translate(-300 -300)`}>
           <Torso o={o} f={f} skin={skin} logo={spec.logo !== false && o.kind === 'misa'} flip={!!flip} uid={uid} belly={!f && spec.age === 'trung-nien' ? 8 : 0} />
         </g>
+        {flapSeam}
         {/* đầu */}
         <g transform={headT}>
           <Two r={(p) => <>{sp(p, ell(-earX - turn * 6, 18, 13, 25), skin, 'l')}{sp(p, ell(earX - turn * 6, 18, 13, 25), skin, 'r')}{sp(p, faceD, skin, 'f')}</>} />
@@ -786,13 +1047,296 @@ export const Person: React.FC<PersonProps> = ({ spec, pose = 'dung', poseFrom, p
           <g transform={`translate(${(turn * 8).toFixed(2)} 0)`}>
             <Face e={E} mouth={mouth} blink={blink} look={lk} female={f} skin={skin} brow={mix(hairC, '#000000', 0.1)} glasses={spec.glasses} uid={uid} age={spec.age} beard={spec.beard} frame={frame} />
           </g>
-          <Hair style={hair} c={hairC} layer="front" />
+          <Hair style={hair} c={hairC} layer="front" skin={skin} />
         </g>
         {P.front === 'L' ? <>{armR}{armL}</> : <>{armL}{armR}</>}
       </g>
     </svg>
   );
 };
+
+// ════════════════════════════ MASCOT (kind 'mascot') ════════════════════════════
+// Vẽ trong cùng khung 600×1200 với người nhưng THẤP HƠN: cao MASCOT_H × (ground + 14), chân đặt ở y = `ground` của khung.
+// ground mặc định 1164 (sàn, toàn thân → cao ≈ 0,68 người). Cảnh trung/cận cảnh truyền MASCOT_GROUND[shot] để mascot không bị cắt mất nửa dưới;
+// cảnh story truyền mép bàn → mascot đứng trên mặt bàn tiền cảnh như đồ vật trên bàn.
+// mascot: 'khien' (khiên) · 'robot' (rô-bốt trợ lý) · 'anh' (ảnh PNG người dùng tải lên: spec.image = đường dẫn trong thư mục public).
+// Biểu cảm lấy từ EXPRS (mắt/lông mày/miệng/má/mồ hôi/nước mắt), miệng mở theo `mouth` (nhép theo voice).
+// Tư thế: vài cử chỉ tay đơn giản; tư thế khác đứng nghỉ. Tay cử chỉ viết ở bên phải khung (R) và tự lật khi quay sang trái (như orientPose).
+export const MASCOT_H = 0.68;
+export const MASCOT_GROUND: Record<Framing, number> = { 'toan-than': 1164, 'trung-canh': 780, 'can-canh': 455 };
+export const mascotBox = (ground = 1164) => { const h = MASCOT_H * (ground + 14); return { top: ground - h, bottom: ground, h, head: ground - h * 0.55 }; };
+export const MASCOT_LIST = ['khien', 'robot'];
+
+type MHand = 'mitt' | 'open' | 'point' | 'thumb' | 'fist' | 'phone';
+type MArm = { t: V; hand?: MHand }; // t = cổ tay so với vai, đơn vị khung mascot (cao 1000): [ra ngoài thân (+), xuống (+)]
+type MPose = { L: MArm; R: MArm; shrug?: number; droop?: number; look?: [number, number]; bounce?: number };
+const MREST: MArm = { t: [74, 198], hand: 'mitt' }; // tay buông hơi chếch ra ngoài để không lẫn vào viền thân
+const MPOSES: Record<string, MPose> = {
+  dung: { L: MREST, R: MREST },
+  chao: { L: MREST, R: { t: [96, -150], hand: 'open' } },
+  chi: { L: MREST, R: { t: [222, -24], hand: 'point' } },
+  'tay-mo': { L: MREST, R: { t: [186, 74], hand: 'open' } },
+  'giai-thich': { L: { t: [150, 100], hand: 'open' }, R: { t: [186, 64], hand: 'open' } },
+  nghi: { L: MREST, R: { t: [-200, 40], hand: 'fist' } },
+  vui: { L: MREST, R: { t: [60, -196], hand: 'fist' }, bounce: 1 },
+  'ngac-nhien': { L: { t: [130, -70], hand: 'open' }, R: { t: [130, -70], hand: 'open' }, shrug: 14 },
+  'khoanh-tay': { L: { t: [-160, 140], hand: 'fist' }, R: { t: [-160, 166], hand: 'fist' } },
+  buon: { L: { t: [12, 224], hand: 'mitt' }, R: { t: [12, 224], hand: 'mitt' }, droop: 1 },
+  'dien-thoai': { L: MREST, R: { t: [-150, 116], hand: 'phone' }, look: [0, 1] },
+  'nghe-may': { L: MREST, R: { t: [-56, -116], hand: 'phone' } },
+  'om-dau': { L: MREST, R: { t: [-40, -196], hand: 'open' } },
+  'chong-nanh': { L: { t: [-24, 150], hand: 'fist' }, R: { t: [-24, 150], hand: 'fist' } },
+  like: { L: MREST, R: { t: [150, -60], hand: 'thumb' } },
+  'nhun-vai': { L: { t: [170, 40], hand: 'open' }, R: { t: [170, 40], hand: 'open' }, shrug: 22 },
+  'di-bo': { L: MREST, R: MREST },
+  'go-phim': { L: { t: [-70, 200], hand: 'mitt' }, R: { t: [-70, 200], hand: 'mitt' }, look: [0, 0.6] },
+  'dat-tay': { L: MREST, R: MREST },
+};
+// rounded rect thành path (cho sp hai lượt)
+const rr = (x: number, y: number, w: number, h: number, r: number) => `M ${x + r} ${y} L ${x + w - r} ${y} Q ${x + w} ${y} ${x + w} ${y + r} L ${x + w} ${y + h - r} Q ${x + w} ${y + h} ${x + w - r} ${y + h} L ${x + r} ${y + h} Q ${x} ${y + h} ${x} ${y + h - r} L ${x} ${y + r} Q ${x} ${y} ${x + r} ${y} Z`;
+
+// ───── mặt mascot (gốc giữa hai mắt; mắt x ±100, lông mày y −64, miệng y 110)
+const MFace: React.FC<{ e: ExprDef; mouth: number; blink: boolean; look: [number, number]; frame: number; ink: string; bg: string; mouthC: string; glow?: boolean; mouthY?: number }> = ({ e, mouth, blink, look, frame, ink, bg, mouthC, glow, mouthY = 110 }) => {
+  const kind: Eye = blink && e.eye !== 'arc' ? 'closed' : e.eye;
+  const eye = (cx: number, s: -1 | 1) => {
+    if (kind === 'closed') return <path d={`M ${cx - 25} 2 Q ${cx} 16 ${cx + 25} 2`} fill="none" stroke={ink} strokeWidth={10} strokeLinecap="round" />;
+    if (kind === 'smiley' || kind === 'arc') return <path d={`M ${cx - 26} 10 Q ${cx} ${kind === 'arc' ? -34 : -26} ${cx + 26} 10`} fill="none" stroke={ink} strokeWidth={12} strokeLinecap="round" />;
+    const wide = kind === 'wide';
+    const rx = wide ? 31 : 26, ry = wide ? 40 : 34;
+    const ix = cx + look[0] * 12, iy = look[1] * 8 + (e.iris?.y ?? 0) * 1.2;
+    const kc = kind === 'half' ? Math.min(e.lid?.kc ?? 1.3, 1.3) : e.lid?.kc ?? 2;
+    const bias = e.lid?.bias ?? 0;
+    const cover = Math.max(0, Math.min(0.62, (2 - kc) / 1.6));
+    const base = iy - ry + 2 * ry * cover;
+    const yIn = base + (bias > 0 ? ry * 0.5 * bias : 0), yOut = base + (bias < 0 ? ry * 0.5 * -bias : 0);
+    const xIn = ix - s * (rx + 6), xOut = ix + s * (rx + 6);
+    return (
+      <g>
+        <ellipse cx={ix} cy={iy} rx={rx} ry={ry} fill={ink} />
+        <circle cx={ix + 9} cy={iy - 13} r={wide ? 11 : 9} fill="#fff" opacity={glow ? 0.85 : 1} />
+        <circle cx={ix - 9} cy={iy + 12} r={4.5} fill="#fff" opacity={0.7} />
+        {cover > 0.02 && (
+          <>
+            <path d={`M ${xIn} ${yIn} L ${xOut} ${yOut} L ${xOut} ${iy - ry - 24} L ${xIn} ${iy - ry - 24} Z`} fill={bg} />
+            <path d={`M ${xIn + s * 4} ${yIn} L ${xOut - s * 4} ${yOut}`} stroke={ink} strokeWidth={7} strokeLinecap="round" />
+          </>
+        )}
+      </g>
+    );
+  };
+  const brow = (cx: number, s: -1 | 1, d: Side) => <path d={`M ${cx - s * 24} ${-66 + d[0] * 1.3} Q ${cx + s * 4} ${-78 + Math.min(d[0], d[1]) * 1.3} ${cx + s * 30} ${-62 + d[1] * 1.3}`} fill="none" stroke={ink} strokeWidth={10} strokeLinecap="round" />;
+  const open = Math.max(0, Math.min(1, mouth));
+  const y0 = mouthY;
+  const D = (w: number, h: number, c = 0) => (
+    <g>
+      <path d={`M ${-w} ${y0 + c} Q 0 ${y0 - 4} ${w} ${y0 + c} Q ${w * 0.8} ${y0 + c + h * 1.3} 0 ${y0 + c + h * 1.35} Q ${-w * 0.8} ${y0 + c + h * 1.3} ${-w} ${y0 + c} Z`} fill={mouthC} stroke={ink} strokeWidth={glow ? 0 : 5} strokeLinejoin="round" />
+      {h > 14 && <ellipse cx={0} cy={y0 + c + h * 1.05} rx={w * 0.45} ry={h * 0.26} fill={TONGUE} />}
+    </g>
+  );
+  const ln = (d: string, w = 9) => <path d={d} fill="none" stroke={ink} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />;
+  let m: React.ReactNode;
+  if (open > 0.06) {
+    const h = 10 + open * 40;
+    m = e.talk === 'up' ? D(36, h, -6) : e.talk === 'square' ? D(32, h * 0.85) : <ellipse cx={0} cy={y0 + h * 0.55} rx={22 + open * 6} ry={h * 0.6} fill={mouthC} stroke={ink} strokeWidth={glow ? 0 : 5} />;
+  } else {
+    switch (e.mouth) {
+      case 'smile': m = ln(`M -34 ${y0} Q 0 ${y0 + 30} 34 ${y0}`); break;
+      case 'grin': m = D(38, 22, -6); break;
+      case 'laugh': m = D(44, 32 + Math.abs(Math.sin(frame / 2.6)) * 6, -8); break;
+      case 'frown': m = ln(`M -28 ${y0 + 18} Q 0 ${y0 - 6} 28 ${y0 + 18}`); break;
+      case 'cry': m = <ellipse cx={0} cy={y0 + 14} rx={24} ry={16 + Math.abs(Math.sin(frame / 3)) * 4} fill={mouthC} stroke={ink} strokeWidth={glow ? 0 : 5} />; break;
+      case 'grit': m = <g><rect x={-32} y={y0 - 6} width={64} height={24} rx={8} fill="#fff" stroke={ink} strokeWidth={6} /><path d={`M -30 ${y0 + 6} L 30 ${y0 + 6}`} stroke={ink} strokeWidth={3} /></g>; break;
+      case 'o': m = <ellipse cx={0} cy={y0 + 10} rx={15} ry={19} fill={mouthC} stroke={ink} strokeWidth={glow ? 0 : 5} />; break;
+      case 'wavy': m = ln(`M -30 ${y0 + 6} Q -22 ${y0 - 4} -15 ${y0 + 6} Q -8 ${y0 + 16} 0 ${y0 + 6} Q 8 ${y0 - 4} 15 ${y0 + 6} Q 22 ${y0 + 16} 30 ${y0 + 6}`, 8); break;
+      case 'side': m = ln(`M -20 ${y0 + 6} Q 4 ${y0 + 10} 26 ${y0 - 4}`); break;
+      case 'smirk': m = ln(`M -26 ${y0 + 2} Q 0 ${y0 + 14} 30 ${y0 - 10}`); break;
+      case 'sly': m = D(30, 14, -6); break;
+      case 'worried': m = ln(`M -24 ${y0 + 6} Q -12 ${y0 - 4} 0 ${y0 + 4} Q 12 ${y0 + 12} 24 ${y0 + 2}`, 8); break;
+      default: m = ln(`M -22 ${y0 + 4} Q 0 ${y0 + 9} 22 ${y0 + 4}`);
+    }
+  }
+  const ex = e.extra ?? [];
+  const tY = (frame % 36) / 36;
+  const tear = (x: number, t: number) => <path d={`M ${x} ${36 + t * 70} q -11 17 0 24 q 11 -7 0 -24 Z`} fill="#8FD0FF" stroke="#4C9BD6" strokeWidth={3} opacity={1 - t * 0.6} />;
+  return (
+    <g>
+      {(e.blush ?? 0) > 0 && <g fill="#F2787C" opacity={Math.min(0.7, (e.blush ?? 0) * 1.6)}><ellipse cx={-126} cy={58} rx={28} ry={14} /><ellipse cx={126} cy={58} rx={28} ry={14} /></g>}
+      {ex.includes('red') && <g fill="#FF4B3E" opacity={0.3}><ellipse cx={-126} cy={56} rx={32} ry={16} /><ellipse cx={126} cy={56} rx={32} ry={16} /></g>}
+      {brow(-100, -1, e.brow.L)}
+      {brow(100, 1, e.brow.R)}
+      {eye(-100, -1)}
+      {eye(100, 1)}
+      {m}
+      {(ex.includes('tear') || ex.includes('tears')) && <g>{tear(-110, tY)}{ex.includes('tears') && tear(110, (tY + 0.5) % 1)}</g>}
+      {ex.includes('sweat') && <path d="M 170 -96 q -16 26 0 36 q 16 -10 0 -36 Z" fill="#A6DDFF" stroke="#4C9BD6" strokeWidth={3} />}
+      {ex.includes('vein') && <g stroke="#E2342B" strokeWidth={7} strokeLinecap="round" fill="none"><path d="M 150 -150 q 12 9 0 21" /><path d="M 168 -158 q -9 12 7 18" /></g>}
+      {ex.includes('lines') && <g stroke={glow ? ink : '#3A3F4B'} strokeWidth={8} strokeLinecap="round"><path d="M -150 -150 L -170 -180" /><path d="M 0 -170 L 0 -204" /><path d="M 150 -150 L 170 -180" /></g>}
+    </g>
+  );
+};
+
+// ───── bàn tay mascot (găng tròn): gốc cổ tay, +y theo cẳng tay; tx = phía ngón cái (cố định theo tay)
+const mHand = (kind: MHand, tx: number): string[] => {
+  const thumb = limb([tx * 22, 16], [tx * 40, 36], 22, 18);
+  if (kind === 'open') return [ell(-19, 66, 11, 15), ell(0, 72, 11, 16), ell(19, 66, 11, 15), ell(0, 34, 35, 38), thumb];
+  if (kind === 'fist' || kind === 'phone' || kind === 'thumb') return [ell(0, 28, 32, 32)];
+  if (kind === 'point') return [limb([0, 40], [0, 100], 21, 19), ell(0, 28, 32, 32)];
+  return [ell(0, 32, 33, 37), thumb];
+};
+
+type MStyle = { sh: V; a: number; b: number; w: number; armC: string; handC: string; hk: number };
+const MArmG: React.FC<{ S: V; def: MArm; s: -1 | 1; st: MStyle; rot: number }> = ({ S, def, s, st, rot }) => {
+  const T: V = [S[0] + s * def.t[0], S[1] + def.t[1]];
+  const Ea = ik(S, T, st.a, st.b, 1), Eb = ik(S, T, st.a, st.b, -1);
+  const E = s * Ea[0] > s * Eb[0] ? Ea : Eb; // khuỷu chĩa ra ngoài thân
+  const a0 = ang(E, T) + rot;
+  const W: V = [E[0] - Math.sin(rad(a0)) * st.b, E[1] + Math.cos(rad(a0)) * st.b];
+  const hand = def.hand ?? 'mitt';
+  return (
+    <>
+      <Two r={(p) => <>{sp(p, limb(S, E, st.w, st.w * 0.94), st.armC, 'u')}{sp(p, limb(E, W, st.w * 0.94, st.w * 0.86), st.armC, 'f')}</>} />
+      <g transform={`translate(${W[0].toFixed(1)} ${W[1].toFixed(1)}) rotate(${a0.toFixed(1)}) scale(${st.hk})`}>
+        {hand === 'phone' && (
+          <g transform={`rotate(${-a0} 0 30)`}>
+            <Two r={(p) => sp(p, rr(-30, -26, 60, 108, 12), '#20232B')} />
+            <rect x={-23} y={-18} width={46} height={88} rx={6} fill="#5CC0F8" />
+            <rect x={-23} y={-18} width={46} height={18} rx={6} fill="#B5E4FF" />
+          </g>
+        )}
+        <Two r={(p) => mHand(hand, -s).map((d, i) => sp(p, d, st.handC, i))} />
+      </g>
+      {hand === 'thumb' && <Two r={(p) => sp(p, limb([W[0], W[1] + 6], [W[0], W[1] - 56 * st.hk], 26 * st.hk, 22 * st.hk), st.handC)} />}
+    </>
+  );
+};
+
+const KHIEN = { navy: '#1F3B73', yellow: SHIRT.yellow, yShade: '#E3B90C', red: SHIRT.red };
+const VectorMascot: React.FC<PersonProps> = ({ spec, pose = 'dung', expr, mouth = 0, frame = 0, look: lookS = 0, turn: turnS = 0, height, flip, face, aim, walk, ground = 1164, style }) => {
+  const uid = 'm' + useId().replace(/[^a-zA-Z0-9]/g, '');
+  const id = spec.mascot === 'robot' ? 'robot' : 'khien';
+  const sx = flip ? -1 : 1;
+  const look = lookS * sx, turn = turnS * sx;
+  const faceDir = Math.sign(face ?? (Math.abs(lookS) > 0.3 ? lookS : 0)) * sx;
+  const dir = faceDir || Math.sign(aim ?? 0) * sx;
+  const P0 = MPOSES[pose] ?? MPOSES.dung;
+  const mirrored = dir < 0; // tay cử chỉ (R) chuyển sang phía người nghe bên trái
+  const P: MPose = mirrored ? { ...P0, L: P0.R, R: P0.L, look: P0.look && [-P0.look[0], P0.look[1]] } : P0;
+  const ek = EXPR_ALIAS[expr ?? ''] ?? expr ?? (POSES[pose]?.expr ?? 'cuoi');
+  const E = EXPRS[ek] ?? EXPRS['binh-thuong'];
+  const seed = hash(spec.id);
+  const period = 96 + (seed % 34);
+  const blink = !useStill() && (frame + (seed % period)) % period < 4;
+  const talking = mouth > 0.06;
+  // chuyển động: nhún nhẹ khi đứng, nảy khi nói, theo biểu cảm
+  let bob = Math.sin(frame / 15 + seed) * 9 + (talking ? -Math.abs(Math.sin(frame / 3.2)) * 10 * Math.min(1, mouth * 1.5) : 0);
+  let tilt = (E.tilt ?? 0) * 0.7 + (talking ? Math.sin(frame / 3.6) * 1.8 : Math.sin(frame / 40 + seed) * 1);
+  let hx = 0;
+  if (E.motion === 'laugh' || P.bounce) bob -= Math.abs(Math.sin(frame / 2.8)) * 18;
+  if (E.motion === 'shake') hx = Math.sin(frame * 1.9) * 5;
+  if (E.motion === 'tremble') hx = Math.sin(frame * 2.7) * 3;
+  if (P.droop) { bob += 14; tilt += 3; }
+  const breath = 1 + Math.sin(frame / 15 + seed) * 0.012 + (talking ? mouth * 0.02 : 0);
+  const shrug = P.shrug ?? 0;
+  const gest = talking ? Math.sin(frame / 5.5 + seed) * 10 * Math.min(1, mouth * 1.6) : 0;
+  const wave = pose === 'chao' ? Math.sin(frame / 3.6) * 14 : 0;
+  const gestR = ['tay-mo', 'giai-thich', 'chi', 'nhun-vai'].includes(pose) ? gest : 0;
+  const rotR = mirrored ? 0 : wave - gestR, rotL = mirrored ? -wave + gestR : 0;
+  const lk: [number, number] = [P.look?.[0] ?? look, P.look?.[1] ?? 0];
+  // bước chân khi di-bo
+  const ph = (walk ?? frame / 7) % (Math.PI * 2);
+  const lift = (s: number) => (pose === 'di-bo' ? Math.max(0, Math.sin(ph) * s) * 30 : 0);
+
+  const box = mascotBox(ground);
+  const sc = box.h / 1000;
+  const w = height * 0.5;
+  const st: MStyle = id === 'robot' ? { sh: [196, -470], a: 116, b: 110, w: 52, armC: '#C9CEDA', handC: '#2B3A63', hk: 1.15 } : { sh: [300, -640], a: 120, b: 114, w: 58, armC: KHIEN.navy, handC: '#FFFFFF', hk: 1.3 };
+  const SL: V = [-st.sh[0], st.sh[1] - shrug], SR: V = [st.sh[0], st.sh[1] - shrug];
+  const arms = (
+    <>
+      <MArmG S={SL} def={P.L} s={-1} st={st} rot={rotL} />
+      <MArmG S={SR} def={P.R} s={1} st={st} rot={rotR} />
+    </>
+  );
+  let body: React.ReactNode, faceEl: React.ReactNode;
+  if (id === 'robot') {
+    const white = '#F4F6FA', grey = '#C9CEDA', screen = '#1E2A4A', glow = '#FFD84A';
+    body = (
+      <g>
+        {[-1, 1].map((s) => <Two key={s} r={(p) => <>{sp(p, limb([s * 82, -210], [s * 86, -52], 56, 52), grey)}{sp(p, ell(s * 94, -30 - lift(s), 64, 30), KHIEN.navy)}</>} />)}
+        <Two r={(p) => <>{sp(p, rr(-195, -535, 390, 350, 120), white, 'b')}{sp(p, rr(-50, -580, 100, 60, 16), grey, 'n')}</>} />
+        <path d="M -150 -300 Q 0 -250 150 -300" fill="none" stroke={grey} strokeWidth={6} strokeLinecap="round" />
+        <Two r={(p) => sp(p, rr(-92, -470, 184, 124, 34), KHIEN.yellow)} />
+        <circle cx={0} cy={-408} r={40} fill={KHIEN.navy} />
+        <path d="M -20 -408 L -6 -392 L 22 -424" fill="none" stroke="#fff" strokeWidth={10} strokeLinecap="round" strokeLinejoin="round" />
+        {[-1, 1].map((s) => <circle key={s} cx={s * 196} cy={-470 - shrug} r={30} fill="#AEB5C6" stroke={ol('#AEB5C6')} strokeWidth={LW * 2} />)}
+        <path d="M 0 -900 L 0 -968" stroke="#8C93A6" strokeWidth={12} strokeLinecap="round" />
+        <circle cx={0} cy={-982} r={24} fill={KHIEN.yellow} stroke={ol(KHIEN.yellow)} strokeWidth={LW * 2} />
+        {[-1, 1].map((s) => <Two key={'e' + s} r={(p) => sp(p, ell(s * 258, -735, 34, 46), KHIEN.yellow)} />)}
+        <Two r={(p) => sp(p, rr(-250, -905, 500, 345, 130), white)} />
+        <path d={rr(-250, -905, 500, 345, 130)} fill={grey} opacity={0.35} transform="translate(26 0)" clipPath={`url(#${uid}h)`} />
+        <clipPath id={`${uid}h`}><path d={rr(-250, -905, 500, 345, 130)} /></clipPath>
+        <Two r={(p) => sp(p, rr(-205, -872, 410, 272, 96), screen)} />
+        <path d="M -150 -838 Q -60 -856 40 -846" fill="none" stroke="#fff" strokeWidth={10} strokeLinecap="round" opacity={0.18} />
+      </g>
+    );
+    faceEl = <g transform={`translate(${(turn * 22).toFixed(1)} -768) scale(0.95)`}><MFace e={E} mouth={mouth} blink={blink} look={lk} frame={frame} ink={glow} bg={screen} mouthC={glow} glow mouthY={84} /></g>;
+  } else {
+    const OUTER = 'M 0 -985 C 120 -985 240 -955 330 -905 C 342 -780 340 -650 322 -540 C 290 -360 160 -230 0 -150 C -160 -230 -290 -360 -322 -540 C -340 -650 -342 -780 -330 -905 C -240 -955 -120 -985 0 -985 Z';
+    const INNER = 'M 0 -945 C 110 -945 215 -918 294 -876 C 304 -770 302 -655 286 -556 C 258 -398 146 -282 0 -206 C -146 -282 -258 -398 -286 -556 C -302 -655 -304 -770 -294 -876 C -215 -918 -110 -945 0 -945 Z';
+    body = (
+      <g>
+        {[-1, 1].map((s) => <Two key={s} r={(p) => <>{sp(p, limb([s * 92, -260], [s * 96, -46], 64, 58), KHIEN.navy)}{sp(p, ell(s * 106, -28 - lift(s), 66, 30), KHIEN.red)}</>} />)}
+        {[-1, 1].map((s) => <path key={'so' + s} d={`M ${s * 106 - 60} ${-14 - lift(s)} Q ${s * 106} ${-2 - lift(s)} ${s * 106 + 60} ${-14 - lift(s)}`} fill="none" stroke="#fff" strokeWidth={7} strokeLinecap="round" opacity={0.85} />)}
+        <Two r={(p) => sp(p, OUTER, KHIEN.navy)} />
+        <path d={INNER} fill={KHIEN.yShade} />
+        <clipPath id={`${uid}i`}><path d={INNER} /></clipPath>
+        <path d={INNER} fill={KHIEN.yellow} transform="translate(-26 4)" clipPath={`url(#${uid}i)`} />
+        <path d="M -246 -862 Q -196 -904 -120 -918" fill="none" stroke="#fff" strokeWidth={18} strokeLinecap="round" opacity={0.55} />
+        <path d="M -46 -350 L -14 -318 L 50 -386" fill="none" stroke={KHIEN.navy} strokeWidth={22} strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    );
+    faceEl = <g transform={`translate(${(turn * 30).toFixed(1)} -730) scale(1.5)`}><MFace e={E} mouth={mouth} blink={blink} look={lk} frame={frame} ink="#1B1D2E" bg={KHIEN.yellow} mouthC={MOUTH} /></g>;
+  }
+  return (
+    <svg viewBox="0 0 600 1200" width={w} height={height} style={{ overflow: 'visible', transform: flip ? 'scaleX(-1)' : undefined, ...style }}>
+      <g transform={`translate(${300 + hx} ${ground}) scale(${sc.toFixed(4)})`}>
+        <ellipse cx={0} cy={4} rx={id === 'robot' ? 230 : 250} ry={22} fill="#000" opacity={0.16} />
+        <g transform={`translate(0 ${bob.toFixed(1)}) rotate(${tilt.toFixed(2)} 0 0) scale(1 ${breath.toFixed(4)})`}>
+          {body}
+          {faceEl}
+          {arms}
+        </g>
+      </g>
+    </svg>
+  );
+};
+
+// Mascot là ảnh PNG người dùng tải lên (nền trong): giữ tỉ lệ, đáy ảnh đặt ở `ground`, nhún nhẹ; khi nói co–giãn nhẹ để thấy đang nói.
+// Quay mặt: ảnh coi như nhìn sang phải; quay về người nghe bên trái thì lật ngang (hoặc `flip`).
+const ImageMascot: React.FC<PersonProps> = ({ spec, mouth = 0, frame = 0, height, flip, face, aim, ground = 1164, style }) => {
+  const box = mascotBox(ground);
+  const w = height * 0.5, k = height / 1200;
+  const seed = hash(spec.id);
+  const m = Math.max(0, Math.min(1, mouth));
+  const talk = m > 0.06 ? m : 0;
+  const bob = Math.sin(frame / 15 + seed) * 6 - (talk ? Math.abs(Math.sin(frame / 3.2)) * 8 * Math.min(1, talk * 1.5) : 0);
+  const sy = 1 + Math.sin(frame / 15 + seed) * 0.01 + talk * 0.06, sxk = 1 - talk * 0.035;
+  const screenDir = Math.sign(face ?? aim ?? 0);
+  const mir = !flip && screenDir < 0 ? -1 : 1; // flip đã lật cả khối ngoài
+  const bw = box.h * 0.95;
+  return (
+    <div style={{ position: 'relative', width: w, height, overflow: 'visible', transform: flip ? 'scaleX(-1)' : undefined, ...style }}>
+      <svg viewBox="0 0 600 1200" width={w} height={height} style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
+        <ellipse cx={300} cy={ground + 4} rx={box.h * 0.28} ry={box.h * 0.025} fill="#000" opacity={0.16} />
+      </svg>
+      <div style={{ position: 'absolute', left: (300 - bw / 2) * k, top: box.top * k, width: bw * k, height: box.h * k, transformOrigin: '50% 100%', transform: `translateY(${(bob * k).toFixed(2)}px) scale(${(mir * sxk).toFixed(4)}, ${sy.toFixed(4)})` }}>
+        <Img src={staticFile((spec.image ?? '').replace(/^\/+/, ''))} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: '50% 100%', display: 'block' }} />
+      </div>
+    </div>
+  );
+};
+
+const Mascot: React.FC<PersonProps> = (props) => (props.spec.mascot === 'anh' && props.spec.image ? <ImageMascot {...props} /> : <VectorMascot {...props} />);
 
 // Tương thích tên cũ
 export const MisaCharacter = Person;

@@ -9,6 +9,10 @@ export const EpisodeProvider: React.FC<{ ep: TimedEpisode; children: React.React
   <C.Provider value={{ ep, theme: ep.theme }}>{children}</C.Provider>
 );
 
+// đang chụp ảnh tĩnh (storyboard) hoặc vẽ bảng nhân vật (không có EpisodeProvider) → nhân vật không chớp mắt,
+// tránh ảnh bắt đúng khung nhắm mắt trông như lỗi
+export const useStill = () => useContext(C)?.ep.still ?? true;
+
 export const useEp = () => {
   const c = useContext(C);
   if (!c) throw new Error('EpisodeProvider thiếu');

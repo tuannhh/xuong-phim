@@ -13,6 +13,9 @@ export function preparePublic(epDir) {
   copyDir(path.join(ROOT, 'assets/fonts'), path.join(pub, 'fonts'));
   copyDir(path.join(ROOT, 'assets/brand'), path.join(pub, 'brand'));
   if (fs.existsSync(path.join(epDir, 'assets'))) copyDir(path.join(epDir, 'assets'), path.join(pub, 'assets'));
+  // ảnh dùng chung cả series (logo watermark, ảnh mascot) — series/<slug>/assets/ → series-assets/
+  const sAssets = path.join(path.dirname(path.dirname(epDir)), 'assets');
+  if (fs.existsSync(sAssets)) copyDir(sAssets, path.join(pub, 'series-assets'));
   const mix = path.join(epDir, dirs().build, 'mix.wav');
   if (fs.existsSync(mix)) fs.copyFileSync(mix, path.join(pub, 'mix.wav'));
   return pub;
@@ -110,6 +113,9 @@ export async function renderCharacterSheet(seriesDir, characters, opts = {}) {
   fs.rmSync(pub, { recursive: true, force: true });
   fs.mkdirSync(pub, { recursive: true });
   copyDir(path.join(ROOT, 'assets/fonts'), path.join(pub, 'fonts'));
+  copyDir(path.join(ROOT, 'assets/brand'), path.join(pub, 'brand'));
+  // ảnh mascot người dùng tải lên (series/<slug>/assets/) — nhân vật trỏ tới series-assets/<file>
+  if (fs.existsSync(path.join(seriesDir, 'assets'))) copyDir(path.join(seriesDir, 'assets'), path.join(pub, 'series-assets'));
   const serveUrl = await bundle({ entryPoint: path.join(ROOT, 'remotion/index.ts'), publicDir: pub, outDir: path.join(seriesDir, '.build/bundle') });
   const inputProps = opts.faces ? { characters, faces: opts.faces } : { characters };
   const comp = await selectComposition({ serveUrl, id: 'CharacterSheet', inputProps });

@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { FORMATS, dirs, episodeLines, estimateDur, loadEpisode, readJSON, resolveTheme, voiceSig, writeJSON } from './lib.mjs';
 import { revealFrames, revealItems, storyTimes, STORY_SFX } from '../shared/reveal.mjs';
+import { watermarkProps } from '../shared/watermark.mjs';
+import { pickTrack } from './music-source.mjs';
 
 const TRANS_DEFAULT = { type: 'slide', frames: 12 };
 
@@ -149,12 +151,19 @@ export function buildTiming(epArg) {
     scenes, captions,
     audio: 'mix.wav',
     chrome: { ...(bible.chrome ?? {}), ...(episode.chrome ?? {}) },
+    watermark: episode.watermark === null ? undefined : watermarkProps(bible.watermark),
   };
   const audio = {
     fps, duration: +(durationInFrames / fps).toFixed(3), voiceLines, cues: cues.sort((a, b) => a.t - b.t),
     music: episode.music === null ? null : { mood: 'lofi', volume: 0.14, ...(bible.music ?? {}), ...(episode.music ?? {}), seed: episode.number ?? 1 },
   };
   if (bible.music === null && episode.music == null) audio.music = null;
+  if (audio.music) {
+    // nhạc của người dùng (file tải lên / đường dẫn trên máy) thay nhạc tự tổng hợp; không thấy bài nào → quay về nhạc theo mood
+    const track = pickTrack(path.dirname(path.dirname(epDir)), bible.music, episode);
+    if (track) audio.music.file = track;
+    else if ((episode.music?.source ?? bible.music?.source) === 'file') console.log('  ! series chọn nhạc của tôi nhưng chưa có bài nào — dùng nhạc tự tổng hợp');
+  }
   writeJSON(path.join(epDir, D.build, 'timed.json'), timed);
   writeJSON(path.join(epDir, D.build, 'audio.json'), audio);
 

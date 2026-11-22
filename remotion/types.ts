@@ -21,12 +21,15 @@ export type Theme = {
 export type CharacterSpec = {
   id: string;
   name: string;
-  kind?: 'misa' | 'so-mi' | 'vest' | 'hoodie' | 'ao-thun' | 'cardigan'; // misa = polo vàng đồng phục MISA (mặc định)
+  // misa = polo vàng đồng phục MISA (mặc định); mascot = nhân vật linh vật (xem `mascot`)
+  kind?: 'misa' | 'so-mi' | 'vest' | 'hoodie' | 'ao-thun' | 'cardigan' | 'ao-dai' | 'vay-lien' | 'blazer-nu' | 'ao-len' | 'polo' | 'ao-khoac' | 'dong-phuc' | 'ao-so-mi-ke' | 'mascot';
   outfitColor?: string; // màu áo cho kind khác misa
   bottom?: 'quan' | 'vay';
   bottomColor?: string;
   gender: 'nam' | 'nu';
-  hair?: 'ngan' | 'vuot' | 'tia' | 'xoan' | 'hoi' | 'dai' | 'buoc' | 'bob' | 'bui';
+  hair?: 'ngan' | 'vuot' | 'tia' | 'xoan' | 'hoi' | 'hui-cua' | 'mai' | 're-ngoi' | 'undercut' | 'dai-buoc' | 'dai' | 'buoc' | 'bob' | 'bui' | 'xoa-dai' | 'duoi-ngua' | 'toc-ngan' | 'mai-thua' | 'toc-tet';
+  mascot?: string; // khi kind = 'mascot': 'khien' | 'robot' (vẽ sẵn) | 'anh' (ảnh tải lên, cần `image`); gender vẫn bắt buộc để chọn giọng
+  image?: string; // mascot 'anh': đường dẫn ảnh PNG trong thư mục public của Remotion (vd "series-assets/mascot.png")
   age?: 'tre' | 'trung-nien';
   beard?: boolean;
   voice?: string; // giọng VieNeu của nhân vật (khoá theo giới tính)
@@ -89,5 +92,10 @@ export type TimedEpisode = {
   audio: string | null; // đường dẫn trong public dir (vd "mix.wav")
   mouth?: Record<string, number[]>; // id nhân vật → độ mở miệng 0..1 theo từng frame tuyệt đối
   chrome?: { handle?: boolean; progress?: boolean; tag?: boolean };
+  // watermark do người dùng đặt (bible.watermark): x, y = tâm theo tỉ lệ khung 0..1; size = cỡ chữ (px ở khung rộng 1080); width = bề rộng logo theo tỉ lệ khung
+  watermark?: {
+    text?: { content: string; x: number; y: number; size: number; color: string; opacity: number; bold?: boolean };
+    logo?: { src: string; x: number; y: number; width: number; opacity: number }; // src: 'misa' (logo MISA đầy đủ) hoặc đường dẫn trong public (series-assets/…)
+  };
   still?: boolean; // đang chụp storyboard
 };

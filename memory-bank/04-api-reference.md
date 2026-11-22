@@ -14,8 +14,14 @@ Chỉ nghe `127.0.0.1`; từ chối Host khác `localhost`/`127.0.0.1`. Mọi y�
 | GET | `/api/series/<slug>` | Chi tiết: bible, brief, trạng thái từng tập (storyboard, lỗi bố cục, MP4, `stale`), ghi chú Claude |
 | PUT | `/api/series/<slug>/brief` | Sửa đề bài (ghi lại brief.json + bible.json, giữ các trường khác của bible) |
 | POST | `/api/series/<slug>/approve` | `{ episodes: [n…] }` → `status: "duyet"` |
-| POST | `/api/series/<slug>/jobs` | `{ action, episode?, feedback? }` — chạy một việc nền (409 nếu đang có việc). `action`: `plan`/`script`/`fix` (Claude; series có tư liệu → bước "Chuẩn bị tư liệu" chạy trước), `render`, `storyboard` (check → script → storyboard, sau khi sửa lời thoại), `upload`, `characters` |
-| GET | `/api/job?from=<n>` | Việc gần nhất + log từ dòng n |
+| POST | `/api/series/<slug>/jobs` | `{ action, episode?, feedback? }` — chạy một việc nền (409 nếu đang có việc — riêng `render` khi đang bận thì xếp vào hàng đợi, trả `{ queued: <vị trí>, queue }`; 409 nếu chính tập đó đang dựng). `action`: `plan`/`script`/`fix` (Claude; series có tư liệu → bước "Chuẩn bị tư liệu" chạy trước), `render`, `storyboard` (check → script → storyboard, sau khi sửa lời thoại), `upload`, `characters` |
+| GET | `/api/job?from=<n>` | `{ job, queue }` — việc gần nhất + log từ dòng n; `queue = { paused, items[{slug,episode,title}], history[{slug,episode,status: done|error|stopped|skipped,title}] }` |
+| POST | `/api/series/<slug>/queue` | `{ episodes: [n…] }` — thêm các tập vào hàng đợi dựng (bỏ tập đã có / đang dựng; tập chưa có `episode.json` → 400); rảnh thì bắt đầu ngay |
+| DELETE | `/api/queue?slug=&episode=` | Bỏ một tập khỏi hàng đợi; không tham số → xoá cả hàng |
+| POST/DELETE | `/api/series/<slug>/asset?name=&kind=logo\|mascot` | Tải lên / xoá ảnh dùng chung của series → `assets/<kind>-<tên>` (PNG/WEBP/JPG/SVG ≤ 15 MB) |
+| POST/DELETE | `/api/series/<slug>/music?name=` | Tải lên / xoá nhạc nền → `nhac/` (MP3/WAV/M4A/AAC/OGG/FLAC ≤ 80 MB) |
+| POST | `/api/suggest` | `{ field, context }` → `{ items: [3 chuỗi] }` — gợi ý nội dung cho một ô (`FIELDS` trong `tools/web/suggest.mjs`); mỗi lúc một gợi ý (409 nếu đang bận) |
+| POST | `/api/queue/pause` · `/api/queue/resume` | Tạm dừng / chạy tiếp hàng đợi (tạm dừng không cắt tập đang dựng) |
 | POST | `/api/job/stop` | Dừng việc đang chạy (SIGTERM tiến trình con / huỷ tải lên) |
 | GET | `/api/doctor` | Kết quả `tools/doctor.mjs` (máy cài đủ chưa) |
 | GET/PUT | `/api/settings` | Thư mục phim chung `{outputDir, defaultOutputDir, locked, canOpen, docker}`; PUT `{outputDir}` (đường dẫn tuyệt đối, `~` được; Docker → 400 vì do `.env` quyết) |

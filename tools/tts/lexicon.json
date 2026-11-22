@@ -367,7 +367,7 @@
  {
   "src": "MISA JSC",
   "say": "Công ty Cổ phần mi xa",
-  "note": "quy ước người dùng 2026-11-21: MISA đọc là mi xa"
+  "note": "VOICE_OFF_TTS_RULES v5 (đã duyệt) + quy ước mi xa — viết liền \"MISAJSC\" (tên fanpage) thì đọc mi xa giây ét xi"
  },
  {
   "src": "Zalo",
@@ -560,5 +560,50 @@
    "vieneu"
   ],
   "note": "đề xuất cho VieNeu (đọc tiếng Anh kém) — Gemini tự đọc đúng nên không áp"
+ },
+ {
+  "src": "JSC",
+  "say": "giây ét xi",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "APK",
+  "say": "ây pi kây",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "IPA",
+  "say": "ai pi ây",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "URL",
+  "say": "diu a eo",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "SMS",
+  "say": "ét em ét",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "PIN",
+  "say": "pin",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "CCCD",
+  "say": "căn cước công dân",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "VNPay",
+  "say": "vi en pay",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "eKYC",
+  "say": "i kây oai xi",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
  }
 ]

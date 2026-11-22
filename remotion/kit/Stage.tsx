@@ -1,9 +1,9 @@
 import React from 'react';
 import { useCurrentFrame, useVideoConfig } from 'remotion';
-import { FRAMING, HEAD, Person, type Framing } from './Character';
+import { FRAMING, HEAD, MASCOT_GROUND, Person, mascotBox, type Framing } from './Character';
 import { springAt } from './anim';
 import { useEp, useLayout } from './theme';
-import type { TimedScene } from '../types';
+import type { CharacterSpec, TimedScene } from '../types';
 
 // Sân khấu: đặt 1..n nhân vật trong một vùng (zoneTop → zoneBottom) theo khung máy, tự đổi biểu cảm/tư thế theo
 // từng câu thoại (line.expr / line.pose cho người nói, line.react cho người nghe), nhép miệng theo voice, nhìn về người đang nói.
@@ -27,7 +27,8 @@ export const castState = (scene: TimedScene, m: CastMember, f: number): State =>
   return st;
 };
 
-export const layoutCast = (cast: CastMember[], opts: { W: number; zoneTop: number; zoneBottom: number; shot: Framing; xs?: number[] }): Placed[] => {
+// chars (tuỳ chọn): danh sách nhân vật để biết ai là mascot → hộp đầu thấp hơn (bóng thoại đặt đúng trên đầu mascot)
+export const layoutCast = (cast: CastMember[], opts: { W: number; zoneTop: number; zoneBottom: number; shot: Framing; xs?: number[]; chars?: CharacterSpec[] }): Placed[] => {
   const [y0, y1] = FRAMING[opts.shot];
   const n = cast.length;
   // to vừa vùng nhưng không chen nhau: mỗi người rộng ~420 đơn vị (cả tay) trong một ô W/n
@@ -36,6 +37,10 @@ export const layoutCast = (cast: CastMember[], opts: { W: number; zoneTop: numbe
   return cast.map((m, i) => {
     const cx = (m.x ?? opts.xs?.[i] ?? def[i]) * opts.W;
     const top = opts.zoneTop - y0 * k;
+    if (opts.chars?.find((c) => c.id === m.id)?.kind === 'mascot') {
+      const mb = mascotBox(MASCOT_GROUND[opts.shot]);
+      return { id: m.id, cx, headTop: top + mb.top * k, headBottom: top + mb.head * k, left: cx - mb.h * 0.36 * k, right: cx + mb.h * 0.36 * k, k };
+    }
     return { id: m.id, cx, headTop: top + HEAD.top * k, headBottom: top + HEAD.bottom * k, left: cx - HEAD.half * k, right: cx + HEAD.half * k, k };
   });
 };
@@ -45,7 +50,7 @@ export const Stage: React.FC<{ scene: TimedScene; cast: CastMember[]; shot?: Fra
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
   const { W } = useLayout();
-  const placed = layoutCast(cast, { W, zoneTop, zoneBottom, shot, xs });
+  const placed = layoutCast(cast, { W, zoneTop, zoneBottom, shot, xs, chars: ep.characters });
   const cur = [...scene.lines].reverse().find((l) => f >= l.from);
   const speakerX = placed.find((p) => p.id === cur?.speaker)?.cx;
   return (
@@ -69,7 +74,7 @@ export const Stage: React.FC<{ scene: TimedScene; cast: CastMember[]; shot?: Fra
         const h = 1200 * pl.k;
         return (
           <div key={m.id} data-person={m.id} style={{ position: 'absolute', left: pl.cx - 300 * pl.k, top: zoneTop - FRAMING[shot][0] * pl.k + (1 - enter) * 160 * pl.k, opacity: Math.min(1, enter * 1.4) }}>
-            <Person spec={spec} pose={st.pose} poseFrom={st.poseFrom} poseT={poseT} expr={st.expr} mouth={mouth} frame={scene.from + f} look={look} turn={m.turn ?? look * 0.4} height={h} flip={m.flip} face={face} aim={aim} />
+            <Person spec={spec} pose={st.pose} poseFrom={st.poseFrom} poseT={poseT} expr={st.expr} mouth={mouth} frame={scene.from + f} look={look} turn={m.turn ?? look * 0.4} height={h} flip={m.flip} face={face} aim={aim} ground={MASCOT_GROUND[shot]} />
           </div>
         );
       })}

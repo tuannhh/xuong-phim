@@ -5,7 +5,7 @@ import { Background } from '../kit/Background';
 import { Stage, layoutCast, type CastMember } from '../kit/Stage';
 import { RichText } from '../kit/RichText';
 import { springAt } from '../kit/anim';
-import { useLayout, useTheme } from '../kit/theme';
+import { useLayout, useEp, useTheme } from '../kit/theme';
 import type { SceneProps } from './common';
 import type { Framing } from '../kit/Character';
 
@@ -23,7 +23,7 @@ export const Talk: React.FC<SceneProps> = ({ scene }) => {
   const shot: Framing = p.shot ?? (cast.length >= 3 ? 'trung-canh' : cast.length === 1 ? 'trung-canh' : 'trung-canh');
   const zoneTop = portrait ? H * (shot === 'toan-than' ? 0.36 : 0.42) : H * 0.3;
   const zoneBottom = H;
-  const placed = layoutCast(cast, { W, zoneTop, zoneBottom, shot });
+  const placed = layoutCast(cast, { W, zoneTop, zoneBottom, shot, chars: useEp().ep.characters }); // chars: mascot thấp hơn người → bóng thoại đặt theo đúng chiều cao
   const cur = [...scene.lines].reverse().find((l) => f >= l.from);
   const who = placed.find((q) => q.id === cur?.speaker);
   const text = cur?.raw ?? cur?.text ?? '';

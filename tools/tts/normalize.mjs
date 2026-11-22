@@ -83,6 +83,16 @@ const readNumber = (s) => {
 const VI_LETTER = { A: 'a', Ă: 'á', Â: 'ớ', B: 'bê', C: 'xê', D: 'dê', Đ: 'đê', E: 'e', Ê: 'ê', G: 'giê', H: 'hát', I: 'i', K: 'ca', L: 'lờ', M: 'mờ', N: 'nờ', O: 'o', Ô: 'ô', Ơ: 'ơ', P: 'pê', Q: 'quy', R: 'rờ', S: 'ét', T: 'tê', U: 'u', Ư: 'ư', V: 'vê', X: 'ích', Y: 'i' };
 const readViLetters = (s) => [...s.replace(/[^A-ZĐĂÂÊÔƠƯ]/g, '')].map((c) => VI_LETTER[c] ?? c).join(' ');
 
+// ───── chữ cái kiểu tiếng Anh, viết theo âm tiếng Việt (VieNeu chỉ đọc đúng âm tiết tiếng Việt: "giây" chứ không "jây", "kây" chứ không "kê")
+// Dùng cho tên miền (misa.vn → mi xa chấm vi en), viết tắt công nghệ (APK → ây pi kây) và hậu tố ghép sau tên thương hiệu (MISAJSC).
+export const EN_LETTER = { A: 'ây', B: 'bi', C: 'xi', D: 'đi', E: 'i', F: 'ép', G: 'gi', H: 'ết', I: 'ai', J: 'giây', K: 'kây', L: 'eo', M: 'em', N: 'en', O: 'âu', P: 'pi', Q: 'kiu', R: 'a', S: 'ét', T: 'ti', U: 'diu', V: 'vi', W: 'đắp bồ diu', X: 'ếch', Y: 'oai', Z: 'dét' };
+export const readEnLetters = (s) => [...String(s).toUpperCase().replace(/[^A-Z]/g, '')].map((c) => EN_LETTER[c]).join(' ');
+// đuôi tên miền hay gặp
+const TLD = { vn: 'vi en', com: 'com', net: 'nét', org: 'o rờ gờ', info: 'in phô', io: 'ai âu', top: 'tóp', xyz: 'ếch oai dét', online: 'on lai', site: 'sai', link: 'linh', click: 'clích', shop: 'sóp', me: 'mi', co: 'cô', edu: 'e đu', gov: 'gâu', www: 'vê kép vê kép vê kép' };
+// tên thương hiệu đọc riêng khi dính liền chữ khác (misavpn, MISAJSC) — phần còn lại ngắn thì đánh vần kiểu tiếng Anh
+const BRANDS = [['misa', 'mi xa']];
+const isSpellable = (w) => w.length <= 4 || !/[aeiouy]/i.test(w);
+
 const L = '\\p{L}\\p{N}';
 const B0 = `(?<![${L}])`, B1 = `(?![${L}])`;
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -105,9 +115,44 @@ export function normalize(text, { engine = 'vieneu', lexicon = [] } = {}) {
     });
   };
 
-  // 0. URL / email / tên miền: đọc "chấm", "gạch ngang", không đổi phần chữ
-  rule('url', new RegExp(`${B0}(?:https?:\\/\\/)?[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.(?:com|vn|net|org|top|xyz|info|io|online|site|link|click|shop|me|co)(?:\\.vn)?(?:\\/[^\\s]*)?${B1}`, 'giu'), (m) =>
-    m.replace(/^https?:\/\//, '').replace(/\//g, ' gạch chéo ').replace(/\./g, ' chấm ').replace(/-/g, ' gạch ngang ').replace(/\s+/g, ' '));
+  // từ điển (series trước, chung sau) — cần sớm vì tên miền cũng tra từ điển
+  const lex = [...lexicon, ...BASE_LEXICON].filter((e) => !e.engines || e.engines.includes(engine));
+  const seen = new Set();
+  const entries = lex.filter((e) => (seen.has(e.src) ? false : seen.add(e.src))).sort((a, b) => b.src.length - a.src.length);
+  const lexLower = new Map(entries.filter((e) => !/\s/.test(e.src)).map((e) => [e.src.toLowerCase(), e.say]));
+  // một từ thương hiệu dính liền: misavpn → mi xa vi pi en, MISAJSC → mi xa giây ét xi
+  const brandWord = (w) => {
+    const lw = w.toLowerCase();
+    for (const [b, say] of BRANDS) {
+      if (!lw.startsWith(b) || lw === b) continue;
+      const rest = lw.slice(b.length);
+      if (!/^[a-z]+$/.test(rest)) continue;
+      const r = lexLower.get(rest) ?? (isSpellable(rest) ? readEnLetters(rest) : null);
+      if (r) return `${say} ${r}`;
+    }
+    return null;
+  };
+  // một nhãn trong tên miền: từ điển → đuôi tên miền → thương hiệu dính liền → cụm phụ âm/ngắn không nguyên âm thì đánh vần → giữ nguyên
+  const domainLabel = (w, last) => {
+    const lw = w.toLowerCase();
+    if (lexLower.has(lw)) return lexLower.get(lw);
+    if ((last || lw === 'www') && TLD[lw]) return TLD[lw];
+    const b = brandWord(lw);
+    if (b) return b;
+    if (/^[a-z]{1,4}$/.test(lw) && !/[aeiouy]/.test(lw)) return readEnLetters(lw);
+    return w;
+  };
+
+  // 0. URL / email / tên miền: "chấm", "gạch ngang", "gạch chéo"; từng nhãn đọc theo domainLabel (misa.vn → mi xa chấm vi en)
+  rule('url', new RegExp(`${B0}(?:https?:\\/\\/)?[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.(?:com|vn|net|org|top|xyz|info|io|online|site|link|click|shop|me|co|edu|gov)(?:\\.vn)?(?:\\/[^\\s]*)?${B1}`, 'giu'), (m) => {
+    const [host, ...pathParts] = m.replace(/^https?:\/\//i, '').split('/');
+    const labels = host.split('.');
+    const read = labels.map((lb, i) => lb.split('-').map((w) => domainLabel(w, i >= labels.length - 2)).join(' gạch ngang ')).join(' chấm ');
+    const tail = pathParts.filter(Boolean).map((p) => p.replace(/[-.]/g, ' ')).join(' gạch chéo ');
+    return (tail ? `${read} gạch chéo ${tail}` : read).replace(/\s+/g, ' ');
+  });
+  // 0b. tên thương hiệu dính liền chữ khác ngoài tên miền (fanpage MISAJSC, misavpn)
+  rule('brand-word', new RegExp(`${B0}(?:${BRANDS.map(([b]) => b).join('|')})[a-z]+${B1}`, 'giu'), (m) => (lexLower.has(m.toLowerCase()) ? null : brandWord(m)));
 
   // 1. thời gian: 08:30, 8h30, 8h, 8 AM / 8 PM
   rule('time-ampm', new RegExp(`${B0}(\\d{1,2})(?::(\\d{2}))?\\s?(AM|PM|am|pm)${B1}`, 'gu'), (m, h, mi, ap) => {
@@ -156,9 +201,6 @@ export function normalize(text, { engine = 'vieneu', lexicon = [] } = {}) {
   rule('number', new RegExp(`${B0}(\\d{1,3}(?:\\.\\d{3})+|\\d+)${B1}`, 'gu'), (m, n) => readNumber(n));
 
   // 9. từ viết tắt / tên riêng đã duyệt (dài trước, phân biệt hoa thường, ranh giới an toàn)
-  const lex = [...lexicon, ...BASE_LEXICON].filter((e) => !e.engines || e.engines.includes(engine));
-  const seen = new Set();
-  const entries = lex.filter((e) => (seen.has(e.src) ? false : seen.add(e.src))).sort((a, b) => b.src.length - a.src.length);
   // TB: chức danh hay trung bình — xét từng chỗ
   rule('TB', new RegExp(`${B0}TB${B1}(\\s+)?(\\S+)?`, 'gu'), (m, sp = '', next = '') => {
     if (/^[\u0001\d+\-−]/.test(next) || /^(mỗi|khoảng)$/.test(next)) return `trung bình${sp}${next}`;

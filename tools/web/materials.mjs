@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { ROOT, readJSON } from '../lib.mjs';
 import * as drive from './drive.mjs';
+import { saveStream } from './upload.mjs';
 
 export const MODES = { claude: 'Claude tự tìm và viết', 'ket-hop': 'Kết hợp tư liệu của tôi + Claude tìm thêm', 'tu-lieu': 'Chỉ dùng tư liệu của tôi' };
 export const UPLOAD_EXT = /\.(pdf|docx?|pptx|xlsx|csv|txt|md|jpe?g|png|webp|gif|bmp)$/i;
@@ -40,21 +41,7 @@ export function uploads(dir) {
 export async function saveUpload(dir, name, req) {
   const n = safeName(name);
   if (!n || !UPLOAD_EXT.test(n)) throw new Error('Chỉ nhận Word, PDF, PowerPoint, Excel, ảnh (JPG/PNG/WEBP/GIF), TXT/MD/CSV.');
-  if (+req.headers['content-length'] > UPLOAD_MAX) throw new Error('File quá 300 MB.');
-  const d = uploadDir(dir);
-  fs.mkdirSync(d, { recursive: true });
-  const dest = path.join(d, n), tmp = `${dest}.part`;
-  await new Promise((ok, no) => {
-    let size = 0;
-    const w = fs.createWriteStream(tmp);
-    req.on('data', (c) => { size += c.length; if (size > UPLOAD_MAX) { req.destroy(); w.destroy(); no(new Error('File quá 300 MB.')); } });
-    req.on('error', no);
-    w.on('error', no);
-    w.on('finish', ok);
-    req.pipe(w);
-  }).catch((e) => { fs.rmSync(tmp, { force: true }); throw e; });
-  fs.renameSync(tmp, dest);
-  return { name: n, size: fs.statSync(dest).size };
+  return saveStream(uploadDir(dir), n, req, UPLOAD_MAX, 'File quá 300 MB.');
 }
 export function removeUpload(dir, name) {
   const f = path.join(uploadDir(dir), safeName(name));

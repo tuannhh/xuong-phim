@@ -82,3 +82,17 @@ docker compose up -d --build  # → http://localhost:4710
 - Máy hiện tại: lệnh `tts-vi` vẫn trỏ tới bản cũ `~/tools/tts-vi/` (cùng nội dung với `tools/tts-vi/tts_vi.py` lúc chép 2026-11-22). Sửa một bên phải chép sang bên kia, hoặc chạy `install.sh` để trỏ về repo.
 - Google Drive mới kiểm thử với máy chủ Google giả lập (OAuth + PKCE, tải lên theo khúc, ghi đè, tạo lại thư mục, làm mới/thu hồi token). Chưa chạy với Google thật vì cần người dùng tạo OAuth client trong Google Cloud.
 - `setup.sh` mới chạy thử trên máy đã có Homebrew/Node/uv/ffmpeg (bước cài các phần mềm đó chưa chạy thật trên máy trắng).
+- **Tốc độ Docker vs chạy thẳng (đo 2026-11-22, cùng Mac Apple Silicon):** giọng VieNeu 4 câu ~5 s (thẳng) vs ~39 s (Docker, ~8×); vẽ 300 khung 12,0 s vs 21,5 s (~1,8×); storyboard 11,2 s vs 17,4 s. Docker trên Mac chạy trong máy ảo Linux, không có Metal/GPU, CPU bị chia. → Trên Mac khuyên chạy thẳng (`pnpm web`); Docker để mang sang máy khác.
+- **GPU:** Remotion `chromiumOptions.gl='angle'` chậm hơn với SVG/CSS của xưởng, `swangle` chậm hơn nhiều; mã hoá phần cứng (VideoToolbox) không đổi gì vì nút thắt là vẽ khung. VieNeu mặc định ONNX Runtime CPU; nhánh GPU cần PyTorch CUDA (card NVIDIA, Windows/Linux, `vieneu[gpu]`) — chưa thử. Docker trên Windows + NVIDIA có thể chuyển GPU qua WSL2 — chưa thử.
+
+## Cài thẳng trên máy khác — không cần Docker (2026-11-22)
+
+- Chủ dự án chốt: máy gốc chạy thẳng (`pnpm web`), Docker chỉ là phương án dự phòng.
+- `setup.sh` hỗ trợ macOS (Homebrew), Linux apt (Ubuntu/Debian) và Windows qua WSL2 Ubuntu. Nhánh Linux cài đúng bộ gói hệ thống như Dockerfile (ffmpeg, thư viện Chrome headless, font emoji; `libasound2t64` trên Ubuntu 24.04), Node 24 bản chính thức vào `~/.local` nếu máy chưa có Node ≥ 20, pnpm 9.15.9, uv. WSL: cảnh báo khi repo nằm ở `/mnt/…` (ổ Windows, rất chậm).
+- Ghim phiên bản: `pnpm-lock.yaml` (`--frozen-lockfile`), `uv.lock`, VieNeu `VIENEU_REF=6566468` (3.8.5), Remotion 4.0.290 tự tải Chrome headless đúng bản.
+- Cuối `setup.sh` chạy `node tools/doctor.mjs --thu` (= `pnpm thu-may`): chép tập mẫu `tools/selftest/thu-may` (3 cảnh, 4 câu, nam + nữ, có link misa.vn) vào thư mục tạm, dựng `all` bản đầy đủ 1080×1920 với `XUONG_OUTPUT_DIR` trỏ vào thư mục tạm (không lọt vào thư mục phim thật), báo thời gian giọng / vẽ / tổng so với máy gốc (MacBook Pro M1 Pro: 12 + 12 → 28 giây), rồi xoá thư mục tạm. Giọng không chạy bằng VieNeu → cảnh báo. Bỏ qua bằng `XUONG_SKIP_THU=1`.
+
+## Chọn cách chạy khi clone (2026-11-23)
+
+- `bash start.sh`: lần đầu hỏi 1) chạy thẳng (khuyên dùng) / 2) Docker, nhớ ở `.xuong-mode` (ngoài git); `--chon` để chọn lại. Chạy thẳng: dừng container Docker nếu đang chạy, máy thiếu gì thì chạy `setup.sh`, rồi mở trang. Docker: kiểm tra Docker Desktop, tạo `.env` từ mẫu, `docker compose up -d --build`. Cả hai không đụng vào khi cổng 4710 đang có việc `running`/`stopping`.
+- Windows: bấm đúp `Mo Xuong phim (Docker - Windows).cmd` (Docker Desktop); chạy thẳng trên Windows = WSL2 Ubuntu + `bash start.sh`. `.gitattributes` giữ CRLF cho `.cmd`.

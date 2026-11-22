@@ -15,6 +15,7 @@ import { spawnSync, spawn } from 'node:child_process';
 import { ROOT, die, dirs, episodeLines, loadEpisode, readJSON, voiceSig, writeJSON } from './lib.mjs';
 import { castVoices } from './voices.mjs';
 import { buildTiming } from './timing.mjs';
+import { SETS } from '../shared/catalog.mjs';
 
 const [, , epArg, step = 'check', ...rest] = process.argv;
 if (!epArg) die('cách dùng: node tools/ep.mjs <thư-mục-tập> <check|script|storyboard|voice|timing|audio|render|all|studio>');
@@ -38,6 +39,9 @@ function check() {
     if (ids.has(s.id)) errs.push(`trùng id cảnh ${s.id}`);
     ids.add(s.id);
     if (!TEMPLATES.includes(s.type)) errs.push(`${s.id}: không có template "${s.type}"`);
+    // không báo trước tập sau (người dùng duyệt/đăng tập nào, theo thứ tự nào là việc của họ)
+    if (s.props?.next != null) errs.push(`${s.id}: bỏ trường "next" — cảnh kết không ghi "Tập sau" nữa`);
+    for (const l of s.lines ?? []) if (/tập (sau|tới|tiếp theo|kế tiếp)/i.test(typeof l === 'string' ? l : l?.text ?? '')) warns.push(`${s.id}: lời đọc nhắc "tập sau" — dễ sai khi người dùng đăng không theo thứ tự: "${(typeof l === 'string' ? l : l.text).slice(0, 60)}"`);
     if (s.character) {
       if (!chars.has(s.character.id)) errs.push(`${s.id}: nhân vật "${s.character.id}" chưa khai báo trong bible.characters`);
       if (s.character.pose && !POSES.includes(s.character.pose)) errs.push(`${s.id}: tư thế "${s.character.pose}" không có (${POSES.join(', ')})`);
@@ -55,7 +59,7 @@ function check() {
       if (m.expr && !EXPRS.includes(m.expr)) errs.push(`${s.id}: biểu cảm "${m.expr}" không có`);
     }
     if (s.type === 'story') {
-      if (!['van-phong', 'nha', 'hang-o'].includes(s.props?.set ?? 'van-phong')) errs.push(`${s.id}: bối cảnh "${s.props.set}" không có (van-phong, nha, hang-o)`);
+      if (!SETS[s.props?.set ?? 'van-phong']) errs.push(`${s.id}: bối cảnh "${s.props.set}" không có (${Object.keys(SETS).join(', ')})`);
       for (const q of s.props?.pops ?? []) { if (q.over && !(s.props.actors ?? []).some((a) => a.id === q.over)) errs.push(`${s.id}: nhãn "${q.text}" gắn vào "${q.over}" không có trong actors`); if ((q.on ?? 1) > (s.lines ?? []).length && (s.lines ?? []).length) errs.push(`${s.id}: nhãn "${q.text}" on=${q.on} vượt số câu`); }
     }
     if (s.type === 'talk' && !(s.props?.cast ?? []).length) errs.push(`${s.id}: cảnh talk cần props.cast`);

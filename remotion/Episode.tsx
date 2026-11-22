@@ -10,6 +10,7 @@ import { EpisodeProvider, useTheme, useLayout } from './kit/theme';
 import { useFonts } from './kit/fonts';
 import { Captions } from './kit/Captions';
 import { Chrome } from './kit/Chrome';
+import { Watermark } from './kit/Watermark';
 import { LayoutProbe } from './kit/LayoutProbe';
 import { resolveScene } from './scenes';
 import type { TimedEpisode, TimedScene } from './types';
@@ -62,6 +63,7 @@ export const Episode: React.FC<TimedEpisode> = (ep) => {
       <AbsoluteFill style={{ background: ep.theme.bg }}>
         <TransitionSeries>{items}</TransitionSeries>
         <Chrome />
+        <Watermark />
         <Captions />
         {ep.audio && !ep.still && <Audio src={staticFile(ep.audio)} />}
         {ep.still && <LayoutProbe />}

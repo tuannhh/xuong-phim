@@ -38,6 +38,7 @@ export const LayoutProbe: React.FC = () => {
         const s = (n.textContent ?? '').trim();
         if (!s || !visible(n.parentElement)) continue;
         if ((n.parentElement as Element).closest('svg')) continue;
+        if ((n.parentElement as Element).closest('[data-watermark]')) continue; // watermark do người dùng đặt, cố ý nằm đè
         const range = document.createRange();
         range.selectNodeContents(n);
         // vùng nhìn thấy của chữ: giao với mọi khung cha có overflow hidden (vd nội dung cuộn trong màn hình điện thoại)

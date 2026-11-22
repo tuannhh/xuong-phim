@@ -76,3 +76,12 @@ Chủ dự án đã xem 3 phương án A/B/C trên cùng một cảnh và yêu c
 22/11/2026 tập 1 đứng "render 35%" nhiều phút trong khi khung hình vẫn ra đều. Hai lỗi chồng nhau trong `tools/render.mjs`:
 1. Chỉ in khi `p % 5 === 0` — `onProgress` của Remotion nhảy cóc (36 → 38 → 41…), lỡ mốc là không in nữa. Nay in khi qua mốc (`b > last`, với `b = p - p % 5`), kèm `khung x/y` để thấy máy còn chạy.
 2. In bằng `\r`: máy chủ web (`pipeLines`) cắt theo dòng nên phần sau `\r` cuối cùng nằm chờ trong bộ đệm tới lần in sau → trang luôn chậm một nhịp, và mốc cuối không bao giờ hiện. Nay `progressLine()`: `\r` khi stdout là terminal, `\n` khi là pipe. Dòng tiến độ mới vẫn phải bắt đầu bằng `render <số>` / `ảnh <số>` để `logLine` ghi đè dòng cũ thay vì thêm dòng.
+
+## 21. Đọc sai tên miền và viết tắt tiếng Anh
+22/11/2026: "misa.vn" đọc sai, "MISA JSC", "APK" đọc lệch. Nguyên nhân: luật url cũ đánh vần cả cụm theo chữ cái tiếng Việt, và lexicon chạy SAU luật url nên tên thương hiệu trong link không được thay; series tự phiên âm kiểu "jây", "ây pi kê". Nay lexicon tính trước luật url, tên miền đọc theo bảng `TLD`, viết tắt theo `EN_LETTER`. Đừng thêm phiên âm vào `bible.pronounce` cho từ chung — thêm vào `tools/tts/lexicon.json` + ca trong `tools/tts/test.mjs`. Luật VOICE_OFF_TTS_RULES v5 đã duyệt (MISA JSC → "Công ty Cổ phần mi xa") thắng — chạy `node tools/tts/test.mjs` sau mỗi lần sửa.
+
+## 22. Outro "Tập sau: Tập sau: …"
+Outro cũ tự ghi tiền tố "Tập sau:" trong khi Claude cũng viết "Tập sau: …" vào `next` → lặp chữ. Hơn nữa người dùng chỉ duyệt một số tập và đăng không theo thứ tự nên "tập sau" thường sai. Đã bỏ hẳn `next` khỏi outro; `check` báo lỗi nếu còn `props.next`, cảnh báo câu có "tập sau/tập tới/tập tiếp theo". (Nhãn "TẬP n/N" ở đầu phim vẫn theo số tập của kế hoạch.)
+
+## 23. Hàng đợi và khởi động lại / nút Dừng
+Hàng đợi nằm trong máy chủ + `queue.json`. Khởi động lại khi đang dựng → tập dở quay lại đầu hàng và hàng TẠM DỪNG (cố ý). Nút Dừng cũng tạm dừng cả hàng — nếu không, dừng một tập lại tự nhảy sang tập kế, người dùng tưởng nút hỏng. `replaceChildren` với phần tử `null` in ra chữ "null" → luôn `.filter(Boolean)`.

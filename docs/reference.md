@@ -34,7 +34,7 @@ series/<slug>/
   "music": { "mood": "lofi", "volume": 0.14 },   // null = không nhạc
   "sfx": { "auto": true, "volume": 0.6 },
   "transition": { "type": "slide", "frames": 12 },
-  "chrome": { "handle": true, "progress": true, "tag": true }
+  "chrome": { "handle": true, "progress": true, "tag": true }   // tag = nhãn tên series góc trên (không còn ghi "TẬP n/N")
 }
 ```
 Tập có thể ghi đè `characters`, `music`, `format`, `chrome` trong episode.json (dùng cho `characterMode: moi-tap`).
@@ -47,11 +47,18 @@ Font (đủ dấu tiếng Việt, OFL): **Barlow** (tiêu đề, 500–900) + **
 Khai báo trong `bible.characters` (hoặc `episode.characters` khi `characterMode: moi-tap`):
 ```jsonc
 { "id": "thu", "name": "Chị Thu", "gender": "nu",            // nam | nu — khoá giọng theo giới tính
-  "kind": "cardigan", "outfitColor": "#B5835A", "bottom": "vay", // misa (polo vàng MISA, logo ngực trái) | so-mi | vest | hoodie | ao-thun | cardigan; quan | vay
+  "kind": "cardigan", "outfitColor": "#B5835A", "bottom": "vay", // xem danh sách trang phục bên dưới; quan | vay
   "hair": "bui", "hairColor": "#3A2418", "skin": "#F3C6A2", "glasses": false, "age": "tre|trung-nien", "beard": false,
   "voice": "Mai Anh", "geminiVoice": "Aoede" }               // VieNeu + Gemini; bỏ trống → tự chọn giọng cùng giới, không trùng người khác
 ```
-- Tóc: nam `ngan, vuot, tia, xoan, hoi` · nữ `dai, buoc, bob, bui`.
+- **Trang phục** (`kind`, danh mục ở `shared/catalog.mjs` → `KINDS`; màu đổi bằng `outfitColor`, trừ `misa`): `misa` (polo vàng MISA, logo ngực trái) · `so-mi` · `vest` · `hoodie` · `ao-thun` · `cardigan` · `ao-dai` (áo dài cổ đứng, vạt cài chéo, tà trước/sau xẻ hông, quần ống rộng trắng — nữ có hoạ tiết hoa nhỏ; luôn mặc quần) · `vay-lien` (nữ; váy liền đai eo, phần váy cùng màu áo) · `blazer-nu` (nữ; blazer + blouse cổ tròn) · `ao-len` (cổ tròn, bo len) · `polo` (polo trơn, không logo) · `ao-khoac` (bomber khoá kéo) · `dong-phuc` (đồng phục công việc chung: đô vai, hai túi nắp, bảng tên trống — không phù hiệu/cầu vai) · `ao-so-mi-ke` (sơ mi kẻ ô, bỏ ngoài quần).
+- Tóc: nam `ngan, vuot, tia, xoan, hoi, hui-cua, mai, re-ngoi, undercut, dai-buoc` · nữ `dai, buoc, bob, bui, xoa-dai, duoi-ngua, toc-ngan, mai-thua, toc-tet` (nhãn ở `HAIRS`). Tóc không đổi theo `turn`; tóc lệch (rẽ ngôi, đuôi ngựa, bím) tự lật theo `flip`.
+- **Mascot** (tuỳ chọn mỗi phim — diễn viên như người, dùng được trong `actors` / `cast` / `character`):
+  ```jsonc
+  { "id": "khien", "name": "Khiên", "gender": "nam", "kind": "mascot", "mascot": "khien" }   // khien (khiên vàng–navy) | robot (rô-bốt trợ lý)
+  { "id": "linhvat", "name": "Bé Xanh", "gender": "nu", "kind": "mascot", "mascot": "anh", "image": "series-assets/linhvat.png" } // ảnh PNG nền trong, đường dẫn trong thư mục public
+  ```
+  `gender` vẫn bắt buộc (chọn giọng). Cao ≈ 0,68 người khi toàn thân; đứng trên sàn (talk/character) hoặc trên mép bàn tiền cảnh (story, không ghế). Trung/cận cảnh: mascot tự kê chân trong khung (`MASCOT_GROUND`) để không bị cắt nửa dưới. Vẽ sẵn: nhún nhẹ, chớp mắt, biểu cảm lấy từ `expr` (đủ 14), miệng mở theo voice, cử chỉ tay cho chao, chi, tay-mo, giai-thich, nghi, vui, ngac-nhien, khoanh-tay, buon, dien-thoai, nghe-may, om-dau, chong-nanh, like, nhun-vai, go-phim (tay cử chỉ tự quay về người nghe); tư thế khác đứng nghỉ. Mascot ảnh: giữ tỉ lệ, nhún nhẹ, co–giãn khi nói, quay về người nghe bên trái thì lật ngang (ảnh coi như nhìn sang phải).
 - **Tư thế** (`pose`): dung, chao, chi, tay-mo, giai-thich, nghi, vui, ngac-nhien, khoanh-tay, buon, dien-thoai, nghe-may, om-dau, chong-nanh, like, nhun-vai, di-bo, go-phim, dat-tay. Đổi tư thế giữa các câu → chuyển dần (khớp vai/khuỷu/cổ tay).
   Nguyên tắc vẽ tư thế: khuỷu tay ở gần thân, cử chỉ nằm ở cẳng tay + bàn tay; không giơ hai tay quá đầu, không chĩa khuỷu ngang ra ngoài. Tay mở ra ngoài thì cả cánh tay cùng đưa ra (khuỷu `OUT`, góc khuỷu rộng), không ghim bắp tay thẳng đứng rồi bẻ cẳng tay ngang. Cẳng tay luôn vẽ trước bắp tay/tay áo; bàn tay xoè nhìn từ mu, ngón cái cố định theo tay.
   **Hướng cử chỉ (máy tự lo, đừng lách):** tay đưa ngang ra (`chi`, `tay-mo`, `giai-thich`, `nhun-vai`, `ngac-nhien`) luôn ở phía nhân vật đang quay tới — bạn diễn gần nhất, hoặc giữa khung hình khi đứng một mình lệch một bên. Tư thế hai tay khi nói với bạn diễn: tay phía xa gập ra trước bụng, không mở ra sau lưng. Nên chỉ cần ghi tên tư thế, không phải chọn tay trái/phải và không dùng `flip` để "sửa" hướng tay. Thêm/sửa tư thế trong `POSES` (viết một chiều, tay chính là `R`) → chạy `pnpm series characters <slug> --huong` xem `characters-huong.png` (mọi tư thế khi quay phải/trái).
@@ -66,7 +73,7 @@ Bối cảnh nhiều lớp + nhân vật ngồi sau bàn tiền cảnh + máy qu
 Phụ đề nằm trên mặt bàn (chữ trắng viền đậm, từ trong `*…*` tô vàng, từng từ bật khi đọc tới), kèm nhãn tên người nói; câu không ghi `speaker` là lời dẫn chuyện (không nhãn tên).
 ```jsonc
 { "id": "s05", "type": "story", "transition": "slide",
-  "props": { "set": "hang-o",                      // van-phong (time: ngay|chieu|toi, logo: true → khung logo MISA) | nha (dem|ngay) | hang-o (ổ lừa đảo)
+  "props": { "set": "hang-o",                      // xem bảng bối cảnh bên dưới; time = buổi (bỏ trống → buổi đầu)
              "shot": "toan",                       // toan | trung | can (cần focus); máy tự đẩy chậm (push, mặc định 0.035)
              "label": "Phần 3 · Sau màn hình",     // dòng vàng dưới tên tập (ẩn ở cận cảnh và cảnh màn hình)
              "actors": [{ "id": "gian", "x": 0.42, "pose": "go-phim", "expr": "gian-xao", "prop": "laptop" }],   // stand: true → không ghế
@@ -83,7 +90,20 @@ Phụ đề nằm trên mặt bàn (chữ trắng viền đậm, từ trong `*�
   `{in}` / `{out}` (tin nhắn) · `{sys}` · `{task, reward}` · `{balance, from, label}` (số tiền chạy) · `{btn, tone: do|khoa}` · `{warn}` · `{transfer, to}`; mỗi mục có `on` = số câu.
   Hoặc `{ "device": "bang", "title", "icon", "rows": [{ "text", "sub", "on" }] }` — bảng tổng kết đánh số.
 - Tiếng động tự đặt theo từng nhãn/mục. Cùng bối cảnh liên tiếp → `"transition": "fade"` (như cắt máy); đổi bối cảnh → slide/wipe.
-- 1–2 nhân vật mỗi cảnh là đẹp nhất (3 người tự thu nhỏ). Văn phòng tự thêm đồng nghiệp ngồi phía sau ở chỗ trống (`extras: false` để tắt).
+- Bối cảnh (`set` · `time`, buổi đầu là mặc định; danh mục chung ở `shared/catalog.mjs`, hình ở `remotion/kit/Sets.tsx`):
+
+  | set | Tên | time | Tiền cảnh / ghế | Ghi chú |
+  |---|---|---|---|---|
+  | `van-phong` | Văn phòng | ngay · chieu · toi | bàn gỗ, ghế văn phòng | `logo: true` → khung logo MISA; đồng nghiệp ngồi sau |
+  | `nha` | Ở nhà | dem · ngay | bàn gỗ, sofa (không ghế) | dây đèn nháy, cửa sổ thành phố |
+  | `hang-o` | Sào huyệt kẻ gian | toi | bàn tối, ghế gaming | giá điện thoại, ba màn hình |
+  | `quan-ca-phe` | Quán cà phê | ngay · toi | bàn gỗ (cà phê phin, latte, bình hoa), ghế gỗ | ô kính nhìn ra phố nhà ống, xe máy chạy ngang; khách ngồi laptop phía sau |
+  | `ngan-hang` | Ngân hàng (quầy giao dịch) | ngay | quầy đá viền xanh (giấy nộp tiền, bút dây, chuông, phiếu số), ghế | bảng gọi số chạy, màn hình "Không cung cấp mã OTP", vách kính + giao dịch viên phía sau |
+  | `phong-hop` | Phòng họp | ngay · toi | bàn trắng bóng (sổ, loa hội nghị, chai nước), ghế lưng cao | màn hình biểu đồ, bảng trắng; `logo: true` → khung logo MISA |
+  | `ngoai-troi` | Ngoài trời (công viên bờ hồ) | ngay · chieu · toi | bàn đá (trà đá, bánh mì), ghế đá tựa gỗ vẽ sẵn | mặt hồ, cây, cột đèn phố, lá rơi |
+  | `cua-hang` | Cửa hàng (quầy thu ngân) | ngay | quầy trắng viền đỏ (bảng QR "Quét mã", máy quẹt thẻ, hũ kẹo), đứng quầy | kệ hàng, tủ mát |
+
+- 1–2 nhân vật mỗi cảnh là đẹp nhất (3 người tự thu nhỏ). Văn phòng / quán cà phê / ngân hàng tự thêm người phụ ngồi phía sau ở chỗ trống (`extras: false` để tắt).
 - Tư thế hợp cảnh ngồi bàn: `go-phim`, `dat-tay`, `dien-thoai`, `nghe-may`, `tay-mo`, `giai-thich`, `chi`, `like`, `om-dau`, `vui`, `buon`.
 
 ## Cảnh hội thoại `talk`
@@ -125,7 +145,7 @@ Mục hiện dần theo lời: số câu = số mục + 1 → câu đầu là ti
 | type | props | SFX tự động |
 |---|---|---|
 | `hook` | text, kicker?, icon?, sub? | impact |
-| `title` | title?, sub?, number? | swoosh-up + ding |
+| `title` | title?, sub?, number? (số to chỉ hiện khi ghi rõ — không tự lấy số tập) | swoosh-up + ding |
 | `bullets` | heading, kicker?, items[{text, icon?, tone?, beat?}], numbered? | pop mỗi mục |
 | `stat` | value, prefix?, suffix?, decimals?, label, source?, icon? | riser + impact |
 | `quote` | text, author?, role? | — |
@@ -142,7 +162,7 @@ Mục hiện dần theo lời: số câu = số mục + 1 → câu đầu là ti
 | `story` | set, time?, shot?, focus?, label?, actors[], desk[], pops[] hoặc screen — cảnh kể chuyện có bối cảnh (xem trên) | theo nhãn/mục |
 | `talk` | cast[], shot?, room?, title?, bubble? — hội thoại nhiều nhân vật (xem trên) | — |
 | `character` | như `talk` với một nhân vật lấy từ `character` | — |
-| `outro` | cta?, handle?, next?, logo? ("misa") | chime |
+| `outro` | cta?, handle?, logo? ("misa") — không có dòng "tập sau" (tập đứng độc lập) | chime |
 | `custom` | component: "<series>/<Ten>" (viết ở remotion/custom/, đăng ký ở custom/index.ts) | — |
 Mọi template nhận thêm `bg: { variant, tint }` để đổi nền riêng cảnh. Icon: tên Lucide (kebab-case, vd `shield-check`) hoặc emoji.
 
@@ -186,6 +206,10 @@ Bắc: Hải Đăng (nam, mặc định), Mai Anh (nữ, tin tức), Trúc Ly (n
 | "Sửa lời thoại" (bước kịch bản + storyboard, và ở phim đã dựng) | sửa chữ từng câu ngay trên trang → `episode.json` (bỏ `say` cũ của câu đổi) → tự chạy `check` → `script` → `storyboard`; lần dựng sau voice chỉ đọc lại câu đổi | máy chủ, không cần Claude |
 | "Sửa theo góp ý" | góp ý ghi vào `.studio/gop-y.md` → giai đoạn `fix <n>` (đã có MP4 thì dựng lại luôn) | `claude -p` |
 | "Duyệt và dựng phim" / "Dựng lại" | `node tools/ep.mjs <dir> all` → `out/epNN.mp4` + `.srt`; series bật `driveAuto` → tự đẩy lên Drive sau khi dựng | máy chủ, không cần Claude |
+| "Dựng lần lượt các tập đã duyệt kịch bản" (thẻ ở trang series, hiện khi ≥2 tập có kịch bản chưa dựng / kịch bản đã sửa) | xếp các tập đã chọn vào hàng đợi; máy dựng từng tập (`all`), xong tập này tự sang tập kế. Đang dựng mà bấm "Duyệt và dựng phim" tập khác → tập đó vào cuối hàng. Thanh hàng đợi: bỏ từng tập, "Tạm dừng", "Chạy tiếp", "Xoá hàng đợi". Bấm Dừng → hàng đợi tạm dừng. Hàng đợi lưu ở `~/.config/xuong-phim/queue.json`; máy chủ khởi động lại → tập dở xếp lại lên đầu, hàng đợi ở trạng thái tạm dừng chờ bấm "Chạy tiếp" | máy chủ (`tools/web/queue.mjs`) |
+| Mục "Nhạc nền" (form) | "Nhạc tự sáng tác" (mood) hoặc "Nhạc của tôi": file tải lên lưu ở `series/<slug>/nhac/`, hoặc đường dẫn file/thư mục trên máy (`bible.music.path`, đọc tại chỗ); mỗi tập một bài xoay vòng theo số tập (`episode.music.file` để chọn riêng); thanh âm lượng 0–100% ↔ `bible.music.volume` 0–0,3 (40% = 0,12 mặc định) | máy chủ + `tools/music-source.mjs`, `tools/audio/mix.py` |
+| Mục "Watermark" (form) | chữ và/hoặc logo (logo MISA đầy đủ hoặc ảnh tải lên `series/<slug>/assets/logo-*.png`), kéo thả vị trí trên khung xem trước, cỡ/màu chữ, kích thước logo, độ mờ riêng từng thứ → `bible.watermark`; vẽ trên mọi tập (`remotion/kit/Watermark.tsx`) | máy chủ + `shared/watermark.mjs` |
+| Nút "✦ Gợi ý" (cạnh tên series, kênh, ý tưởng, khán giả, giọng điệu, lời kêu gọi, ghi chú, tên/vai nhân vật, chữ watermark, ô góp ý/lưu ý) | `POST /api/suggest` → `claude -p` model nhẹ (mặc định `haiku`, đổi bằng `STUDIO_SUGGEST_MODEL`), không công cụ → 3 phương án, bấm để điền; không đi qua hàng việc nền | `tools/web/suggest.mjs` |
 | Dựng xong (mọi cách dựng) | chép `out/epNN.mp4` + `.srt` vào thư mục phim chung `<thư mục xuất>/<tên series>/EPNN - <tiêu đề>.mp4` (`tools/output.mjs`; ghi ở `out/export.json`); gom phim cũ: `pnpm series export <slug>` | `tools/ep.mjs render` |
 | Trang "Thiết lập" | thư mục phim (mặc định `~/Movies/Xưởng phim`, Linux `~/Videos/Xưởng phim`; lưu ở `~/.config/xuong-phim/settings.json`) + Google Drive: dán OAuth client (Desktop app) → "Kết nối"; "Cho phép đọc tư liệu trên Drive" xin thêm quyền `drive.readonly`; lưu ở `~/.config/xuong-phim/google.json` | máy chủ (`tools/web/drive.mjs`) |
 | (bỏ) Trang "Google Drive" cũ | `#/drive` chuyển sang `#/settings` | — | (Desktop app) → "Kết nối" → đăng nhập Google; lưu ở `~/.config/xuong-phim/google.json` | máy chủ (`tools/web/drive.mjs`) |

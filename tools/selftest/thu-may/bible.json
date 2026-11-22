@@ -1,0 +1,21 @@
+{
+  "name": "Thử máy",
+  "slug": "thu-may",
+  "channel": "@xuong-phim",
+  "episodes": 1,
+  "format": "9:16",
+  "fps": 30,
+  "engine": "remotion",
+  "theme": { "preset": "misa-sang" },
+  "captions": "pill",
+  "voice": "Hải Đăng",
+  "characters": [
+    { "id": "tuan", "name": "Tuấn", "gender": "nam", "kind": "misa", "hair": "xoan", "glasses": true },
+    { "id": "linh", "name": "Linh", "gender": "nu", "kind": "misa", "hair": "buoc", "bottom": "vay", "glasses": true }
+  ],
+  "music": { "volume": 0.12, "mood": "lofi" },
+  "sfx": { "auto": true, "volume": 0.6 },
+  "transition": { "type": "slide", "frames": 12 },
+  "chrome": { "handle": false, "progress": true, "tag": true },
+  "pronounce": {}
+}

@@ -16,14 +16,17 @@ Tri thức dự án theo quy chuẩn MISA Backend: `memory-bank/` (đọc `memor
 - Font: Barlow (tiêu đề) + Google Sans (nội dung). Không để chữ đè chữ / đè nhân vật — storyboard phải báo `✓ bố cục`.
 - Nhân vật vẽ dáng người thật, đầy đặn, đầu–thân cân đối; khuỷu tay gần thân, không giơ hai tay quá đầu (người dùng chê dáng còm nhom, tay chân lòng khòng). Phim tình huống dùng cảnh `story` (bối cảnh nhiều lớp, máy quay, nhãn bật).
 - Tay cử chỉ phải hướng về người nghe: nhân vật quay mặt sang một phía thì tay đưa ra ở phía đó, tay kia gập trước bụng — không mở ngang ra sau lưng (người dùng báo lỗi "tay bị ngược" 22/11/2026). Luật nằm ở `orientPose` trong `remotion/kit/Character.tsx`; sửa tư thế xong chạy `pnpm series characters <slug> --huong` để soát. Cùng lỗi này còn do cách vẽ: cẳng tay phải nằm lớp trên bắp tay/tay áo, ngón cái bàn tay xoè cố định theo tay, tay mở ra ngoài không gập chữ L sát sườn (memory-bank bẫy 18).
-- Mỗi tập nhiều nhân vật nam + nữ; nhân vật nam giọng nam, nữ giọng nữ (`check` chặn nếu sai). MISA đọc là "mi xa".
+- Mỗi tập nhiều nhân vật nam + nữ; nhân vật nam giọng nam, nữ giọng nữ (`check` chặn nếu sai). MISA đọc là "mi xa"; tên miền/viết tắt tiếng Anh tự chuẩn hoá (misa.vn → "mi xa chấm vi en", APK → "ây pi kây") — sửa cách đọc ở `tools/tts/lexicon.json` + ca kiểm thử.
+- Mỗi tập đứng độc lập: không hẹn "tập sau" (người dùng duyệt một số tập, đăng không theo thứ tự); outro không có `next`.
 
 ## Lệnh
 ```
+bash start.sh                                # mở xưởng: lần đầu chọn chạy thẳng (khuyên dùng) hay Docker, lần sau tự nhớ (--chon để đổi)
 pnpm web                                     # trang web Xưởng phim http://localhost:4710 — form đề bài + 3 bước duyệt
-docker compose up -d --build                 # hoặc chạy trong Docker (sửa .env từ .env.example)
+docker compose up -d --build                 # hoặc Docker (sửa .env từ .env.example) — chậm hơn chạy thẳng trên Mac (giọng ~8×, vẽ ~1,8×); máy gốc đã chuyển về chạy thẳng
 bash setup.sh                                # cài lần đầu / máy mới: tự cài mọi phần mềm + thư viện còn thiếu
 pnpm doctor                                  # kiểm tra máy đã cài đủ chưa
+pnpm thu-may                                 # dựng thật tập mẫu ~9 giây trong thư mục tạm → chắc chắn máy dựng được + so tốc độ với máy gốc
 pnpm series new <slug> "Tên"                 # khung series
 pnpm series plan <slug>                      # plan.html để duyệt
 pnpm series characters <slug>                # bảng nhân vật
@@ -41,7 +44,7 @@ node tools/tts/test.mjs                      # kiểm thử bộ chuẩn hoá l�
 ## Mã nguồn
 - `remotion/` — composition `Episode` (props = build/timed.json), `kit/` (theme, nền, phụ đề, nhân vật MISA, logo), `scenes/` (template), `custom/` (cảnh riêng từng tập).
 - `shared/reveal.mjs` — lịch hiện mục, dùng chung cho hình và SFX (sửa một chỗ).
-- `tools/web/server.mjs` + `web/index.html` — trang web tại máy (không phụ thuộc thư viện): form ghi `brief.json` + `bible.json`; nút sáng tác gọi `claude -p` theo mục "Chế độ form" của skill; nút dựng phim chạy thẳng `tools/ep.mjs … all`. Chỉ nghe 127.0.0.1, mỗi lúc một việc. `tools/web/drive.mjs` — kết nối Google Drive (OAuth máy tính + PKCE, quyền drive.file, tuỳ chọn thêm drive.readonly để lấy tư liệu; client/token ở `~/.config/xuong-phim/google.json`, ngoài repo). `tools/web/materials.mjs` — tư liệu (tải lên, đường dẫn, link Drive) + gọi `tools/materials/extract.py`. `tools/output.mjs` — thư mục phim chung.
+- `tools/web/server.mjs` + `web/index.html` — trang web tại máy (không phụ thuộc thư viện): form ghi `brief.json` + `bible.json`; nút sáng tác gọi `claude -p` theo mục "Chế độ form" của skill; nút dựng phim chạy thẳng `tools/ep.mjs … all`. Chỉ nghe 127.0.0.1, mỗi lúc một việc; `tools/web/queue.mjs` — hàng đợi dựng lần lượt nhiều tập (lưu `~/.config/xuong-phim/queue.json`). `tools/web/drive.mjs` — kết nối Google Drive (OAuth máy tính + PKCE, quyền drive.file, tuỳ chọn thêm drive.readonly để lấy tư liệu; client/token ở `~/.config/xuong-phim/google.json`, ngoài repo). `tools/web/materials.mjs` — tư liệu (tải lên, đường dẫn, link Drive) + gọi `tools/materials/extract.py`. `tools/output.mjs` — thư mục phim chung.
 - `Dockerfile` + `docker-compose.yml` + `docker/entrypoint.sh` — chạy cả xưởng trong Docker (VieNeu, Chrome headless, Claude CLI); dữ liệu ở volume (`series/`, thư mục phim, cấu hình, cache model).
-- `setup.sh` + `tools/doctor.mjs` — cài/kiểm tra máy; hook SessionStart ở `.claude/settings.json` báo Claude khi máy chưa cài đủ.
+- `setup.sh` + `tools/doctor.mjs` — cài/kiểm tra máy (macOS, Linux apt, Windows qua WSL2; `--thu` dựng tập mẫu `tools/selftest/thu-may`); hook SessionStart ở `.claude/settings.json` báo Claude khi máy chưa cài đủ.
 - `tools/` — timing.mjs, render.mjs, ep.mjs, series.mjs; `tools/audio/` — sfx_bank.py, music.py, mix.py (uv).

@@ -67,7 +67,7 @@
              {"text":"Chỉ đăng nhập, mua hàng tại *misa.vn*","icon":"globe"},
              {"text":"Tin chính thức: fanpage *MISAJSC*","icon":"badge-check"}]},
    "lines":["Ba việc cần nhớ.","Chỉ tải app ở App Store hoặc Google Play.","Chỉ mua và đăng nhập tại misa.vn.","Tin chính thức xem ở fanpage MISAJSC."]},
-  {"id":"s09","type":"outro","transition":"slide","props":{"cta":"Chia sẻ cho khách hàng, đối tác, người thân","next":"Tập sau: tin nhắn “sếp” nhờ chuyển tiền gấp","logo":"misa"},
+  {"id":"s09","type":"outro","transition":"slide","props":{"cta":"Chia sẻ cho khách hàng, đối tác, người thân","logo":"misa"},
    "lines":["Hãy chia sẻ video này cho bạn bè, người thân, khách hàng và đối tác nhé."]}
  ]
 }

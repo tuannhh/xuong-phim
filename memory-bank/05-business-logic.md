@@ -2,7 +2,7 @@
 
 ## 3 điểm duyệt (không bỏ qua trừ khi chủ dự án nói "làm luôn")
 
-1. **Kế hoạch sơ bộ** — mỗi tập: tiêu đề, logline, câu mở đầu (hook 3 giây), các ý, hình ảnh, lời kết; mỗi tập một góc riêng, có móc sang tập sau. Duyệt → `status: "duyet"`.
+1. **Kế hoạch sơ bộ** — mỗi tập: tiêu đề, logline, câu mở đầu (hook 3 giây), các ý, hình ảnh, lời kết; mỗi tập một góc riêng và đứng độc lập — không hẹn "tập sau" (chủ dự án 22/11/2026: chỉ duyệt một số tập, tự xếp lịch đăng không theo thứ tự). Duyệt → `status: "duyet"`.
 2. **Kịch bản + storyboard** — `episode.json` → `check` → `script.md` → storyboard (ảnh mỗi cảnh). Storyboard phải báo `✓ bố cục` (không chữ đè chữ / đè nhân vật / tràn khung).
 3. **Phim** — voice → timing → audio → render → MP4 + SRT. Góp ý → sửa `episode.json` → chạy lại từ bước bị ảnh hưởng (voice chỉ đọc câu mới/đổi).
 
@@ -53,3 +53,22 @@
 - `tools/ep.mjs render` (cả `all`) dựng xong → chép `out/epNN.mp4` + `.srt` sang `<thư mục phim>/<tên series>/EPNN - <tiêu đề>.mp4` (`tools/output.mjs`, sao chép kiểu clone trên APFS nên không tốn thêm chỗ). Bản `--preview` và `--gemini` không chép. Đổi tiêu đề → xoá bản cũ do xưởng chép (nhớ ở `out/export.json`).
 - Thư mục: `XUONG_OUTPUT_DIR` (Docker) → `~/.config/xuong-phim/settings.json` (trang Thiết lập) → mặc định `~/Movies/Xưởng phim` (Linux `~/Videos/Xưởng phim`).
 - Phim đã dựng trước đó: `pnpm series export <slug>`.
+
+## Hàng đợi dựng phim (2026-11-22)
+
+- Mỗi lúc vẫn chỉ MỘT việc nền; hàng đợi chỉ chứa việc `render` (`tools/web/queue.mjs`, lưu `CONF_DIR/queue.json`).
+- Vào hàng: thẻ "Dựng lần lượt các tập đã duyệt kịch bản" (chọn nhiều tập) hoặc bấm "Duyệt và dựng phim" khi máy đang bận. Bấm dựng trực tiếp một tập đang nằm trong hàng → bỏ nó khỏi hàng.
+- `finish()` của mỗi việc → ghi lịch sử (`done`/`error`/`stopped`) → `pump()` lấy tập kế. Tập lỗi không chặn hàng; bấm Dừng → hàng TẠM DỪNG (người dùng muốn dừng cả loạt). Tập không còn `episode.json` → `skipped`.
+- Máy chủ khởi động lại: tập đang dựng dở được xếp lại lên đầu, hàng ở trạng thái tạm dừng — không tự chạy ngầm khi người dùng không để ý.
+
+## Chuẩn hoá lời đọc: tên miền, viết tắt tiếng Anh (2026-11-22)
+
+- `tools/tts/normalize.mjs`: đường link tách tên miền / đường dẫn; nhãn tên miền đọc theo `TLD` (vn → "vi en", com → "com", net → "nét", www → "vê kép vê kép vê kép"…), nhãn khác: thương hiệu (`BRANDS`: misa → "mi xa", kể cả dính liền như misavpn → "mi xa vi pi en"), từ trong lexicon, còn lại đánh vần chữ cái tiếng Anh (`EN_LETTER`).
+- Viết tắt tiếng Anh trong `lexicon.json` đọc theo tên chữ cái tiếng Anh: JSC "giây ét xi", APK "ây pi kây", QR "kiu a", URL "diu a eo", SMS "ét em ét"… "MISA JSC" giữ luật đã duyệt "Công ty Cổ phần mi xa"; "MISAJSC" dính liền → "mi xa giây ét xi".
+
+## Watermark, nhạc nền riêng, gợi ý nội dung, tập tới 5 phút (2026-11-23)
+
+- **Watermark** (`bible.watermark`, làm sạch ở `shared/watermark.mjs` dùng chung cho máy chủ + timing): chữ và logo độc lập — mỗi thứ bật/tắt, vị trí TÂM theo tỉ lệ khung (0..1, nên khớp mọi khung hình), độ mờ riêng; chữ có cỡ (px ở cạnh ngắn 1080), màu, đậm; logo = logo MISA đầy đủ có khẩu hiệu (giữ nguyên hình, đặt trên nền trắng) hoặc ảnh tải lên `series/<slug>/assets/logo-*`. `render.mjs` chép `series/<slug>/assets/` → `public/series-assets/`. LayoutProbe bỏ qua `[data-watermark]`. Tập muốn tắt: `episode.watermark = null`.
+- **Nhạc nền riêng** (`bible.music.source = 'file'`): bài tải lên (`series/<slug>/nhac/`) + `bible.music.path` (file hoặc thư mục trên máy). `pickTrack`: `episode.music.file` nếu có, không thì xoay vòng theo số tập. `mix.py track()`: giải mã ffmpeg → lặp nối chéo 1,5 s → chuẩn RMS 0,14 (bằng nhạc tự tổng hợp, để thanh âm lượng cùng nghĩa) → vào 0,6 s, ra 2,5 s → vẫn tự hạ khi có lời. Không thấy bài nào / đọc lỗi → quay về nhạc theo mood và báo trong log.
+- **Gợi ý nội dung**: nút cạnh các ô nhập gọi `claude -p` model nhẹ, không công cụ, chỉ trả mảng JSON 3 chuỗi; không ghi file, chạy song song được với việc nền.
+- **Thời lượng tập**: 20–300 giây (trước 180). Skill hướng dẫn tập dài chia 3–5 hồi, điểm nhấn mỗi ~45 giây.

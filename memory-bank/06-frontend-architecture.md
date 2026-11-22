@@ -14,7 +14,7 @@
 
 - `Episode.tsx` nhận `build/timed.json` làm props; `TransitionSeries` nối các cảnh; `scenes/index.ts` ánh xạ `type` → component.
 - Template: `hook, title, bullets, stat, quote, compare, steps, icons, chart, kinetic, chat, phone, alert, figure, character, talk, story, outro, custom` (danh sách kiểm ở `tools/ep.mjs`).
-- **Cảnh `story`** (`scenes/story.tsx` + `kit/Sets.tsx`): bối cảnh nhiều lớp (`van-phong` ngày/chiều/tối, `nha` đêm/ngày, `hang-o`), nhân vật ngồi sau bàn tiền cảnh, máy quay `toan|trung|can|man-hinh` + đẩy chậm, nhãn bật (`tag|chip|alert|big|note`), chèn màn hình điện thoại / bảng tổng kết, phụ đề trắng viền đậm trên mặt bàn + nhãn tên người nói (đỏ nếu `villain`).
+- **Cảnh `story`** (`scenes/story.tsx` + `kit/Sets.tsx`): bối cảnh nhiều lớp (`van-phong` ngày/chiều/tối, `nha` đêm/ngày, `hang-o`, `quan-ca-phe` ngày/tối, `ngan-hang`, `phong-hop` ngày/tối, `ngoai-troi` ngày/chiều/tối, `cua-hang`, `cong-an`; danh mục ở `shared/catalog.mjs` SETS, ghế tựa theo `seatFor`, người phụ phía sau theo `hasExtras`), nhân vật ngồi sau bàn tiền cảnh, máy quay `toan|trung|can|man-hinh` + đẩy chậm, nhãn bật (`tag|chip|alert|big|note`), chèn màn hình điện thoại / bảng tổng kết, phụ đề trắng viền đậm trên mặt bàn + nhãn tên người nói (đỏ nếu `villain`).
 - **Nhân vật** (`kit/Character.tsx`): minh hoạ phẳng ~6 đầu, vẽ hai lượt viền → tô; 19 tư thế, 14 biểu cảm, 6 trang phục; khuỷu tay gần thân, cử chỉ ở cẳng tay/bàn tay. Hướng cử chỉ tự xoay theo phía nhân vật quay tới (`orientPose`; cảnh truyền `face`/`aim`) — bẫy 17.
 - **Logo** (`kit/MisaLogo.tsx`): sinh nguyên hình từ `assets/brand/misa-logo.svg`, luôn kèm khẩu hiệu.
 - **LayoutProbe** (`kit/LayoutProbe.tsx`): khi chụp storyboard, đo chữ đè chữ / đè `[data-person]` / tràn khung → `storyboard/layout.json`.
@@ -26,3 +26,19 @@
 - Trang series: nút "Mở thư mục phim"; thẻ "Nguồn nội dung" ở cột phải (số file/link, lần đọc gần nhất, file không đọc được); mỗi phim có dòng "Trên máy: <đường dẫn>"; mục "Sửa lời thoại" (tải lười khi mở; chữ đang sửa giữ trong `DRAFT` qua các lần vẽ lại).
 - Trang Thiết lập: thư mục phim (Lưu / Mở thư mục; Docker thì khoá) + Google Drive (thêm nút "Cho phép đọc tư liệu trên Drive").
 - Cảnh Remotion mới `photo` (`remotion/scenes/special.tsx`): ảnh tư liệu trong khung bo góc theo `ratio`, trôi chậm Ken Burns, nhiều ảnh thì chuyển theo câu thoại (dùng `revealFrames`), chú thích + nguồn; SFX `camera` khi vào cảnh, `whoosh-soft` khi đổi ảnh.
+
+## Hàng đợi dựng (2026-11-22)
+
+- Thanh "Hàng đợi" (`#queuebox`, hàm `queuePanel()`): các tập chờ (nút bỏ từng tập), lịch sử gần đây, nút Tạm dừng / Chạy tiếp / Xoá hàng đợi. Trạng thái lấy từ `GET /api/job` (`QUEUE`).
+- Nút dựng của từng tập (`renderBtn`) đổi thành nhãn "đang dựng" / "trong hàng đợi · thứ N" khi tập đó đang chạy / đang chờ.
+- Thẻ "Dựng lần lượt các tập đã duyệt kịch bản" (`batchCard`) hiện khi ≥ 2 tập có kịch bản: tập chưa có MP4 chọn sẵn, tập "kịch bản đã sửa" để trống.
+- `poll` vẽ lại trang series khi hàng đợi đổi / việc nền đổi để nhãn luôn đúng.
+- Outro (`scenes/basic.tsx`) không còn dòng "Tập sau" — chỉ CTA, handle, logo.
+
+## Bổ sung 2026-11-23
+
+- Header + các điểm nhấn tối (nút tối, số mục, toast) chuyển sang xanh navy (`--navy:#103A7A`, header gradient #0E3370→#15468F) — chủ dự án chê nền đen chữ trắng "trông như màu tang".
+- `sugFor(field, el, set, ctx)`: bọc một ô nhập kèm nút "✦ Gợi ý" + 3 phương án bấm để điền (ẩn khi máy không có `claude`). Ô nhập gốc vẫn là phần tử cũ (code khác đọc `.value` không đổi).
+- Form mục 4 "Nhạc nền": chọn nguồn, kéo thả file nhạc / đường dẫn, thanh âm lượng (`rangeRow`). Mục 7 "Watermark": khung xem trước theo khung hình (nền = ảnh storyboard đầu tiên của series nếu có), kéo thả chữ/logo bằng pointer events, thanh cỡ/độ mờ; mục Drive thành mục 8.
+- Danh mục trang phục/tóc/bối cảnh/mascot lấy từ `META` (máy chủ đọc `shared/catalog.mjs`), không còn hằng số cứng trong trang.
+- Mascot: nút "+ Mascot" ở mục nhân vật → thẻ riêng `mascotCard` (`kind: 'mascot'`): chọn mascot vẽ sẵn (`META.mascots`) hoặc "Ảnh mascot của tôi" (tải PNG qua `/asset?kind=mascot` → `series/<slug>/assets/mascot-*`, nhân vật lưu `image: 'series-assets/<file>'`); chọn giọng nam/nữ; không có tóc/trang phục. Series chưa tạo thì chưa tải ảnh được.

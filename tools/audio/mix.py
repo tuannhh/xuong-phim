@@ -29,6 +29,27 @@ def loudnorm(src, dst, I=-14, TP=-1.5):
     subprocess.run(['ffmpeg', '-y', '-hide_banner', '-loglevel', 'error', '-i', src, '-af', flt, '-ar', str(SR), dst], check=True)
 
 
+def track(path, dur):
+    """Nhạc của người dùng: giải mã bằng ffmpeg → lặp (nối chéo 1,5 s) cho đủ thời lượng → cùng độ to với nhạc tự tổng hợp
+    (RMS ≈ 0.14, để thanh âm lượng trên trang web có cùng ý nghĩa) → vào nhẹ 0,6 s, ra dần 2,5 s."""
+    raw = subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-i', path, '-vn', '-ac', '2', '-ar', str(SR), '-f', 'f32le', '-'], capture_output=True, check=True).stdout
+    x = np.frombuffer(raw, dtype=np.float32).reshape(-1, 2).astype(np.float64)
+    if len(x) < SR:
+        raise ValueError('file nhạc quá ngắn hoặc không đọc được')
+    need, xf = int(dur * SR), int(1.5 * SR)
+    y = x.copy()
+    while len(y) < need:
+        k = min(xf, len(x) // 4, len(y) // 4)
+        r = np.linspace(0, 1, k)[:, None]
+        y = np.concatenate([y[:-k], y[-k:] * (1 - r) + x[:k] * r, x[k:]])
+    y = y[:need]
+    y *= 0.14 / (np.sqrt(np.mean(y ** 2)) + 1e-9)
+    fi, fo = int(0.6 * SR), min(int(2.5 * SR), need // 3)
+    y[:fi] *= np.linspace(0, 1, fi)[:, None]
+    y[-fo:] *= np.linspace(1, 0, fo)[:, None]
+    return np.clip(y, -1, 1)
+
+
 def main(ep):
     B = 'build' + ('-' + os.environ['SERIES_ENGINE'] if os.environ.get('SERIES_ENGINE') else '')
     A = json.load(open(os.path.join(ep, B, 'audio.json')))
@@ -71,7 +92,14 @@ def main(ep):
     # ── nhạc + ducking theo lời
     mu = A.get('music')
     if mu:
-        y = compose(mu['mood'], dur + 0.5, mu.get('seed', 1))
+        y = None
+        if mu.get('file'):
+            try:
+                y = track(mu['file'], dur + 0.5)
+            except Exception as e:
+                print(f"  ! không đọc được nhạc {os.path.basename(mu['file'])}: {e} — dùng nhạc tự tổng hợp")
+        if y is None:
+            y = compose(mu['mood'], dur + 0.5, mu.get('seed', 1))
         place(music, y, 0)
         duck = uniform_filter1d(active, int(0.25 * SR))  # mượt lên/xuống ~250 ms
         g = mu.get('volume', 0.14) * (1 - 0.55 * np.clip(duck * 1.5, 0, 1))
@@ -84,7 +112,7 @@ def main(ep):
     loudnorm(raw, os.path.join(ep, B, 'mix.wav'))
     os.remove(raw)
     json.dump({k: [round(float(v), 2) for v in arr] for k, arr in mouth.items()}, open(os.path.join(ep, B, 'mouth.json'), 'w'))
-    print(f"mix: {dur:.1f}s · {len(A['voiceLines']) - len(missing)} câu voice · {len(A['cues'])} sfx · nhạc {mu['mood'] if mu else 'tắt'} → {B}/mix.wav")
+    print(f"mix: {dur:.1f}s · {len(A['voiceLines']) - len(missing)} câu voice · {len(A['cues'])} sfx · nhạc {(os.path.basename(mu['file']) if mu.get('file') else mu['mood']) if mu else 'tắt'} → {B}/mix.wav")
     if missing:
         print(f"  ! chưa có voice cho {len(missing)} câu: {', '.join(missing[:6])}{'…' if len(missing) > 6 else ''}")
 
