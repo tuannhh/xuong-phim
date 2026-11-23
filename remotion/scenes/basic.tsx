@@ -331,9 +331,11 @@ export const Outro: React.FC<SceneProps> = ({ scene }) => {
           </div>
         )}
         <Heading text={scene.props.cta ?? 'Theo dõi để xem tập tiếp theo'} align="center" size={78} />
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 16 * u, background: th.accent, color: th.bg, fontFamily: th.fontDisplay, fontWeight: 900, fontSize: 44 * u, padding: `${22 * u}px ${44 * u}px`, borderRadius: 999, transform: `scale(${springAt(f, 10, fps, 9) * pulse})` }}>
-          <Icon name="bell-ring" size={46 * u} color={th.bg} /> {scene.props.handle ?? ep.series.channel ?? 'Theo dõi'}
-        </div>
+        {scene.props.handle !== false && (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 16 * u, background: th.accent, color: th.bg, fontFamily: th.fontDisplay, fontWeight: 900, fontSize: 44 * u, padding: `${22 * u}px ${44 * u}px`, borderRadius: 999, transform: `scale(${springAt(f, 10, fps, 9) * pulse})` }}>
+            <Icon name="bell-ring" size={46 * u} color={th.bg} /> {scene.props.handle ?? ep.series.channel ?? 'Theo dõi'}
+          </div>
+        )}
       </div>
     </SceneShell>
   );

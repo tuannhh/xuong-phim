@@ -20,10 +20,13 @@ Chỉ nghe `127.0.0.1`; từ chối Host khác `localhost`/`127.0.0.1`. Mọi y�
 | DELETE | `/api/queue?slug=&episode=` | Bỏ một tập khỏi hàng đợi; không tham số → xoá cả hàng |
 | POST/DELETE | `/api/series/<slug>/asset?name=&kind=logo\|mascot` | Tải lên / xoá ảnh dùng chung của series → `assets/<kind>-<tên>` (PNG/WEBP/JPG/SVG ≤ 15 MB) |
 | POST/DELETE | `/api/series/<slug>/music?name=` | Tải lên / xoá nhạc nền → `nhac/` (MP3/WAV/M4A/AAC/OGG/FLAC ≤ 80 MB) |
-| POST | `/api/suggest` | `{ field, context }` → `{ items: [3 chuỗi] }` — gợi ý nội dung cho một ô (`FIELDS` trong `tools/web/suggest.mjs`); mỗi lúc một gợi ý (409 nếu đang bận) |
+| POST | `/api/suggest` | `{ field, context }` → `{ items: [3 chuỗi] }` — gợi ý nội dung cho một ô (`FIELDS` trong `tools/web/suggest.mjs`), chạy bằng công cụ + model của vai trò "suggest" trong Thiết lập AI; mỗi lúc một gợi ý (409 nếu đang bận) |
 | POST | `/api/queue/pause` · `/api/queue/resume` | Tạm dừng / chạy tiếp hàng đợi (tạm dừng không cắt tập đang dựng) |
 | POST | `/api/job/stop` | Dừng việc đang chạy (SIGTERM tiến trình con / huỷ tải lên) |
 | GET | `/api/doctor` | Kết quả `tools/doctor.mjs` (máy cài đủ chưa) |
+| GET/PUT | `/api/ai` | Thiết lập AI `{config:{engine, claude:{plan,script,fix,suggest:{model,effort}}, codex:{…}}, defaults, roles, status:{claude:{installed}, codex:{installed,loggedIn}}, claude:{models,efforts}}`; PUT nhận `config` (làm sạch: engine claude/codex, model `[\w.\-:[\]]{0,80}`, effort Claude trong low…max) — lưu `~/.config/xuong-phim/ai.json` |
+| GET | `/api/ai/codex-models` | Danh sách model Codex `{list:[{id,label,description,efforts[],defaultEffort,isDefault}], error}` — hỏi `codex app-server` (`initialize` → `model/list`, bỏ model ẩn), giữ 10 phút; `?refresh=1` hỏi lại |
+| GET/PUT | `/api/autostart` | Tự mở khi đăng nhập máy `{supported, why, on, log, self}`; PUT `{on}` → LaunchAgent `vn.xuong-phim.web` (macOS) / systemd user `xuong-phim.service` (Linux). Tắt khi chính bản chạy nền đang trả lời → chỉ xoá file, chạy tiếp tới lần khởi động lại (`stillRunning`) |
 | GET/PUT | `/api/settings` | Thư mục phim chung `{outputDir, defaultOutputDir, locked, canOpen, docker}`; PUT `{outputDir}` (đường dẫn tuyệt đối, `~` được; Docker → 400 vì do `.env` quyết) |
 | POST | `/api/open-output` | `{slug?}` mở thư mục phim (của series) bằng Finder/xdg-open; Docker → 400 kèm đường dẫn trên máy thật |
 | GET | `/api/brand/misa-logo.svg` | Logo MISA đầy đủ (header trang) |

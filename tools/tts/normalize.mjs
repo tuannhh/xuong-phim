@@ -154,6 +154,9 @@ export function normalize(text, { engine = 'vieneu', lexicon = [] } = {}) {
   // 0b. tên thương hiệu dính liền chữ khác ngoài tên miền (fanpage MISAJSC, misavpn)
   rule('brand-word', new RegExp(`${B0}(?:${BRANDS.map(([b]) => b).join('|')})[a-z]+${B1}`, 'giu'), (m) => (lexLower.has(m.toLowerCase()) ? null : brandWord(m)));
 
+  // 0c. tỉ lệ khung hình sau "khung / tỉ lệ / định dạng / khổ": 9:16, 16:9 hoặc 1:1 → "chín trên mười sáu" (không đọc thành giờ)
+  rule('ratio', new RegExp(`${B0}(khung hình|khung|tỉ lệ|tỷ lệ|định dạng|khổ)\\s+(\\d{1,2}:\\d{1,2}(?:\\s*(?:,|hoặc|hay|và)\\s*\\d{1,2}:\\d{1,2})*)${B1}`, 'giu'), (m, w, list) =>
+    `${w} ${list.replace(/(\d{1,2}):(\d{1,2})/g, (x, a, b) => `${readInt(+a)} trên ${readInt(+b)}`)}`);
   // 1. thời gian: 08:30, 8h30, 8h, 8 AM / 8 PM
   rule('time-ampm', new RegExp(`${B0}(\\d{1,2})(?::(\\d{2}))?\\s?(AM|PM|am|pm)${B1}`, 'gu'), (m, h, mi, ap) => {
     const H = +h; const pm = /pm/i.test(ap);

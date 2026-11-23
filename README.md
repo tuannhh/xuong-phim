@@ -44,8 +44,11 @@ Mở http://localhost:4710. Dữ liệu nằm ngoài container: `series/` (gắn
 
 ## Dùng
 
-- **Trang web:** `pnpm web` (hoặc Docker) → http://localhost:4710 — điền đề bài, chọn nguồn nội dung (Claude tự tìm / kết hợp / chỉ tư liệu của bạn: kéo thả Word, PDF, PowerPoint, Excel, ảnh; dán link Google Drive; đường dẫn trên máy), duyệt kế hoạch → kịch bản + storyboard (sửa lời thoại ngay trên trang) → phim.
+- **Trang web:** `pnpm web` (hoặc Docker) → http://localhost:4710 — điền đề bài, chọn nguồn nội dung (AI tự tìm / kết hợp / chỉ tư liệu của bạn: kéo thả Word, PDF, PowerPoint, Excel, ảnh; dán link Google Drive; đường dẫn trên máy), duyệt kế hoạch → kịch bản + storyboard (sửa lời thoại ngay trên trang) → phim.
 - **Phim thành phẩm** được gom về một chỗ: `~/Movies/Xưởng phim/<tên series>/EP01 - <tiêu đề>.mp4` (đổi ở trang "Thiết lập"). Trang Thiết lập cũng là nơi kết nối Google Drive (đẩy phim lên, lấy tư liệu về).
+- **AI viết kịch bản:** trang Thiết lập → chọn **Claude Code** hoặc **Codex**, model + mức suy nghĩ (effort) cho từng việc (lập kế hoạch, viết tập, sửa tập, gợi ý). Mặc định Claude: Opus medium cho kế hoạch, Sonnet medium cho viết/sửa, Haiku cho gợi ý. Danh sách model Codex lấy thẳng từ Codex trên máy (có model mới thì bấm "Cập nhật danh sách"). Codex cần `npm i -g @openai/codex` + `codex login`; chỉ dùng khi chạy thẳng (không có trong Docker).
+- **Tự mở khi bật máy:** trang Thiết lập → bật "Tự mở khi đăng nhập máy" (macOS LaunchAgent / Linux systemd) — hoặc `node tools/autostart.mjs on|off|status`. Sau khi cập nhật mã: `node tools/autostart.mjs restart` (khi không có việc đang chạy).
+- **Video hướng dẫn:** `series/huong-dan-xuong-phim` (16:9, ảnh chụp thật của trang). Giao diện đổi → `node tools/huong-dan/chup.mjs` rồi `pnpm ep series/huong-dan-xuong-phim/episodes/ep01 all`.
 - **Chat:** mở Claude Code trong thư mục này, gõ `/series` + ý tưởng.
 
 ## Tài liệu

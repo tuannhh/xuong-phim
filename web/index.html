@@ -100,6 +100,9 @@ textarea{resize:vertical;min-height:74px}
 .chr .av.v{background:#3A1512;color:#FFB4AB}
 .chr .g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media (max-width:900px){.chr .g{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.airow{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(170px,1.4fr) minmax(110px,.8fr);gap:8px 12px;align-items:center}
+.airow>span{font-weight:600;font-size:14px}.airow .hdr{font-size:12.5px;color:var(--mut);font-weight:600}
+@media (max-width:640px){.airow{grid-template-columns:1fr 1fr}.airow>span{grid-column:1/-1}.airow>.hdr{display:none}}
 .ck{display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:14px;cursor:pointer}
 .ck input{width:16px;height:16px;accent-color:var(--navy)}
 input[type=color]{width:44px;height:38px;padding:2px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
@@ -193,9 +196,9 @@ const HAIR = { ngan: 'ngắn', vuot: 'vuốt ngược', tia: 'tỉa', xoan: 'xo�
 const MOOD = { tension: 'Hồi hộp', lofi: 'Lofi thư thả', upbeat: 'Sôi động', inspire: 'Truyền cảm hứng', playful: 'Vui nhộn', calm: 'Êm dịu' };
 const STYLE = { 'tinh-huong': ['Phim tình huống', 'Nhân vật diễn trong bối cảnh (văn phòng, nhà…), có máy quay, nhãn bật, màn hình điện thoại'], 'thong-tin': ['Đồ hoạ thông tin', 'Người dẫn + danh sách, số liệu, so sánh — hợp nội dung mẹo, kiến thức'], 'ket-hop': ['Kết hợp', 'Mở bằng tình huống, chốt bằng phần tổng kết thông tin'] };
 const SETS = { 'van-phong': 'Văn phòng', nha: 'Ở nhà', 'hang-o': 'Sào huyệt kẻ gian' };
-const MODE = { 'dong-nhat': ['Một dàn nhân vật xuyên suốt', 'Khán giả quen mặt qua từng tập'], 'moi-tap': ['Mỗi tập nhân vật khác', 'Claude tự đặt nhân vật cho từng tập'], khong: ['Không dùng nhân vật', 'Chỉ đồ hoạ và giọng dẫn'] };
+const MODE = { 'dong-nhat': ['Một dàn nhân vật xuyên suốt', 'Khán giả quen mặt qua từng tập'], 'moi-tap': ['Mỗi tập nhân vật khác', 'AI tự đặt nhân vật cho từng tập'], khong: ['Không dùng nhân vật', 'Chỉ đồ hoạ và giọng dẫn'] };
 const PLATFORMS = ['TikTok', 'Facebook Reels', 'YouTube Shorts', 'YouTube', 'Zalo'];
-const SRC = { claude: ['Claude tự tìm và viết', 'Mặc định — Claude tự tìm hiểu chủ đề, số liệu có nguồn'], 'ket-hop': ['Kết hợp', 'Tư liệu của bạn là nguồn chính, Claude tìm thêm để bổ sung'], 'tu-lieu': ['Chỉ tư liệu của tôi', 'Claude chỉ chọn lọc, sắp xếp và ghép từ tư liệu bạn đưa vào'] };
+const SRC = { claude: ['AI tự tìm và viết', 'Mặc định — AI tự tìm hiểu chủ đề, số liệu có nguồn'], 'ket-hop': ['Kết hợp', 'Tư liệu của bạn là nguồn chính, AI tìm thêm để bổ sung'], 'tu-lieu': ['Chỉ tư liệu của tôi', 'AI chỉ chọn lọc, sắp xếp và ghép từ tư liệu bạn đưa vào'] };
 const OK_EXT = /\.(pdf|docx?|pptx|xlsx|csv|txt|md|jpe?g|png|webp|gif|bmp)$/i;
 const ACCEPT = '.pdf,.doc,.docx,.pptx,.xlsx,.csv,.txt,.md,.jpg,.jpeg,.png,.webp,.gif,.bmp';
 const fmtSize = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
@@ -218,7 +221,7 @@ const lab2 = (title, hint, field) => h(field.matches?.('input,select,textarea') 
 const sugFor = (field, el, set, ctx) => {
   if (!META?.claude) return el;
   const chips = h('div', { class: 'sugs' });
-  const btn = h('button', { type: 'button', class: 'sugb', title: 'Claude gợi ý 3 phương án cho ô này' }, '✦ Gợi ý');
+  const btn = h('button', { type: 'button', class: 'sugb', title: 'AI gợi ý 3 phương án cho ô này' }, '✦ Gợi ý');
   btn.onclick = async () => {
     btn.disabled = true; btn.textContent = 'Đang nghĩ…';
     try {
@@ -293,7 +296,7 @@ const jobPanel = () => {
       run && h('button', { class: 'btn sm danger', onclick: async () => { await api('POST', '/api/job/stop', {}); toast('Đang dừng…'); } }, 'Dừng')),
     h('div', { class: 'small mut', style: { margin: '4px 0 10px' } }, `${JOB.label}${JOB.episode ? ` · tập ${JOB.episode}` : ''}`),
     !run && JOB.hint ? h('div', { class: 'note warn', style: { marginBottom: '10px' } }, JOB.hint) : null,
-    !run && JOB.summary ? h('div', { class: 'note sum', style: { marginBottom: '10px' } }, h('b', {}, ['plan', 'script', 'fix'].includes(JOB.action) ? 'Claude báo lại: ' : 'Kết quả: '), JOB.summary) : null,
+    !run && JOB.summary ? h('div', { class: 'note sum', style: { marginBottom: '10px' } }, h('b', {}, ['plan', 'script', 'fix'].includes(JOB.action) ? 'AI báo lại: ' : 'Kết quả: '), JOB.summary) : null,
     pre].filter(Boolean));
   if (stick) pre.scrollTop = pre.scrollHeight;
 };
@@ -470,7 +473,7 @@ const formView = async (slug) => {
           : h('span', { class: 'mut small' }, 'Tạo series xong mới tải ảnh mascot được.')) : null,
         lab('Giọng', 'mascot vẫn cần giọng nam/nữ', sel('gender', [['nam', 'Giọng nam'], ['nu', 'Giọng nữ']], () => { delete c.voice; drawChars(); })),
         lab('Giọng đọc', null, sel('voice', [['', 'Tự chọn'], ...voices]))),
-      h('p', { class: 'mut small', style: { margin: 0 } }, 'Mascot không bắt buộc — Claude chỉ cho xuất hiện khi hợp nội dung (vd nhắc mẹo, chốt bài học). Cao khoảng 2/3 người, đứng cạnh nhân vật.'));
+      h('p', { class: 'mut small', style: { margin: 0 } }, 'Mascot không bắt buộc — AI chỉ cho xuất hiện khi hợp nội dung (vd nhắc mẹo, chốt bài học). Cao khoảng 2/3 người, đứng cạnh nhân vật.'));
   };
   const addChar = (g, extra = {}) => { if (F.characters.length >= 8) return toast('Tối đa 8 nhân vật.', true); F.characters.push({ ...blankChar(g, F.characters.filter((c) => c.gender === g).length), ...extra }); drawChars(); };
   drawChars();
@@ -522,7 +525,7 @@ const formView = async (slug) => {
     lab('Link Google Drive và đường dẫn trên máy', null, h('div', { class: 'grid', style: { gap: '8px' } }, refBox,
       h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn sm', onclick: () => addRef('drive') }, '+ Link Google Drive'), h('button', { type: 'button', class: 'btn sm', onclick: () => addRef('local') }, '+ Đường dẫn trên máy')),
       driveHint, META.docker ? h('span', { class: 'mut small' }, 'Đang chạy trong Docker: chỉ đọc được thư mục đã gắn qua TU_LIEU_DIR trong file .env (mặc định thư mục Documents).') : null)),
-    h('div', { class: 'note small' }, 'Trước mỗi lần viết, xưởng đọc tư liệu (chữ, bảng, ảnh trong Word/PDF/PowerPoint), Claude chọn phần hợp với kịch bản. Ảnh trong tư liệu có thể đưa thẳng vào phim (cảnh ảnh tư liệu).'));
+    h('div', { class: 'note small' }, 'Trước mỗi lần viết, xưởng đọc tư liệu (chữ, bảng, ảnh trong Word/PDF/PowerPoint), AI chọn phần hợp với kịch bản. Ảnh trong tư liệu có thể đưa thẳng vào phim (cảnh ảnh tư liệu).'));
   const srcSeg = seg('sourceMode', Object.entries(SRC).map(([v, [t, sub]]) => [v, t, sub]));
   const syncSrc = () => (matBox.style.display = F.sourceMode === 'claude' ? 'none' : '');
   srcSeg.addEventListener('change', syncSrc); syncSrc();
@@ -658,7 +661,7 @@ const formView = async (slug) => {
         h('div', { class: 'fg' }, lab('Tên series *', null, sug('name', 'name', txt('name', 'vd: Người MISA cảnh giác'))), lab('Kênh', 'tuỳ chọn', sug('channel', 'channel', txt('channel', '@ten-kenh'))),
           lab('Ý tưởng / chủ đề *', 'càng cụ thể, kế hoạch càng sát', sug('idea', 'idea', area('idea', 'vd: Giúp nhân viên nhận diện các chiêu lừa đảo qua mạng phổ biến; mỗi tập một tình huống có thật, kết bằng 3 dấu hiệu nhận biết.', 4)), 'w2'),
           lab('Khán giả', null, sug('audience', 'audience', txt('audience', 'vd: nhân viên văn phòng 22–40 tuổi và người thân'))), lab('Nền tảng đăng', null, platBox))),
-      sec(2, 'Nguồn nội dung', 'Claude tự tìm, hay dựa trên tư liệu của bạn — để phim sát nhu cầu thật.',
+      sec(2, 'Nguồn nội dung', 'AI tự tìm, hay dựa trên tư liệu của bạn — để phim sát nhu cầu thật.',
         lab('Nội dung và hình ảnh lấy từ đâu', null, srcSeg), matBox),
       sec(3, 'Quy mô', 'Số tập và độ dài mỗi tập.',
         h('div', { class: 'fg' }, lab('Số tập', '1–30', txt('episodes', '', { type: 'number', min: 1, max: 30 })), lab('Thời lượng mỗi tập (giây)', '20–300, tối đa 5 phút', txt('duration', '', { type: 'number', min: 20, max: 300 })),
@@ -673,7 +676,7 @@ const formView = async (slug) => {
       sec(5, 'Nhân vật', 'Nên có cả nam và nữ; mỗi người một giọng đúng giới tính.', lab('Cách dùng nhân vật', null, modeSeg), charWrap),
       sec(6, 'Kết tập & ghi chú', 'Không bắt buộc.',
         lab('Lời kêu gọi cuối tập', null, sug('cta', 'cta', txt('cta', 'vd: Chia sẻ cho người thân cùng cảnh giác'))),
-        lab('Ghi chú thêm cho Claude', 'điều cần tránh, tình huống muốn có, số liệu có nguồn…', sug('notes', 'notes', area('notes', '', 3)))),
+        lab('Ghi chú thêm cho AI', 'điều cần tránh, tình huống muốn có, số liệu có nguồn…', sug('notes', 'notes', area('notes', '', 3)))),
       sec(7, 'Watermark', 'Chữ và/hoặc logo nằm cố định trên mọi tập — kéo trên khung xem trước để đặt vị trí.', wmBox),
       sec(8, 'Xuất phim lên Google Drive', 'Phim thành phẩm (MP4 + phụ đề) tự đẩy vào Drive của bạn.',
         h('div', { class: `note ${DRIVE.connected ? '' : 'warn'}`, style: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' } },
@@ -700,9 +703,104 @@ const driveRow = (e) => {
       : d?.link ? [h('span', { class: 'pill run' }, 'Bản trên Drive cũ hơn phim hiện tại'), push('Đẩy bản mới', 'pri'), h('a', { href: d.link, target: '_blank', rel: 'noopener' }, 'bản cũ')]
       : [h('span', { class: 'mut' }, 'chưa đẩy'), push('Đẩy lên Drive', 'pri')]);
 };
+// ───────── Thiết lập AI: công cụ (Claude Code / Codex) + model, effort cho từng vai trò
+const EFF_VI = { none: 'không suy nghĩ', minimal: 'tối thiểu', low: 'thấp', medium: 'vừa', high: 'cao', xhigh: 'rất cao', max: 'tối đa', ultra: 'ultra (tự chia việc)' };
+const aiCard = async () => {
+  const A = await api('GET', '/api/ai');
+  let C = structuredClone(A.config);
+  let CX = { list: [], error: '' }, cxLoading = false;
+  const box = h('div', { class: 'card grid' });
+  const loadCodex = async (refresh) => {
+    if (!A.status.codex.installed) return;
+    cxLoading = true; draw();
+    try { CX = await api('GET', `/api/ai/codex-models${refresh ? '?refresh=1' : ''}`); } catch (e) { CX = { list: [], error: e.message }; }
+    cxLoading = false; draw();
+    if (refresh) toast(CX.error ? CX.error : `Đã cập nhật: Codex có ${CX.list.length} model.`, !!CX.error);
+  };
+  const st = (eng) => {
+    const x = A.status[eng];
+    if (!x.installed) return h('span', { class: 'pill bad' }, 'chưa cài');
+    if (eng === 'codex' && !x.loggedIn) return h('span', { class: 'pill run' }, 'chưa đăng nhập');
+    return h('span', { class: 'pill ok' }, h('span', { class: 'dot' }), 'sẵn sàng');
+  };
+  const modelSel = (eng, r) => {
+    const cur = C[eng][r].model;
+    const list = eng === 'claude' ? A.claude.models : CX.list;
+    const def = eng === 'codex' ? CX.list.find((m) => m.isDefault) : null;
+    const known = list.some((m) => m.id === cur) || (eng === 'codex' && cur === '');
+    const opts = [
+      ...(eng === 'codex' ? [h('option', { value: '', selected: cur === '' }, `Mặc định của Codex${def ? ` (${def.label})` : ''}`)] : []),
+      ...list.map((m) => h('option', { value: m.id, selected: m.id === cur, title: m.description ?? '' }, m.label)),
+      ...(!known && cur ? [h('option', { value: cur, selected: true }, `${cur} (tự nhập)`)] : []),
+      h('option', { value: '__khac' }, 'Nhập tên model khác…'),
+    ];
+    return h('select', { onchange: (e) => {
+      let v = e.target.value;
+      if (v === '__khac') { v = prompt('Tên model (đúng như công cụ chấp nhận, vd claude-sonnet-5-5 hoặc gpt-5.6-sol):', cur) ?? cur; v = v.trim(); }
+      C[eng][r].model = v;
+      const efs = effortsOf(eng, v);
+      if (efs.length && !efs.includes(C[eng][r].effort)) C[eng][r].effort = efs.includes('medium') ? 'medium' : efs[0];
+      draw();
+    } }, opts);
+  };
+  const effortsOf = (eng, model) => {
+    if (eng === 'claude') return A.claude.efforts;
+    const m = CX.list.find((x) => x.id === model) ?? (model === '' ? CX.list.find((x) => x.isDefault) : null);
+    return m?.efforts?.length ? m.efforts : ['low', 'medium', 'high', 'xhigh', 'max'];
+  };
+  const effortSel = (eng, r) => {
+    const efs = effortsOf(eng, C[eng][r].model), cur = C[eng][r].effort;
+    return h('select', { onchange: (e) => (C[eng][r].effort = e.target.value) },
+      [...new Set([...efs, ...(cur && !efs.includes(cur) ? [cur] : [])])].map((v) => h('option', { value: v, selected: v === cur }, `${v} — ${EFF_VI[v] ?? v}`)));
+  };
+  const draw = () => {
+    const eng = C.engine;
+    box.replaceChildren(...[
+      h('h2', {}, 'AI viết kịch bản'),
+      h('p', { class: 'mut', style: { margin: 0 } }, 'Chọn công cụ AI làm các bước sáng tác (lập kế hoạch, viết, sửa tập, gợi ý) và model + mức suy nghĩ (effort) cho từng việc. Đọc giọng, vẽ nhân vật, dựng hình không dùng AI — chạy bằng code trên máy. Thiết lập lưu riêng cho máy này.'),
+      h('div', { class: 'seg' },
+        ...[['claude', 'Claude Code', 'lệnh claude'], ['codex', 'Codex', 'lệnh codex (OpenAI)']].map(([v, t, sub]) =>
+          h('button', { type: 'button', class: eng === v ? 'on' : '', onclick: () => { C.engine = v; draw(); if (v === 'codex' && !CX.list.length && !cxLoading) loadCodex(false); } },
+            h('span', { class: 'row', style: { gap: '8px' } }, t, st(v)), h('small', {}, sub)))),
+      eng === 'codex' && !A.status.codex.installed ? h('div', { class: 'note warn small' }, 'Máy chưa có Codex. Cài: ', h('code', {}, 'npm i -g @openai/codex'), ' rồi ', h('code', {}, 'codex login'), ', sau đó tải lại trang.') : null,
+      eng === 'codex' && A.status.codex.installed && !A.status.codex.loggedIn ? h('div', { class: 'note warn small' }, 'Codex chưa đăng nhập: mở Terminal, chạy ', h('code', {}, 'codex login'), ' rồi tải lại trang.') : null,
+      eng === 'claude' && !A.status.claude.installed ? h('div', { class: 'note warn small' }, 'Máy chưa có lệnh claude — cài Claude Code rồi đăng nhập (chạy claude, gõ /login).') : null,
+      h('div', { class: 'airow' }, h('span', { class: 'hdr' }, 'Việc'), h('span', { class: 'hdr' }, 'Model'), h('span', { class: 'hdr' }, 'Effort'),
+        ...Object.entries(A.roles).flatMap(([r, label]) => [h('span', {}, label), modelSel(eng, r), effortSel(eng, r)])),
+      eng === 'codex' ? h('p', { class: 'mut small', style: { margin: 0 } },
+        cxLoading ? 'Đang hỏi Codex danh sách model…' : CX.error ? `Không lấy được danh sách model: ${CX.error}` : `Danh sách model lấy thẳng từ Codex trên máy này (${CX.list.length} model) — có model mới thì bấm "Cập nhật danh sách". Không thấy model mới: cập nhật Codex (npm i -g @openai/codex@latest).`)
+        : h('p', { class: 'mut small', style: { margin: 0 } }, '"Opus / Sonnet / Haiku (bản mới nhất)" tự theo bản mới nhất khi Anthropic ra model mới; chọn tên có số (vd Opus 5.5) để giữ cố định. Effort cao hơn = viết kỹ hơn nhưng chậm và tốn lượt dùng hơn.'),
+      eng === 'codex' ? h('p', { class: 'mut small', style: { margin: 0 } }, 'Codex chạy trong hộp cát (chỉ ghi được trong thư mục xưởng). Codex không vẽ được storyboard trong hộp cát nên xưởng tự vẽ sau khi Codex viết xong, và gọi Codex sửa nếu chữ bị đè.') : null,
+      h('div', { class: 'row' },
+        h('button', { class: 'btn pri', onclick: async () => { try { C = (await api('PUT', '/api/ai', C)).config; A.config = structuredClone(C); toast(`Đã lưu: dùng ${C.engine === 'codex' ? 'Codex' : 'Claude Code'} cho các bước sáng tác.`); draw(); } catch (e) { toast(e.message, true); } } }, 'Lưu'),
+        h('button', { class: 'btn', onclick: () => { C[eng] = structuredClone(A.defaults[eng]); draw(); } }, 'Về mặc định'),
+        eng === 'codex' && A.status.codex.installed ? h('button', { class: 'btn', disabled: cxLoading, onclick: () => loadCodex(true) }, 'Cập nhật danh sách model') : null)].filter(Boolean));
+  };
+  draw();
+  if (C.engine === 'codex') loadCodex(false);
+  return box;
+};
+// ───────── Tự mở xưởng khi đăng nhập máy
+const autoCard = async () => {
+  let A = await api('GET', '/api/autostart');
+  const box = h('div', { class: 'card grid' });
+  const draw = () => box.replaceChildren(...[
+    h('div', { class: 'row' }, h('h2', {}, 'Tự mở Xưởng phim khi bật máy'), h('span', { class: 'sp' }), A.on ? h('span', { class: 'pill ok' }, h('span', { class: 'dot' }), 'đang bật') : h('span', { class: 'pill' }, 'đang tắt')),
+    h('p', { class: 'mut', style: { margin: 0 } }, 'Bật thì mỗi lần đăng nhập máy, xưởng tự chạy nền — chỉ cần mở ', h('code', {}, location.origin), ' (nên lưu dấu trang), không phải nhờ Claude/Codex hay chạy lệnh mở lại.'),
+    A.supported
+      ? h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: A.on, onchange: async (e) => {
+          try { A = await api('PUT', '/api/autostart', { on: e.target.checked }); toast(A.on ? 'Đã bật: xưởng tự chạy mỗi khi đăng nhập máy.' : A.stillRunning ? 'Đã tắt tự mở. Xưởng vẫn chạy tới lần khởi động lại máy.' : 'Đã tắt tự mở.'); } catch (err) { toast(err.message, true); e.target.checked = !e.target.checked; }
+          draw();
+        } }), 'Tự mở khi đăng nhập máy')
+      : h('div', { class: 'note small' }, A.why),
+    A.on ? h('p', { class: 'mut small', style: { margin: 0 } }, 'Nhật ký chạy nền: ', h('code', { class: 'path' }, A.log)) : null].filter(Boolean));
+  draw();
+  return box;
+};
 const settingsView = async () => {
   VIEW = 'settings'; CUR = null;
   const [D, S] = await Promise.all([api('GET', '/api/drive'), api('GET', '/api/settings')]);
+  const [aiBox, autoBox] = await Promise.all([aiCard(), autoCard()]);
   DRIVE = D;
   const dirBox = h('input', { type: 'text', value: S.outputDir, disabled: S.locked });
   const saveDir = async () => { try { const r = await api('PUT', '/api/settings', { outputDir: dirBox.value }); dirBox.value = r.outputDir; toast('Đã đổi thư mục xuất. Phim dựng từ giờ được chép vào đây; phim cũ: bấm "Dựng lại" hoặc chạy pnpm series export <series>.'); } catch (e) { toast(e.message, true); } };
@@ -735,8 +833,8 @@ const settingsView = async () => {
          h('div', { class: 'row' }, D.canRead ? null : h('button', { class: 'btn pri', onclick: () => driveConnect('#/settings', true) }, 'Cho phép đọc tư liệu trên Drive'), h('button', { class: 'btn', onclick: () => driveConnect('#/settings') }, 'Kết nối lại / đổi tài khoản'), h('button', { class: 'btn danger', onclick: async () => { DRIVE = await api('POST', '/api/drive/disconnect', {}); toast('Đã ngắt kết nối.'); settingsView(); } }, 'Ngắt kết nối'))]
       : [h('p', { class: 'mut', style: { margin: 0 } }, D.configured ? 'Bấm nút, đăng nhập Google và cho phép quyền Google Drive. Xong trình duyệt tự quay lại trang này.' : 'Làm bước 1 trước.'),
          h('div', { class: 'row' }, h('button', { class: 'btn pri', disabled: !D.configured, onclick: () => driveConnect('#/settings') }, 'Kết nối Google Drive'), h('button', { class: 'btn', disabled: !D.configured, onclick: () => driveConnect('#/settings', true) }, 'Kết nối + cho phép đọc tư liệu'))]);
-  app.replaceChildren(h('h1', {}, 'Thiết lập'), h('p', { class: 'lead' }, 'Nơi lưu phim trên máy và kết nối Google Drive (đẩy phim lên, lấy tư liệu về).'),
-    h('div', { class: 'grid', style: { maxWidth: '820px' } }, outCard, h('h2', { style: { margin: '10px 0 0' } }, 'Google Drive'), D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
+  app.replaceChildren(h('h1', {}, 'Thiết lập'), h('p', { class: 'lead' }, 'AI viết kịch bản, tự mở xưởng, nơi lưu phim trên máy và kết nối Google Drive.'),
+    h('div', { class: 'grid', style: { maxWidth: '820px' } }, aiBox, autoBox, outCard, h('h2', { style: { margin: '10px 0 0' } }, 'Google Drive'), D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
 };
 
 // thẻ "Nguồn nội dung" ở cột phải trang series
@@ -745,10 +843,10 @@ const matCard = (b, M) => {
   const P = M?.prepared;
   return h('div', { class: 'card grid', style: { gap: '8px' } }, h('div', { class: 'row' }, h('h3', {}, 'Nguồn nội dung'), h('span', { class: 'sp' }), h('a', { class: 'small', href: `#/s/${CUR.slug}/edit` }, 'Sửa')),
     h('div', {}, h('span', { class: `pill ${mode === 'claude' ? '' : 'info'}` }, SRC[mode]?.[0] ?? mode)),
-    mode === 'claude' ? h('p', { class: 'mut small', style: { margin: 0 } }, 'Claude tự tìm hiểu chủ đề; số liệu phải có nguồn.') : [
+    mode === 'claude' ? h('p', { class: 'mut small', style: { margin: 0 } }, 'AI tự tìm hiểu chủ đề; số liệu phải có nguồn.') : [
       h('div', { class: 'small' }, `${M.uploads.length} file đính kèm · ${(b.materials ?? []).filter((m) => m.type === 'drive').length} link Drive · ${(b.materials ?? []).filter((m) => m.type === 'local').length} đường dẫn trên máy`),
       M.uploads.length ? h('div', { class: 'mut small' }, M.uploads.map((f) => f.name).join(' · ')) : null,
-      P ? h('div', { class: 'small' }, `Lần đọc gần nhất: ${P.sources} nguồn, ${P.images} ảnh, ${P.chars.toLocaleString('vi-VN')} ký tự.`) : h('div', { class: 'mut small' }, 'Tư liệu được đọc mỗi khi bấm nút cho Claude viết.'),
+      P ? h('div', { class: 'small' }, `Lần đọc gần nhất: ${P.sources} nguồn, ${P.images} ảnh, ${P.chars.toLocaleString('vi-VN')} ký tự.`) : h('div', { class: 'mut small' }, 'Tư liệu được đọc mỗi khi bấm nút cho AI viết.'),
       P?.errors?.length ? h('div', { class: 'note warn small' }, h('b', {}, 'Không đọc được: '), P.errors.join(' · ')) : null,
       P?.notes?.length ? h('div', { class: 'note small' }, P.notes.join(' · ')) : null]);
 };
@@ -817,7 +915,7 @@ const openSeries = async (slug, keepScroll) => {
     const layout = e.issues == null ? null : e.issues.length ? h('div', { class: 'note warn' }, h('b', {}, `Bố cục còn ${e.issues.length} chỗ chồng lấn: `), e.issues.slice(0, 4).join(' · ')) : h('span', { class: 'pill ok' }, '✓ bố cục sạch');
     const links = h('div', { class: 'row small' }, e.script && h('a', { href: file(`${base}/script.md`), target: '_blank' }, 'Đọc kịch bản'), e.board.length ? h('a', { href: file(`${base}/storyboard/index.html`), target: '_blank' }, 'Storyboard đầy đủ') : null, layout);
     const fbKey = `${slug}:fix:${e.number}`;
-    const fb = fbBox(fbKey, state === 'phim' ? 'Góp ý cho phim: cảnh nào, câu nào cần sửa… Claude sửa rồi dựng lại.' : 'Góp ý cho kịch bản/storyboard: cảnh nào, câu nào cần sửa…');
+    const fb = fbBox(fbKey, state === 'phim' ? 'Góp ý cho phim: cảnh nào, câu nào cần sửa… AI sửa rồi dựng lại.' : 'Góp ý cho kịch bản/storyboard: cảnh nào, câu nào cần sửa…');
     const epCtx = () => ({ series: d.name, 'ý tưởng series': d.brief?.idea, tập: `${e.number}: ${e.title ?? ''}`, 'tóm tắt tập': e.logline, 'đang ở bước': state === 'phim' ? 'đã có phim' : 'kịch bản + storyboard' });
     const fix = h('details', { open: !!DRAFT.get(fbKey) }, h('summary', {}, 'Góp ý để sửa'), h('div', { class: 'grid', style: { gap: '10px' } }, sugFor('feedback', fb, (v) => DRAFT.set(fbKey, v), epCtx), h('div', { class: 'row' }, aiBtn('Sửa theo góp ý', slug, 'fix', e.number, () => fb.value, ''))));
     let body;
@@ -843,7 +941,7 @@ const openSeries = async (slug, keepScroll) => {
   const planFbW = sugFor(nPlan ? 'feedback' : 'notes', planFb, (v) => DRAFT.set(planKey, v), () => ({ series: d.name, 'ý tưởng series': d.brief?.idea, 'khán giả': d.brief?.audience, 'số tập': d.total, 'đang ở bước': nPlan ? 'góp ý cho kế hoạch đã có' : 'trước khi lập kế hoạch' }));
   const planCard = nPlan
     ? h('details', { class: 'card', open: !!DRAFT.get(planKey) }, h('summary', {}, 'Lập lại kế hoạch theo góp ý'), h('div', { class: 'grid', style: { gap: '10px' } }, h('p', { class: 'mut small', style: { margin: 0 } }, 'Tập đã duyệt hoặc đã có kịch bản được giữ nguyên, trừ khi góp ý yêu cầu đổi.'), planFbW, h('div', { class: 'row' }, aiBtn('Lập lại kế hoạch', slug, 'plan', null, () => planFb.value, ''))))
-    : h('div', { class: 'card grid' }, h('div', {}, h('h2', {}, 'Bước 1 — Lập kế hoạch từng tập'), h('p', { class: 'mut', style: { margin: '4px 0 0' } }, `Claude đọc đề bài và đề xuất ${d.total || ''} tập: tiêu đề, câu mở đầu, các ý chính, hình ảnh, lời kết. Bạn duyệt từng tập trước khi viết kịch bản.`)), planFbW, h('div', { class: 'row' }, aiBtn('Lập kế hoạch', slug, 'plan', null, () => planFb.value)));
+    : h('div', { class: 'card grid' }, h('div', {}, h('h2', {}, 'Bước 1 — Lập kế hoạch từng tập'), h('p', { class: 'mut', style: { margin: '4px 0 0' } }, `AI đọc đề bài và đề xuất ${d.total || ''} tập: tiêu đề, câu mở đầu, các ý chính, hình ảnh, lời kết. Bạn duyệt từng tập trước khi viết kịch bản.`)), planFbW, h('div', { class: 'row' }, aiBtn('Lập kế hoạch', slug, 'plan', null, () => planFb.value)));
 
   const b = d.brief;
   app.replaceChildren(
@@ -862,7 +960,7 @@ const openSeries = async (slug, keepScroll) => {
       h('div', { class: 'side' },
         h('div', { class: 'card', id: 'jobbox' }),
         h('div', { class: 'card', id: 'queuebox', style: { display: 'none' } }),
-        d.notes ? h('div', { class: 'card' }, h('h3', {}, 'Ghi chú của Claude'), h('div', { class: 'sum small', style: { marginTop: '8px' } }, d.notes)) : null,
+        d.notes ? h('div', { class: 'card' }, h('h3', {}, 'Ghi chú của AI'), h('div', { class: 'sum small', style: { marginTop: '8px' } }, d.notes)) : null,
         d.characters ? h('div', { class: 'card grid', style: { gap: '12px' } }, h('div', { class: 'row' }, h('h3', {}, 'Nhân vật'), h('span', { class: 'sp' }), h('button', { class: 'btn sm', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'characters') }, d.charactersPng ? 'Vẽ lại' : 'Vẽ bảng nhân vật')),
           d.charactersPng ? h('img', { class: 'chars', src: file('characters.png', d.charactersPng), alt: 'Bảng nhân vật', onclick: (ev) => zoom(ev.target.src) }) : h('p', { class: 'mut small', style: { margin: 0 } }, 'Chưa có bảng nhân vật.'),
           h('div', { class: 'small mut' }, d.bible.characters.map((c) => `${c.name} (${c.gender === 'nu' ? 'nữ' : 'nam'}${c.villain ? ', phản diện' : ''})`).join(' · '))) : null,

@@ -26,3 +26,5 @@ Bổ sung cho bộ MISA Backend standard (ưu tiên: bảo mật > chịu lỗi 
 22. **Hàng đợi**: chỉ `render` được xếp hàng; việc khác khi bận vẫn trả 409. Mọi việc kết thúc phải đi qua `finish()` để hàng đợi chạy tiếp — thêm loại việc mới đừng gọi thẳng `j.status = …` (bẫy 23).
 23. **Danh mục** trang phục / tóc / bối cảnh / mascot chỉ khai ở `shared/catalog.mjs` (máy chủ, `check`, trang web cùng đọc); thêm mục mới thì vẽ ở `Character.tsx` / `Sets.tsx` với đúng id đó.
 24. **Tài sản riêng của người dùng** (logo, ảnh mascot `series/*/assets/`, nhạc `series/*/nhac/`, tư liệu) không lên GitHub; nhạc người dùng đưa vào thì họ chịu trách nhiệm bản quyền — xưởng không tự tải nhạc ngoài.
+25. **AI**: không gọi thẳng `claude`/`codex` ở chỗ mới — lấy công cụ + model + effort qua `ai.pick(<vai trò>)` (`tools/web/ai.mjs`); quy tắc cho agent viết ở `CLAUDE.md` (Codex đọc qua `AGENTS.md`). Không nới hộp cát Codex (bẫy 24).
+26. **Video hướng dẫn** dùng ảnh chụp thật của trang (không vẽ lại giao diện); giao diện đổi thì chụp lại bằng `tools/huong-dan/chup.mjs`, không sửa tay toạ độ trong episode.json.

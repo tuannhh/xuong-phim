@@ -1,0 +1,719 @@
+{
+  "id": "ep01",
+  "number": 1,
+  "title": "Hướng dẫn nhanh Xưởng phim",
+  "logline": "Một vòng các tính năng: tạo series, nhân vật, nhạc nền, watermark, ba bước duyệt, thiết lập AI, tự mở khi bật máy.",
+  "target": 180,
+  "scenes": [
+    {
+      "id": "s01",
+      "type": "title",
+      "props": {
+        "title": "Xưởng phim",
+        "sub": "Hướng dẫn nhanh — từ một ý tưởng thành cả series phim ngắn"
+      },
+      "lines": [
+        "Chào bạn! Đây là Xưởng phim.",
+        "Bạn đưa ý tưởng, xưởng làm ra cả series phim ngắn cho mạng xã hội."
+      ]
+    },
+    {
+      "id": "s02",
+      "type": "steps",
+      "props": {
+        "heading": "Ba bước — bạn chỉ cần *duyệt*",
+        "steps": [
+          {
+            "title": "Kế hoạch từng tập",
+            "text": "AI đề xuất nội dung cả series",
+            "icon": "list-checks"
+          },
+          {
+            "title": "Kịch bản + storyboard",
+            "text": "xem trước từng cảnh, sửa tại chỗ",
+            "icon": "clapperboard"
+          },
+          {
+            "title": "Phim hoàn chỉnh",
+            "text": "giọng đọc, hình, nhạc, phụ đề",
+            "icon": "film"
+          }
+        ]
+      },
+      "lines": [
+        "Bạn chỉ cần duyệt ở ba bước:",
+        {
+          "text": "kế hoạch từng tập,",
+          "pause": 0.1
+        },
+        {
+          "text": "kịch bản kèm storyboard,",
+          "say": "kịch bản kèm bảng phân cảnh,",
+          "pause": 0.1
+        },
+        "và phim hoàn chỉnh. Phần viết do AI lo, đọc giọng và dựng hình do máy làm."
+      ]
+    },
+    {
+      "id": "s03",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/01-trang-chu.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "1",
+        "title": "Mở xưởng",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "list",
+            "label": "Các series của bạn",
+            "focus": [
+              0.0764,
+              0.2485,
+              0.8472,
+              0.2231
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "newBtn",
+            "click": true,
+            "label": "Tạo series mới",
+            "focus": [
+              0.8062,
+              0.0809,
+              0.1175,
+              0.0644
+            ],
+            "cursor": [
+              0.8649,
+              0.1163
+            ]
+          }
+        ]
+      },
+      "lines": [
+        "Mở trình duyệt, vào trang của xưởng: các series của bạn nằm ở đây.",
+        "Bấm Tạo series mới để bắt đầu."
+      ]
+    },
+    {
+      "id": "s04",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/02-y-tuong.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "2",
+        "title": "Đề bài",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "idea",
+            "label": "Tên + ý tưởng là đủ",
+            "focus": [
+              0.2521,
+              0.2919,
+              0.6569,
+              0.4767
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "sugBtn",
+            "click": true,
+            "focus": [
+              0.8488,
+              0.3207,
+              0.0602,
+              0.0615
+            ],
+            "cursor": [
+              0.8789,
+              0.3545
+            ]
+          },
+          {
+            "beat": 2,
+            "el": "chips",
+            "label": "Bấm một phương án để điền",
+            "focus": [
+              0.2521,
+              0.4426,
+              0.6569,
+              0.326
+            ]
+          }
+        ]
+      },
+      "lines": [
+        "Chỉ cần tên và ý tưởng, các mục khác đã có sẵn lựa chọn.",
+        "Bí ý tưởng? Bấm nút Gợi ý cạnh ô nhập.",
+        "AI đưa ba phương án, bấm một cái là điền xong."
+      ]
+    },
+    {
+      "id": "s05",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/03-nguon-quy-mo.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "2",
+        "title": "Nguồn nội dung & quy mô",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "source",
+            "label": "AI tự tìm · kết hợp · chỉ tư liệu của bạn",
+            "focus": [
+              0.2521,
+              0.1366,
+              0.6569,
+              0.1085
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "scale",
+            "label": "Mỗi tập tối đa 5 phút",
+            "focus": [
+              0.2521,
+              0.273,
+              0.6569,
+              0.1841
+            ]
+          }
+        ]
+      },
+      "lines": [
+        "Chọn nguồn nội dung: để AI tự tìm, kết hợp, hay chỉ dùng tư liệu Word, PDF của bạn.",
+        {
+          "text": "Đặt số tập, thời lượng tối đa năm phút một tập, khung dọc 9:16 hoặc ngang 16:9.",
+          "say": "Đặt số tập, thời lượng tối đa năm phút một tập, khung dọc chín trên mười sáu hoặc ngang mười sáu trên chín."
+        }
+      ]
+    },
+    {
+      "id": "s06",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/04-phong-cach.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "3",
+        "title": "Phong cách & bối cảnh",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "style",
+            "label": "Kiểu kể + bộ màu",
+            "focus": [
+              0.2521,
+              0.1082,
+              0.6569,
+              0.1589
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "sets",
+            "label": "9 bối cảnh: văn phòng, quán cà phê, ngân hàng…",
+            "focus": [
+              0.2521,
+              0.4558,
+              0.6569,
+              0.1464
+            ]
+          }
+        ]
+      },
+      "lines": [
+        "Chọn kiểu kể: phim tình huống, đồ hoạ thông tin hay kết hợp, cùng bộ màu cho cả series.",
+        "Chọn bối cảnh: văn phòng, ở nhà, quán cà phê, ngân hàng, phòng họp, công viên, cửa hàng, cả trụ sở công an."
+      ]
+    },
+    {
+      "id": "s07",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/05-nhac-nen.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "3",
+        "title": "Nhạc nền",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "musicSeg",
+            "click": true,
+            "label": "Tự sáng tác hoặc nhạc của bạn",
+            "focus": [
+              0.3596,
+              0.112,
+              0.1555,
+              0.087
+            ],
+            "cursor": [
+              0.4374,
+              0.1598
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "drop",
+            "label": "Tải file lên hoặc trỏ tới thư mục nhạc",
+            "focus": [
+              0.2521,
+              0.1878,
+              0.6569,
+              0.1087
+            ]
+          },
+          {
+            "beat": 2,
+            "el": "volume",
+            "label": "Âm lượng",
+            "focus": [
+              0.2521,
+              0.4535,
+              0.6569,
+              0.0743
+            ]
+          }
+        ]
+      },
+      "lines": [
+        "Nhạc nền: để xưởng tự sáng tác theo không khí phim, hoặc dùng nhạc của bạn.",
+        "Tải file nhạc lên, hoặc trỏ tới cả thư mục nhạc trên máy, mỗi tập lấy một bài.",
+        "Kéo thanh âm lượng; khi có lời đọc, nhạc tự nhỏ xuống."
+      ]
+    },
+    {
+      "id": "s08",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/06-nhan-vat.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "4",
+        "title": "Nhân vật",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "char1",
+            "label": "Trang phục · kiểu tóc · giọng đọc",
+            "focus": [
+              0.2521,
+              0.0959,
+              0.6569,
+              0.2257
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "mascotBtn",
+            "click": true,
+            "focus": [
+              0.5207,
+              0.7809,
+              0.0714,
+              0.0551
+            ],
+            "cursor": [
+              0.5564,
+              0.8112
+            ]
+          },
+          {
+            "beat": 2,
+            "el": "mascot",
+            "label": "Mascot — không bắt buộc",
+            "focus": [
+              0.2521,
+              0.5385,
+              0.6569,
+              0.2469
+            ]
+          }
+        ]
+      },
+      "lines": [
+        "Khai báo nhân vật nam, nữ: mười bốn kiểu trang phục, gần hai mươi kiểu tóc, mỗi người một giọng đọc.",
+        {
+          "text": "Thích thì bấm thêm Mascot:",
+          "say": "Thích thì bấm thêm linh vật:"
+        },
+        "khiên bảo vệ, rô bốt trợ lý, hoặc ảnh linh vật của riêng bạn."
+      ]
+    },
+    {
+      "id": "s09",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/07-watermark.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "5",
+        "title": "Watermark",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "stage",
+            "label": "Kéo chữ, kéo logo tới chỗ muốn đặt",
+            "focus": [
+              0.2521,
+              0.108,
+              0.1639,
+              0.4489
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "opacity",
+            "label": "Độ mờ riêng cho chữ và logo",
+            "focus": [
+              0.6597,
+              0.1982,
+              0.2493,
+              0.0743
+            ]
+          }
+        ]
+      },
+      "lines": [
+        {
+          "text": "Muốn gắn thương hiệu? Bật chữ hoặc logo watermark, kéo thả trên khung xem trước.",
+          "say": "Muốn gắn thương hiệu? Bật chữ hoặc lô gô in chìm, kéo thả trên khung xem trước."
+        },
+        {
+          "text": "Chỉnh độ mờ riêng cho chữ và logo, chọn logo MISA hay logo bạn tải lên.",
+          "say": "Chỉnh độ mờ riêng cho chữ và lô gô, chọn lô gô mi xa hay lô gô bạn tải lên."
+        }
+      ]
+    },
+    {
+      "id": "s10",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/08-ke-hoach.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "6",
+        "title": "Duyệt kế hoạch",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "progress",
+            "label": "Ba bước duyệt",
+            "focus": [
+              0.0764,
+              0.1698,
+              0.8472,
+              0.0969
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "ep",
+            "label": "Mở đầu, các ý chính, hình, lời kết",
+            "focus": [
+              0.0764,
+              0.269,
+              0.5556,
+              0.5257
+            ]
+          },
+          {
+            "beat": 2,
+            "el": "writeBtn",
+            "click": true,
+            "label": "Viết kịch bản + storyboard",
+            "focus": [
+              0.091,
+              0.7069,
+              0.1902,
+              0.0644
+            ],
+            "cursor": [
+              0.1861,
+              0.7423
+            ]
+          }
+        ]
+      },
+      "lines": [
+        "Tạo series xong, bấm Lập kế hoạch. Trang luôn cho biết bạn đang ở bước nào.",
+        "Mỗi tập có tóm tắt, câu mở đầu, các ý chính và lời kết.",
+        {
+          "text": "Ưng tập nào, bấm Viết kịch bản kèm storyboard cho tập đó.",
+          "say": "Ưng tập nào, bấm Viết kịch bản kèm bảng phân cảnh cho tập đó."
+        }
+      ]
+    },
+    {
+      "id": "s11",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/09-storyboard.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "6",
+        "title": "Duyệt storyboard",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "board",
+            "label": "Xem trước từng cảnh",
+            "focus": [
+              0.091,
+              0.1845,
+              0.5264,
+              0.2844
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "edit",
+            "label": "Sửa lời thoại · góp ý cho AI sửa",
+            "focus": [
+              0.091,
+              0.506,
+              0.5264,
+              0.0455
+            ]
+          },
+          {
+            "beat": 2,
+            "el": "approve",
+            "click": true,
+            "label": "Duyệt và dựng phim",
+            "focus": [
+              0.091,
+              0.5448,
+              0.1362,
+              0.0644
+            ],
+            "cursor": [
+              0.1591,
+              0.5803
+            ]
+          }
+        ]
+      },
+      "lines": [
+        {
+          "text": "Kịch bản xong có storyboard từng cảnh để xem trước.",
+          "say": "Kịch bản xong có bảng phân cảnh từng cảnh để xem trước."
+        },
+        "Sửa lời thoại ngay tại chỗ, hoặc ghi góp ý để AI sửa lại.",
+        "Ưng rồi thì bấm Duyệt và dựng phim."
+      ]
+    },
+    {
+      "id": "s12",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/10-phim-xong.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "7",
+        "title": "Phim thành phẩm",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "video",
+            "label": "Xem ngay trên trang",
+            "focus": [
+              0.091,
+              0.1845,
+              0.1736,
+              0.4765
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "files",
+            "label": "MP4 + phụ đề, chép sẵn vào thư mục phim",
+            "focus": [
+              0.2632,
+              0.1845,
+              0.3542,
+              0.0644
+            ]
+          },
+          {
+            "beat": 2,
+            "el": "drive",
+            "label": "Đẩy lên Google Drive",
+            "focus": [
+              0.2632,
+              0.377,
+              0.3542,
+              0.0886
+            ]
+          }
+        ]
+      },
+      "lines": [
+        "Vài phút sau phim đã sẵn trên trang, có giọng đọc, nhạc, tiếng động và phụ đề.",
+        "Tải MP4 và phụ đề, phim cũng được chép sẵn vào thư mục phim trên máy.",
+        "Bấm một nút để đẩy lên Google Drive. Nhiều tập đã duyệt thì xếp hàng, máy dựng lần lượt."
+      ]
+    },
+    {
+      "id": "s13",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/11-thiet-lap-ai.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "8",
+        "title": "Chọn AI viết kịch bản",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "engine",
+            "label": "Claude Code hoặc Codex",
+            "focus": [
+              0.091,
+              0.3461,
+              0.5542,
+              0.0919
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "roles",
+            "label": "Model + mức suy nghĩ cho từng việc",
+            "focus": [
+              0.091,
+              0.4336,
+              0.5542,
+              0.2571
+            ]
+          }
+        ]
+      },
+      "lines": [
+        {
+          "text": "Trong Thiết lập, chọn AI viết kịch bản: Claude hoặc Codex.",
+          "say": "Trong Thiết lập, chọn AI viết kịch bản: Clốt hoặc Cô đếch."
+        },
+        {
+          "text": "Mỗi việc chọn model và mức suy nghĩ riêng: lập kế hoạch dùng Opus, viết và sửa tập dùng Sonnet, gợi ý dùng Haiku.",
+          "say": "Mỗi việc chọn mô đen và mức suy nghĩ riêng: lập kế hoạch dùng Ô pớt, viết và sửa tập dùng Xon nét, gợi ý dùng Hai ku."
+        }
+      ]
+    },
+    {
+      "id": "s14",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/12-thiet-lap-codex.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "8",
+        "title": "Codex",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "codexModel",
+            "label": "Danh sách model lấy thẳng từ Codex",
+            "focus": [
+              0.2738,
+              0.464,
+              0.236,
+              0.0667
+            ]
+          },
+          {
+            "beat": 1,
+            "el": "refresh",
+            "click": true,
+            "label": "Có model mới: bấm cập nhật",
+            "focus": [
+              0.2295,
+              0.8113,
+              0.169,
+              0.0644
+            ],
+            "cursor": [
+              0.314,
+              0.8467
+            ]
+          }
+        ]
+      },
+      "lines": [
+        {
+          "text": "Chọn Codex thì danh sách model lấy thẳng từ Codex trên máy bạn.",
+          "say": "Chọn Cô đếch thì danh sách mô đen lấy thẳng từ Cô đếch trên máy bạn."
+        },
+        {
+          "text": "Có model mới, bấm Cập nhật danh sách là chọn được ngay.",
+          "say": "Có mô đen mới, bấm Cập nhật danh sách là chọn được ngay."
+        }
+      ]
+    },
+    {
+      "id": "s15",
+      "type": "custom",
+      "props": {
+        "component": "huong-dan/ScreenTour",
+        "src": "assets/13-tu-mo.jpg",
+        "w": 2880,
+        "h": 1800,
+        "kicker": "9",
+        "title": "Tự mở khi bật máy",
+        "steps": [
+          {
+            "beat": 0,
+            "el": "auto",
+            "click": true,
+            "label": "Bật một lần là xong",
+            "focus": [
+              0.091,
+              0.2303,
+              0.5542,
+              0.0467
+            ],
+            "cursor": [
+              0.1063,
+              0.2536
+            ],
+            "cursorAt": "left"
+          }
+        ]
+      },
+      "lines": [
+        "Bật Tự mở khi bật máy: lần sau chỉ cần mở trình duyệt vào trang xưởng, không phải chạy lệnh gì."
+      ]
+    },
+    {
+      "id": "s16",
+      "type": "outro",
+      "props": {
+        "cta": "Bắt đầu series đầu tiên của bạn!",
+        "logo": "misa",
+        "handle": false
+      },
+      "lines": [
+        "Vậy là xong một vòng. Bắt đầu series đầu tiên của bạn ngay hôm nay nhé!"
+      ]
+    }
+  ]
+}

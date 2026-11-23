@@ -15,6 +15,8 @@ import { WM_DEFAULT, cleanWatermark } from '../../shared/watermark.mjs';
 import { MUSIC_EXT, MUSIC_MAX, musicDir, musicTracks } from '../music-source.mjs';
 import { saveStream } from './upload.mjs';
 import { suggest } from './suggest.mjs';
+import * as ai from './ai.mjs';
+import * as autostart from '../autostart.mjs';
 import { VIENEU } from '../voices.mjs';
 import * as drive from './drive.mjs';
 import { checks as doctorChecks } from '../doctor.mjs';
@@ -26,7 +28,7 @@ const PORT = +(process.env.PORT ?? 4710);
 const SERIES = path.join(ROOT, 'series');
 const WEB = path.join(ROOT, 'web');
 const SLUG = /^[a-z0-9][a-z0-9-]{0,58}$/;
-const CLAUDE = process.env.STUDIO_CLAUDE_BIN || spawnSync('which', ['claude'], { encoding: 'utf8' }).stdout.trim() || null;
+const CLAUDE = ai.BIN.claude;
 
 // ───────── tiện ích
 const slugify = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48) || 'series';
@@ -229,10 +231,24 @@ const childEnv = (claude) => {
   return env;
 };
 // chạy một tiến trình con trong việc j, đẩy log lên trang; xong mã 0 → resolve, còn lại → reject
-const runChild = (j, cmd, args, { claude = false } = {}) => new Promise((ok, no) => {
+const runChild = (j, cmd, args, { claude = false, codex = false } = {}) => new Promise((ok, no) => {
   if (j.status !== 'running') return no(new Error(''));
-  const child = (j.child = spawn(cmd, args, { cwd: ROOT, env: childEnv(claude), stdio: ['ignore', 'pipe', 'pipe'] }));
-  if (claude)
+  const child = (j.child = spawn(cmd, args, { cwd: ROOT, env: childEnv(claude || codex), stdio: ['ignore', 'pipe', 'pipe'] }));
+  if (codex)
+    pipeLines(child.stdout, (line) => {
+      let m;
+      try { m = JSON.parse(line); } catch { return line.trim() && logLine(j, line); }
+      const r = ai.codexLine(m, ROOT);
+      if (!r) return;
+      if (r.text) logLine(j, r.text);
+      if (r.message) j.summary = r.message;
+      if (r.failed) {
+        j.failed = true;
+        if (/auth|log ?in|401|unauthori/i.test(r.failed)) j.hint = 'Lệnh codex trên máy này chưa đăng nhập. Mở Terminal, chạy "codex login", đăng nhập rồi bấm lại nút — hoặc đổi sang Claude ở trang Thiết lập.';
+        else if (/model/i.test(r.failed)) j.hint = 'Model Codex đang chọn không dùng được với tài khoản / phiên bản Codex này. Vào Thiết lập → AI, bấm "Cập nhật danh sách" rồi chọn model khác.';
+      }
+    });
+  else if (claude)
     pipeLines(child.stdout, (line) => {
       let m;
       try { m = JSON.parse(line); } catch { return logLine(j, line); }
@@ -262,12 +278,12 @@ const runChild = (j, cmd, args, { claude = false } = {}) => new Promise((ok, no)
   });
 });
 // việc một tiến trình (dựng phim, vẽ nhân vật…) + bước nối tiếp tuỳ chọn (vd tự đẩy lên Drive sau khi dựng)
-export const startJob = (meta, cmd, args, { claude = false, after = null, before = null } = {}) =>
+export const startJob = (meta, cmd, args, { claude = false, codex = false, after = null, before = null, who = '' } = {}) =>
   startTask(meta, async (j) => {
     const extra = before ? await before(j) : null;
-    await runChild(j, cmd, typeof args === 'function' ? args(extra) : args, { claude });
+    await runChild(j, cmd, typeof args === 'function' ? args(extra) : args, { claude, codex });
     if (after && j.status === 'running') await after(j);
-  }, `▶ ${LABEL[meta.action] ?? meta.action}${meta.episode ? ` · tập ${meta.episode}` : ''}${claude ? ' — Claude đang làm (thường mất vài phút)…' : '…'}`);
+  }, `▶ ${LABEL[meta.action] ?? meta.action}${meta.episode ? ` · tập ${meta.episode}` : ''}${claude || codex ? ` — ${who || (codex ? 'Codex' : 'Claude')} đang làm (thường mất vài phút)…` : '…'}`);
 // đẩy một tập lên Drive (dùng cho nút "Đẩy lên Drive" và cho việc tự đẩy sau khi dựng)
 const uploadStep = (slug, n) => async (j) => {
   const dir = seriesDir(slug), id = epId(n), ed = path.join(dir, 'episodes', id);
@@ -290,11 +306,38 @@ const autoUpload = (slug, n) => {
 };
 export const jobView = (j, from = 0) => j && { id: j.id, action: j.action, label: j.label, slug: j.slug, episode: j.episode ?? null, status: j.status, started: j.started, ended: j.ended, summary: j.summary, hint: j.hint, total: j.log.length, log: j.log.slice(from) };
 // sourceMode "tu-lieu" (chỉ tư liệu người dùng) → không cho tìm trên mạng; addDirs = thư mục tư liệu trên máy để Claude xem file gốc
-const claudeArgs = (prompt, { sourceMode = 'claude', addDirs = [] } = {}) => ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--permission-mode', 'acceptEdits',
-  '--allowedTools', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Skill', 'Bash(pnpm ep:*)', 'Bash(pnpm series:*)', 'Bash(pnpm typecheck)', 'Bash(node tools/:*)', 'Bash(uv run tools/:*)', 'Bash(ffmpeg:*)', 'Bash(ffprobe:*)', 'Bash(ls:*)', 'Bash(cat:*)', 'Bash(mkdir:*)', 'Bash(cp:*)',
-  ...(sourceMode === 'tu-lieu' ? [] : ['WebSearch', 'WebFetch']),
-  ...addDirs.flatMap((d) => ['--add-dir', d]),
-  ...(process.env.STUDIO_CLAUDE_MODEL ? ['--model', process.env.STUDIO_CLAUDE_MODEL] : [])];
+const claudeArgs = ai.claudeArgs;
+// Codex không mở được Chrome trong hộp cát → sau khi Codex viết/sửa xong, máy chủ chạy check → script → storyboard;
+// storyboard còn chồng lấn (hoặc check lỗi) thì gọi Codex sửa tiếp, tối đa 2 lần. fix + tập đã có MP4 → dựng lại.
+const tail = (j, from) => j.log.slice(from).map((l) => l.t ?? l).filter((x) => typeof x === 'string').slice(-25).join('\n');
+const codexFollowUp = (slug, n, action, pk, sourceMode, hadMp4) => async (j) => {
+  const ed = path.join('series', slug, 'episodes', epId(n));
+  if (!fs.existsSync(path.join(ROOT, ed, 'episode.json'))) throw new Error('Codex chưa viết episode.json cho tập này.');
+  logLine(j, '— Máy chủ kiểm tra kịch bản + vẽ storyboard —');
+  for (let round = 0; ; round++) {
+    let problem = '';
+    const from = j.log.length;
+    try {
+      await runChild(j, process.execPath, ['tools/ep.mjs', ed, 'check']);
+      await runChild(j, process.execPath, ['tools/ep.mjs', ed, 'script']);
+      await runChild(j, process.execPath, ['tools/ep.mjs', ed, 'storyboard']);
+      const lay = readJSON(path.join(ROOT, ed, 'storyboard', 'layout.json'), {});
+      const bad = Object.entries(lay).filter(([, v]) => v?.length);
+      if (bad.length) problem = `Storyboard báo bố cục chưa đạt (chữ đè chữ / đè nhân vật / tràn khung):\n${bad.flatMap(([k, v]) => v.map((x) => `- cảnh ${k}: ${x}`)).join('\n')}`;
+    } catch (e) {
+      if (j.status !== 'running') throw e;
+      j.failed = false;
+      problem = `Lệnh kiểm tra báo lỗi:\n${tail(j, from)}`;
+    }
+    if (!problem) break;
+    if (round >= 2) { logLine(j, '! Đã nhờ Codex sửa 2 lần mà storyboard vẫn chưa sạch — xem ảnh storyboard và góp ý để sửa tiếp.'); if (/Lệnh kiểm tra báo lỗi/.test(problem)) throw new Error('Kịch bản vẫn chưa qua bước kiểm tra.'); break; }
+    logLine(j, `— Gọi Codex sửa (lần ${round + 1}) —`);
+    const prompt = `Làm theo skill "series" (skill/SKILL.md), mục "Chế độ form". Series: ${slug}. Tập: ${n}. ${problem}\nSửa series/${slug}/episodes/${epId(n)}/episode.json cho hết lỗi trên (giữ nội dung, chỉ chỉnh chữ/bố cục/nhân vật cần thiết), chạy lại \`node tools/ep.mjs ${ed} check\` và \`script\` cho sạch rồi dừng.${ai.CODEX_NOTE}`;
+    await runChild(j, pk.bin, ai.codexArgs(prompt, ROOT, { sourceMode, model: pk.model, effort: pk.effort }), { codex: true });
+  }
+  if (action === 'fix' && hadMp4) { logLine(j, '— Dựng lại phim (giọng chỉ đọc lại câu đã đổi) —'); await runChild(j, process.execPath, ['tools/ep.mjs', ed, 'all']); }
+  j.summary ||= 'Codex đã viết xong; storyboard đã vẽ.';
+};
 export const promptFor = (action, slug, episode, hasFeedback, extra = '') =>
   `Làm theo skill "series" (đọc skill/SKILL.md trong thư mục này), mục "Chế độ form". Giai đoạn: ${action}. Series: ${slug}.${episode ? ` Tập: ${episode}.` : ''}${hasFeedback ? ` Có góp ý của người dùng ở series/${slug}/.studio/gop-y.md — đọc và làm theo.` : ''}${extra} Không có ai trả lời câu hỏi trong lúc chạy: tự quyết theo mặc định của skill, làm xong đúng giai đoạn này thì dừng.`;
 
@@ -358,7 +401,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && p === '/api/series') return send(res, 200, listSeries());
     if (req.method === 'POST' && p === '/api/suggest') {
       const b = await readBody(req);
-      try { return send(res, 200, { items: await suggest(CLAUDE, childEnv(true), String(b.field ?? ''), b.context ?? {}) }); }
+      try { return send(res, 200, { items: await suggest(ai.pick('suggest'), childEnv(true), String(b.field ?? ''), b.context ?? {}) }); }
       catch (e) { return fail(res, e.code ?? 500, e.message); }
     }
     if (req.method === 'GET' && p === '/api/job') return send(res, 200, { job: jobView(job, +(url.searchParams.get('from') ?? 0)), queue: queue.view(queueTitle) });
@@ -384,6 +427,17 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === '/api/doctor' && req.method === 'GET') return send(res, 200, doctorChecks());
     if (p === '/api/brand/misa-logo.svg' && req.method === 'GET') return serveFile(req, res, path.join(ROOT, 'assets/brand/misa-logo.svg'));
+    // Thiết lập AI: công cụ + model/effort từng vai trò (lưu theo máy, ngoài repo)
+    if (p === '/api/ai') {
+      if (req.method === 'PUT') return send(res, 200, { config: ai.save(await readBody(req)) });
+      return send(res, 200, { config: ai.load(), defaults: ai.DEFAULTS, roles: ai.ROLES, status: ai.status(), claude: { models: ai.CLAUDE_MODELS, efforts: ai.CLAUDE_EFFORTS } });
+    }
+    if (req.method === 'GET' && p === '/api/ai/codex-models') return send(res, 200, await ai.codexModels({ refresh: url.searchParams.get('refresh') === '1' }));
+    // tự mở xưởng khi đăng nhập máy
+    if (p === '/api/autostart') {
+      if (req.method === 'PUT') { const b = await readBody(req); return send(res, 200, b.on ? autostart.enable() : autostart.disable()); }
+      return send(res, 200, autostart.status());
+    }
     if (p === '/api/settings') {
       const view = () => ({ outputDir: output.displayPath(output.outputDir()), defaultOutputDir: output.defaultOutputDir(), locked: output.outputLocked(), canOpen: !process.env.XUONG_DOCKER && ['darwin', 'linux'].includes(process.platform), docker: !!process.env.XUONG_DOCKER });
       if (req.method === 'GET') return send(res, 200, view());
@@ -489,7 +543,8 @@ const server = http.createServer(async (req, res) => {
         const fb = String(b.feedback ?? '').trim();
         if (['script', 'fix', 'render', 'upload', 'storyboard'].includes(b.action) && !(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
         if (['plan', 'script', 'fix'].includes(b.action)) {
-          if (!CLAUDE) return fail(res, 400, 'Máy chưa có lệnh `claude` — dán câu lệnh thay thế vào Claude Code.');
+          const pk = ai.pick(b.action);
+          if (!pk.bin) return fail(res, 400, pk.engine === 'codex' ? 'Máy chưa có lệnh `codex` — cài Codex (npm i -g @openai/codex, rồi codex login) hoặc đổi sang Claude ở Thiết lập.' : 'Máy chưa có lệnh `claude` — dán câu lệnh thay thế vào Claude Code, hoặc đổi sang Codex ở Thiết lập.');
           if (b.action === 'fix' && !fb) return fail(res, 400, 'Cần ghi góp ý.');
           fs.mkdirSync(path.join(dir, '.studio'), { recursive: true });
           const fbFile = path.join(dir, '.studio/gop-y.md');
@@ -497,8 +552,18 @@ const server = http.createServer(async (req, res) => {
           const brief = readJSON(path.join(dir, 'brief.json'), {});
           // chế độ có tư liệu → gom + đọc tư liệu trước, rồi mới gọi Claude
           const before = mat.needsMaterials(brief) ? async (j) => { logLine(j, '— Chuẩn bị tư liệu —'); return mat.prepare(dir, brief, { log: (x) => logLine(j, x), run: (c, a) => runChild(j, c, a), signal: j.abort.signal }); } : null;
-          const args = (prepared) => claudeArgs(promptFor(b.action, slug, n, !!fb, mat.promptPart(slug, brief, prepared)), { sourceMode: brief.sourceMode, addDirs: prepared?.localDirs ?? [] });
-          const j = startJob({ action: b.action, slug, episode: n }, CLAUDE, args, { claude: true, before, after: b.action === 'fix' ? autoUpload(slug, n) : null });
+          const who = `${pk.engine === 'codex' ? 'Codex' : 'Claude'}${pk.model ? ` ${pk.model}` : ''}${pk.effort ? ` · ${pk.effort}` : ''}`;
+          const up = b.action === 'fix' ? autoUpload(slug, n) : null;
+          let j;
+          if (pk.engine === 'codex') {
+            const hadMp4 = n ? fs.existsSync(path.join(dir, 'episodes', epId(n), 'out', `${epId(n)}.mp4`)) : false;
+            const args = (prepared) => ai.codexArgs(promptFor(b.action, slug, n, !!fb, mat.promptPart(slug, brief, prepared)) + ai.CODEX_NOTE, ROOT, { sourceMode: brief.sourceMode, model: pk.model, effort: pk.effort });
+            const follow = b.action === 'plan' ? null : codexFollowUp(slug, n, b.action, pk, brief.sourceMode, hadMp4);
+            j = startJob({ action: b.action, slug, episode: n }, pk.bin, args, { codex: true, who, before, after: follow || up ? async (jj) => { if (follow) await follow(jj); if (up && jj.status === 'running') await up(jj); } : null });
+          } else {
+            const args = (prepared) => claudeArgs(promptFor(b.action, slug, n, !!fb, mat.promptPart(slug, brief, prepared)), { sourceMode: brief.sourceMode, addDirs: prepared?.localDirs ?? [], model: pk.model, effort: pk.effort });
+            j = startJob({ action: b.action, slug, episode: n }, pk.bin, args, { claude: true, who, before, after: up });
+          }
           return send(res, 200, { job: jobView(j) });
         }
         if (b.action === 'render') {
@@ -533,6 +598,21 @@ const server = http.createServer(async (req, res) => {
     fail(res, e.code === 400 ? 400 : 500, e.message);
   }
 });
-if (import.meta.url === `file://${process.argv[1]}`)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  // cổng đã có Xưởng phim khác chạy (vd bản tự mở khi bật máy) → thoát êm, mã 0 (launchd/systemd không chạy lại vòng lặp)
   // HOST=0.0.0.0 chỉ dùng trong Docker (cổng được publish ra 127.0.0.1 của máy thật); chạy thẳng trên máy luôn là 127.0.0.1
-  server.listen(PORT, process.env.XUONG_DOCKER ? process.env.HOST || '0.0.0.0' : '127.0.0.1', () => console.log(`Xưởng phim: http://localhost:${PORT}${CLAUDE ? '' : '  (chưa thấy lệnh claude — các bước sáng tác phải dán lệnh vào Claude Code)'}`));
+  const listen = () => server.listen(PORT, process.env.XUONG_DOCKER ? process.env.HOST || '0.0.0.0' : '127.0.0.1', () => console.log(`Xưởng phim: http://localhost:${PORT}${CLAUDE ? '' : '  (chưa thấy lệnh claude — các bước sáng tác phải dán lệnh vào Claude Code)'}`));
+  let waiting = false;
+  server.on('error', (e) => {
+    if (e.code !== 'EADDRINUSE') throw e;
+    // bản tự mở khi bật máy: đứng chờ, bản kia tắt thì tự nhận cổng (không để trang chết khi bản chạy tay đóng lại)
+    if (process.env.XUONG_AUTOSTART) {
+      if (!waiting) console.log(`Cổng ${PORT} đang có Xưởng phim khác — chờ cổng trống để tự nhận…`);
+      waiting = true;
+      return void setTimeout(listen, 10000);
+    }
+    console.log(`Cổng ${PORT} đã có Xưởng phim đang chạy — mở http://localhost:${PORT}. (Muốn chạy bản này: tắt bản kia trước.)`);
+    process.exit(0);
+  });
+  listen();
+}

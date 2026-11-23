@@ -34,6 +34,8 @@ export function revealItems(scene) {
       const n = (p.left?.items?.length || 0) + (p.right?.items?.length || 0) + 2;
       return { items: Array.from({ length: n }, () => ({})), sfx: 'tick' };
     }
+    // cảnh tự viết có danh sách bước (vd huong-dan/ScreenTour): tiếng click khi bấm, whoosh khi máy quay chuyển vùng
+    case 'custom': return Array.isArray(p.steps) && p.steps.length > 1 ? { items: p.steps, sfx: (it) => (it.click ? 'click' : 'whoosh-soft') } : null;
     default: return null;
   }
 }

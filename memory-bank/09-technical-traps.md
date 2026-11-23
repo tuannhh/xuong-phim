@@ -85,3 +85,12 @@ Outro cũ tự ghi tiền tố "Tập sau:" trong khi Claude cũng viết "Tập
 
 ## 23. Hàng đợi và khởi động lại / nút Dừng
 Hàng đợi nằm trong máy chủ + `queue.json`. Khởi động lại khi đang dựng → tập dở quay lại đầu hàng và hàng TẠM DỪNG (cố ý). Nút Dừng cũng tạm dừng cả hàng — nếu không, dừng một tập lại tự nhảy sang tập kế, người dùng tưởng nút hỏng. `replaceChildren` với phần tử `null` in ra chữ "null" → luôn `.filter(Boolean)`.
+
+## 24. Codex không vẽ được storyboard
+`codex exec` chạy trong hộp cát macOS (seatbelt): Chrome headless chết ngay (`bootstrap_check_in … Permission denied`), Remotion bundler không mở được cổng (`listen EPERM`). Đừng chuyển Codex sang `danger-full-access` để chữa — máy chủ tự vẽ storyboard sau khi Codex xong (`codexFollowUp`) và đưa lỗi bố cục lại cho Codex.
+
+## 25. "9:16" bị đọc thành "chín giờ mười sáu phút"
+Luật giờ trong `normalize.mjs` bắt cả tỉ lệ khung hình. Luật `ratio` (đứng trước luật giờ) đọc "khung / tỉ lệ / định dạng / khổ 9:16 hoặc 16:9" → "chín trên mười sáu…"; giờ thật ("lúc 9:16") vẫn đọc là giờ.
+
+## 26. Chụp màn hình bị lệch vùng zoom
+Trang có `scroll-behavior: smooth` → đo vị trí ngay sau `scrollTo` là đo giữa lúc đang cuộn. `tools/huong-dan/chup.mjs` ép cuộn tức thì (`behavior: 'instant'`) và ẩn `#jobpill`; email (tài khoản Drive) bị thay bằng `tai-khoan@…` trước khi chụp.

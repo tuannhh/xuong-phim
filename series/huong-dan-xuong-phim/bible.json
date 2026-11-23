@@ -1,0 +1,38 @@
+{
+ "name": "Hướng dẫn Xưởng phim",
+ "slug": "huong-dan-xuong-phim",
+ "episodes": 1,
+ "format": "16:9",
+ "fps": 30,
+ "engine": "remotion",
+ "theme": {
+  "preset": "misa-sang"
+ },
+ "captions": "pill",
+ "voice": "Hải Đăng",
+ "narrator": null,
+ "characterMode": "khong",
+ "characters": [],
+ "music": {
+  "mood": "inspire",
+  "volume": 0.09
+ },
+ "sfx": {
+  "auto": true,
+  "volume": 0.55
+ },
+ "transition": {
+  "type": "fade",
+  "frames": 10
+ },
+ "chrome": {
+  "handle": false,
+  "progress": false,
+  "tag": false
+ },
+ "pronounce": {
+  "PDF": "pê đê ép",
+  "MP4": "em pê bốn",
+  "Word": "Uốt"
+ }
+}

@@ -11,7 +11,7 @@ import { ROOT, readJSON } from '../lib.mjs';
 import * as drive from './drive.mjs';
 import { saveStream } from './upload.mjs';
 
-export const MODES = { claude: 'Claude tự tìm và viết', 'ket-hop': 'Kết hợp tư liệu của tôi + Claude tìm thêm', 'tu-lieu': 'Chỉ dùng tư liệu của tôi' };
+export const MODES = { claude: 'AI tự tìm và viết', 'ket-hop': 'Kết hợp tư liệu của tôi + AI tìm thêm', 'tu-lieu': 'Chỉ dùng tư liệu của tôi' };
 export const UPLOAD_EXT = /\.(pdf|docx?|pptx|xlsx|csv|txt|md|jpe?g|png|webp|gif|bmp)$/i;
 export const UPLOAD_MAX = 300 * 1024 * 1024;
 
@@ -77,7 +77,7 @@ export async function prepare(dir, brief, { log, run, signal }) {
   }
   if (!inputs.length) {
     if (brief.sourceMode === 'tu-lieu') throw new Error('Series chọn "Chỉ dùng tư liệu của tôi" nhưng chưa lấy được tư liệu nào — thêm file, đường dẫn hoặc link Drive trong đề bài.');
-    log('! Chưa có tư liệu nào — Claude tự tìm nội dung.');
+    log('! Chưa có tư liệu nào — AI tự tìm nội dung.');
     return { count: 0, localDirs };
   }
   log('Đọc tư liệu (văn bản + ảnh)…');
@@ -89,7 +89,7 @@ export async function prepare(dir, brief, { log, run, signal }) {
 // Đoạn câu lệnh thêm cho Claude theo chế độ nguồn
 export function promptPart(slug, brief, prepared) {
   const mode = brief?.sourceMode ?? 'claude';
-  if (mode === 'claude' || !prepared?.count) return mode === 'claude' ? ' Nguồn nội dung: Claude tự tìm (WebSearch/WebFetch khi cần số liệu; ghi nguồn).' : '';
+  if (mode === 'claude' || !prepared?.count) return mode === 'claude' ? ' Nguồn nội dung: tự tìm trên mạng khi cần số liệu (ghi nguồn).' : '';
   const idx = `series/${slug}/.studio/tu-lieu/index.md`;
   return mode === 'tu-lieu'
     ? ` Nguồn nội dung: CHỈ dùng tư liệu người dùng — đọc ${idx} trước (mục "Tư liệu" của skill). Không thêm sự kiện, số liệu, trích dẫn nào ngoài tư liệu.`

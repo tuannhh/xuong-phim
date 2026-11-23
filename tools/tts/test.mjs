@@ -24,6 +24,10 @@ const extra = [
   ['Tên miền như misavpn, misasme, misavnp', 'Tên miền như mi xa vi pi en, mi xa ét em i, mi xa vi en pi'],
   ['Tin chính thức xem ở fanpage MISAJSC.', 'Tin chính thức xem ở fanpage mi xa giây ét xi.'],
   ['bắt tải file APK hoặc IPA', 'bắt tải file ây pi kây hoặc ai pi ây'],
+  // tỉ lệ khung hình không đọc thành giờ (video hướng dẫn 2026-11-23)
+  ['Khung hình 9:16 hoặc 16:9', 'Khung hình chín trên mười sáu hoặc mười sáu trên chín'],
+  ['tỉ lệ 1:1 cho Facebook', 'tỉ lệ một trên một cho Facebook'],
+  ['Họp lúc 9:16 nhé', 'Họp lúc chín giờ mười sáu phút nhé'],
 ];
 let ok = 0, bad = 0;
 const check = (src, want, engine = 'gemini') => {
