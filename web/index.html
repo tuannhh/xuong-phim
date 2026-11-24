@@ -324,9 +324,9 @@ const poll = async () => {
   pollT = setTimeout(poll, busy() ? 1000 : 4000);
 };
 const syncButtons = () => document.querySelectorAll('[data-job]').forEach((b) => (b.disabled = busy()));
-const runJob = async (slug, action, episode, feedback) => {
+const runJob = async (slug, action, episode, feedback, extra = {}) => {
   try {
-    const r = await api('POST', `/api/series/${slug}/jobs`, { action, episode, feedback });
+    const r = await api('POST', `/api/series/${slug}/jobs`, { action, episode, feedback, ...extra });
     if (r.queued) { QUEUE = r.queue; queuePanel(); toast(`Máy đang bận — đã xếp tập ${episode} vào hàng đợi (thứ ${r.queued}). Xong việc đang chạy sẽ tự dựng.`); if (CUR && VIEW === 'series') openSeries(CUR.slug, true); return; }
     const { job } = r;
     JOB = job; LOG = job.log.slice();
@@ -364,6 +364,136 @@ const batchCard = (slug, eps) => {
       h('input', { type: 'checkbox', checked: pick.has(e.number), onchange: (ev) => { ev.target.checked ? pick.add(e.number) : pick.delete(e.number); label(); } }),
       h('span', {}, `Tập ${e.number}: ${e.title || ''}`), h('span', { class: 'mut small' }, e.mp4 ? ' — dựng lại (kịch bản đã sửa)' : ' — chưa có phim')))),
     h('div', { class: 'row' }, btn));
+};
+
+// ───────── nút chọn một (dùng ngoài form đề bài): opts [[giá trị, tên, mô tả]]
+const segPick = (S, key, opts, on) => {
+  const box = h('div', { class: 'seg' });
+  const draw = () => box.replaceChildren(...opts.map(([v, t, sub]) => h('button', { type: 'button', class: S[key] === v ? 'on' : '', onclick: () => { S[key] = v; draw(); on?.(); } }, t, sub ? h('small', {}, sub) : null)));
+  draw();
+  return box;
+};
+// ô tư liệu gọn (file tải lên + link Drive / đường dẫn trên máy) — dùng cho đợt thêm tập. S = { materials[] }, files = { server[], queued[] }
+// file chọn khi chưa có đợt được giữ lại (queued) và tải lên lúc bấm lập kế hoạch; getSub() = id đợt đã có (để bỏ file trên máy chủ)
+const matWidget = (S, files, slug, getSub) => {
+  const list = h('div', { class: 'grid', style: { gap: '6px' } });
+  const draw = () => list.replaceChildren(
+    ...files.server.map((f) => h('div', { class: 'frow' }, h('span', { class: 'nm', title: f.name }, f.name), h('span', { class: 'mut small' }, fmtSize(f.size)),
+      h('button', { type: 'button', class: 'btn sm danger', onclick: async () => { if (!confirm(`Bỏ file "${f.name}"?`)) return; try { files.server = (await api('DELETE', `/api/series/${slug}/upload?name=${encodeURIComponent(f.name)}&batch=${getSub()}`)).uploads; draw(); } catch (e) { toast(e.message, true); } } }, 'Bỏ'))),
+    ...files.queued.map((f, i) => h('div', { class: 'frow' }, h('span', { class: 'nm', title: f.name }, f.name), h('span', { class: 'mut small' }, `${fmtSize(f.size)} · tải lên khi lập kế hoạch`), h('button', { type: 'button', class: 'btn sm danger', onclick: () => { files.queued.splice(i, 1); draw(); } }, 'Bỏ'))));
+  const add = (fl) => { for (const f of fl) { if (!OK_EXT.test(f.name)) { toast(`Chưa đọc được loại file này: ${f.name}`, true); continue; } if (f.size > 300e6) { toast(`File quá 300 MB: ${f.name}`, true); continue; } files.queued.push(f); } draw(); };
+  const picker = h('input', { type: 'file', multiple: true, accept: ACCEPT, style: { display: 'none' }, onchange: (e) => { add([...e.target.files]); e.target.value = ''; } });
+  const drop = h('div', { class: 'drop', role: 'button', tabindex: '0', onclick: () => picker.click(), onkeydown: (e) => (e.key === 'Enter' || e.key === ' ') && picker.click(),
+    ondragover: (e) => { e.preventDefault(); drop.classList.add('on'); }, ondragleave: () => drop.classList.remove('on'), ondrop: (e) => { e.preventDefault(); drop.classList.remove('on'); add([...e.dataTransfer.files]); } },
+    h('b', {}, 'Kéo thả file vào đây hoặc bấm để chọn'), h('br'), 'Word, PDF, PowerPoint, Excel, ảnh — tối đa 300 MB mỗi file');
+  const refs = h('div', { class: 'grid', style: { gap: '8px' } });
+  const drawRefs = () => refs.replaceChildren(...S.materials.map((m, i) => h('div', { class: 'mrow' },
+    h('span', { class: `pill ${m.type === 'drive' ? 'info' : ''}` }, m.type === 'drive' ? 'Google Drive' : 'Trên máy'),
+    h('input', { type: 'text', value: m.ref, placeholder: m.type === 'drive' ? 'https://drive.google.com/… (file hoặc thư mục)' : '/Users/ten/Documents/tu-lieu hoặc ~/Desktop/bao-cao.pdf', oninput: (e) => (m.ref = e.target.value) }),
+    h('input', { type: 'text', value: m.note ?? '', placeholder: 'Ghi chú: lấy phần nào (tuỳ chọn)', oninput: (e) => (m.note = e.target.value) }),
+    h('button', { type: 'button', class: 'btn sm danger', onclick: () => { S.materials.splice(i, 1); drawRefs(); } }, 'Bỏ'))));
+  const addRef = (type) => { if (S.materials.length >= 20) return toast('Tối đa 20 đường dẫn.', true); S.materials.push({ type, ref: '', note: '' }); drawRefs(); refs.lastElementChild?.querySelector('input')?.focus(); };
+  draw(); drawRefs();
+  return h('div', { class: 'grid', style: { gap: '10px' } }, drop, picker, list, refs,
+    h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn sm', onclick: () => addRef('drive') }, '+ Link Google Drive'), h('button', { type: 'button', class: 'btn sm', onclick: () => addRef('local') }, '+ Đường dẫn trên máy')));
+};
+
+// ───────── thêm tập cho series đang chạy: mỗi lần là một "đợt" (brief.batches) có số tập + nội dung + nguồn/tư liệu riêng.
+// Nhân vật, giọng, phong cách giữ nguyên; AI chỉ lập kế hoạch cho tập mới (đánh số nối tiếp), máy chủ giữ nguyên tập cũ.
+const batchNo = (id) => String(id ?? '').replace('dot-', '');
+const addCard = (slug, d) => {
+  const draft = (d.batches ?? []).find((x) => !x.planned);
+  const K = `${slug}:add:`;
+  const S = { id: draft?.id ?? null, count: draft?.count ?? +(DRAFT.get(`${K}count`) ?? 2), idea: DRAFT.get(`${K}idea`) ?? draft?.idea ?? '', sourceMode: draft?.sourceMode ?? 'claude', materials: structuredClone(draft?.materials ?? []) };
+  const files = { server: draft?.files?.uploads ?? [], queued: [] };
+  const last = Math.max(0, ...d.episodes.map((e) => e.number));
+  const hint = h('span', { class: 'mut small' });
+  const syncHint = () => (hint.textContent = S.count > 0 ? `Sẽ là tập ${last + 1}${S.count > 1 ? `–${last + S.count}` : ''}.` : '');
+  const cnt = h('input', { type: 'number', min: 1, max: 20, value: S.count, style: { width: '110px' }, oninput: (e) => { S.count = +e.target.value; DRAFT.set(`${K}count`, e.target.value); syncHint(); } });
+  syncHint();
+  const idea = h('textarea', { rows: 3, placeholder: 'Nội dung mới cần đưa vào: chủ đề, tình huống, thông điệp, mỗi tập nói gì… (AI sẽ tránh trùng các tập đã có)', value: S.idea, oninput: (e) => { S.idea = e.target.value; DRAFT.set(`${K}idea`, e.target.value); } });
+  const ideaW = sugFor('batchIdea', idea, (v) => { S.idea = v; DRAFT.set(`${K}idea`, v); }, () => ({ series: d.name, 'ý tưởng series': d.brief?.idea, 'các tập đã có': d.episodes.map((e) => e.title).filter(Boolean).slice(0, 30).join('; '), 'số tập thêm': S.count }));
+  const matBox = matWidget(S, files, slug, () => S.id);
+  const src = segPick(S, 'sourceMode', Object.entries(SRC).map(([v, [t, sub]]) => [v, t, sub]), () => (matBox.style.display = S.sourceMode === 'claude' ? 'none' : ''));
+  matBox.style.display = S.sourceMode === 'claude' ? 'none' : '';
+  const go = async () => {
+    if (!(S.count >= 1 && S.count <= 20)) return toast('Số tập thêm từ 1 đến 20.', true);
+    if (!S.idea.trim()) return toast('Hãy ghi nội dung cần thêm.', true);
+    try {
+      const { batch } = await api('PUT', `/api/series/${slug}/batch`, { id: S.id, count: S.count, idea: S.idea, sourceMode: S.sourceMode, materials: S.materials.filter((m) => m.ref.trim()) });
+      S.id = batch.id;
+      for (const f of files.queued.splice(0)) {
+        toast(`Đang tải lên ${f.name}…`);
+        const r = await fetch(`/api/series/${slug}/upload?name=${encodeURIComponent(f.name)}&batch=${batch.id}`, { method: 'POST', headers: { 'x-xuong': '1' }, body: f });
+        if (!r.ok) throw new Error(`${f.name}: ${(await r.json().catch(() => ({}))).error ?? r.status}`);
+      }
+      DRAFT.delete(`${K}idea`); DRAFT.delete(`${K}count`);
+      await runJob(slug, 'plan-add', null, '', { batch: batch.id });
+    } catch (e) { toast(e.message, true); }
+  };
+  const cancel = draft ? h('button', { class: 'btn', onclick: async () => { if (!confirm('Huỷ đợt thêm tập chưa lập kế hoạch này (kèm tư liệu đã tải cho đợt)?')) return; try { await api('DELETE', `/api/series/${slug}/batch?id=${draft.id}`); DRAFT.delete(`${K}idea`); openSeries(slug, true); } catch (e) { toast(e.message, true); } } }, 'Huỷ đợt này') : null;
+  // các đợt đã lập: xem lại + lập lại theo góp ý (chỉ thay các tập chưa duyệt của đợt)
+  const done = (d.batches ?? []).filter((x) => x.planned).map((x) => {
+    const mine = d.episodes.filter((e) => e.batch === x.id), open = mine.filter((e) => !e.approved);
+    const fk = `${slug}:plan-add:${x.id}`, fb = fbBox(fk, 'Góp ý cho các tập của đợt này: đổi góc nhìn, thêm/bớt ý…');
+    return h('div', { class: 'grid', style: { gap: '6px', borderTop: '1px solid var(--line)', paddingTop: '10px' } },
+      h('div', { class: 'small' }, h('b', {}, `Đợt ${batchNo(x.id)}`), ` · tập ${mine.map((e) => e.number).join(', ') || '—'} · ${SRC[x.sourceMode]?.[0] ?? ''}`),
+      h('div', { class: 'small mut' }, x.idea),
+      open.length ? h('details', { open: !!DRAFT.get(fk) }, h('summary', {}, `Lập lại ${open.length} tập chưa duyệt của đợt này`),
+        h('div', { class: 'grid', style: { gap: '8px' } }, fb, h('div', { class: 'row' }, h('button', { class: 'btn', 'data-job': 1, disabled: busy(), onclick: () => runJob(slug, 'plan-add', null, fb.value, { batch: x.id }) }, h('span', { class: 'ai' }, 'AI'), 'Lập lại đợt này')))) : null);
+  });
+  return h('details', { class: 'card', id: 'them-tap', open: !!draft || !!DRAFT.get(`${K}idea`) },
+    h('summary', {}, '+ Thêm tập cho series'),
+    h('div', { class: 'grid', style: { gap: '12px' } },
+      h('p', { class: 'mut small', style: { margin: 0 } }, 'Có nội dung mới giữa chừng? Thêm tập vào series này: nhân vật, tạo hình, giọng, phong cách, watermark, nhạc giữ nguyên. AI chỉ lập kế hoạch cho các tập mới (đánh số nối tiếp), tránh trùng tập cũ; tập cũ không bị đụng tới. Tập mới duyệt như bình thường.'),
+      h('div', { class: 'f' }, h('span', {}, 'Số tập thêm'), h('div', { class: 'row' }, cnt, hint)),
+      h('div', { class: 'f' }, h('span', {}, 'Nội dung cần thêm'), ideaW),
+      h('div', { class: 'f' }, h('span', {}, 'Nguồn nội dung cho đợt này'), src),
+      matBox,
+      h('div', { class: 'row' }, h('button', { class: 'btn pri', 'data-job': 1, disabled: busy(), onclick: go }, h('span', { class: 'ai' }, 'AI'), 'Lập kế hoạch tập thêm'), cancel),
+      done.length ? h('div', { class: 'grid', style: { gap: '10px' } }, h('h3', {}, 'Các đợt đã thêm'), done) : null));
+};
+
+// ───────── nhân bản series: bản mới độc lập, giữ nhân vật + cấu hình, đổi chủ đề / số tập / thời lượng
+const cloneView = async (slug) => {
+  VIEW = 'form';
+  const src = (CUR = await api('GET', `/api/series/${slug}`));
+  const b = src.brief ?? {};
+  const F = { name: '', idea: '', audience: b.audience ?? '', notes: b.notes ?? '', episodes: b.episodes ?? 5, duration: b.duration ?? 60, format: b.format ?? src.format ?? '9:16', copyMaterials: false };
+  const hasMat = (b.materials ?? []).length || (src.materials?.uploads ?? []).length;
+  const inp = (key, ph, o = {}) => h('input', { type: o.type ?? 'text', placeholder: ph, value: F[key], min: o.min, max: o.max, oninput: (e) => (F[key] = o.type === 'number' ? +e.target.value : e.target.value) });
+  const lab = (t, hint, el) => h(el.matches?.('input,select,textarea') ? 'label' : 'div', { class: 'f' }, h('span', {}, t, hint ? h('span', { class: 'h' }, ` — ${hint}`) : null), el);
+  const name = inp('name', 'vd Người MISA — An toàn thông tin');
+  const idea = h('textarea', { rows: 4, placeholder: 'Chủ đề và nội dung của series mới: thông điệp, mỗi tập nói gì…', oninput: (e) => (F.idea = e.target.value) });
+  const ctx = () => ({ 'series gốc': src.name, 'ý tưởng series gốc': b.idea, 'tên series mới': F.name, 'khán giả': F.audience, 'nhân vật': src.bible.characters.map((c) => c.name).join(', ') });
+  const chars = src.bible.characters ?? [];
+  const keep = [chars.length ? `${chars.length} nhân vật: ${chars.map((c) => c.name).join(', ')} (tạo hình, trang phục, tóc, giọng)` : 'không dùng nhân vật (chỉ giọng dẫn)',
+    `kiểu kể "${STYLE[b.style]?.[0] ?? b.style ?? ''}", bộ màu ${THEME[src.theme] ?? src.theme}, bối cảnh ưu tiên`, 'watermark chữ / logo', 'nhạc nền (kể cả nhạc đã tải lên) và âm lượng', 'giọng điệu, lời kêu gọi cuối tập, kênh, cách đọc từ riêng'];
+  const submit = async (ev) => {
+    ev.target.disabled = true;
+    try {
+      if (!F.name.trim() || !F.idea.trim()) throw new Error('Cần tên series mới và chủ đề / ý tưởng.');
+      const r = await api('POST', `/api/series/${slug}/clone`, F);
+      toast('Đã nhân bản series — giờ lập kế hoạch cho series mới.');
+      location.hash = `#/s/${r.slug}`;
+    } catch (e) { toast(e.message, true); ev.target.disabled = false; }
+  };
+  app.replaceChildren(
+    h('h1', {}, `Nhân bản — ${src.name}`),
+    h('p', { class: 'lead' }, 'Tạo một series mới độc lập từ series này: giữ nhân vật và mọi cấu hình, chỉ đổi chủ đề, nội dung, số tập, thời lượng. Sửa series mới không ảnh hưởng series cũ và ngược lại.'),
+    h('div', { class: 'card grid' },
+      h('h2', {}, 'Series mới'),
+      lab('Tên series mới', null, sugFor('name', name, (v) => (F.name = v), ctx)),
+      lab('Chủ đề / ý tưởng', 'AI lập kế hoạch các tập theo nội dung này', sugFor('idea', idea, (v) => (F.idea = v), ctx)),
+      lab('Khán giả', null, inp('audience', 'vd nhân viên văn phòng 22–45 tuổi')),
+      h('div', { class: 'row', style: { alignItems: 'flex-start' } }, lab('Số tập', '1–30', inp('episodes', '', { type: 'number', min: 1, max: 30 })), lab('Thời lượng mỗi tập', 'giây, 20–300', inp('duration', '', { type: 'number', min: 20, max: 300 }))),
+      lab('Khung hình', null, segPick(F, 'format', META.formats.map((f) => [f, f, { '9:16': 'TikTok, Reels, Shorts', '16:9': 'YouTube, màn ngang', '1:1': 'vuông', '4:5': 'bài đăng Facebook' }[f]]))),
+      lab('Ghi chú cho người viết', 'lấy từ series gốc, sửa nếu cần', h('textarea', { rows: 2, value: F.notes, oninput: (e) => (F.notes = e.target.value) })),
+      hasMat ? h('label', { class: 'chk' }, h('input', { type: 'checkbox', onchange: (e) => (F.copyMaterials = e.target.checked) }), h('span', {}, 'Mang theo tư liệu của series gốc'), h('span', { class: 'mut small' }, ' — bỏ trống thì series mới để AI tự tìm nội dung; thêm tư liệu mới ở "Sửa đề bài"')) : null),
+    h('div', { class: 'card grid', style: { gap: '8px' } }, h('h3', {}, 'Giữ nguyên từ series gốc'), h('ul', { class: 'small', style: { margin: 0 } }, keep.map((x) => h('li', {}, x))),
+      h('p', { class: 'mut small', style: { margin: 0 } }, 'Không mang sang: kế hoạch, các tập, phim đã dựng, ghi chú của AI, thiết lập tự đẩy Google Drive.')),
+    h('div', { class: 'sticky' }, h('a', { class: 'btn', href: `#/s/${slug}` }, 'Huỷ'), h('button', { class: 'btn pri', onclick: submit }, 'Nhân bản series')));
+  name.focus();
 };
 
 // ───────── trang danh sách
@@ -934,7 +1064,7 @@ const openSeries = async (slug, keepScroll) => {
             renderBtn(slug, e, 'Dựng lại', '')),
           exportRow(e), driveRow(e), links, linesEditor(e, base), fix)),
       board && h('details', {}, h('summary', {}, `Storyboard (${e.board.length} cảnh)`), board)];
-    return h('div', { class: 'card ep', id: e.id }, h('div', { class: 'hd' }, h('div', { class: 'no' }, String(e.number).padStart(2, '0')), h('div', { style: { flex: 1 } }, h('h3', {}, e.title || `Tập ${e.number}`), h('div', { class: 'mut small' }, e.duration ? `khoảng ${e.duration} giây` : '')), h('span', { class: `pill ${chip[0]}` }, chip[1])), body);
+    return h('div', { class: 'card ep', id: e.id }, h('div', { class: 'hd' }, h('div', { class: 'no' }, String(e.number).padStart(2, '0')), h('div', { style: { flex: 1 } }, h('h3', {}, e.title || `Tập ${e.number}`), h('div', { class: 'mut small' }, [e.duration ? `khoảng ${e.duration} giây` : '', e.batch ? `tập thêm · đợt ${batchNo(e.batch)}` : ''].filter(Boolean).join(' · '))), h('span', { class: `pill ${chip[0]}` }, chip[1])), body);
   };
 
   const planKey = `${slug}:plan:`, planFb = fbBox(planKey, nPlan ? 'Góp ý cho kế hoạch: thêm/bớt tập, đổi góc nhìn, đổi thứ tự…' : 'Lưu ý thêm cho lần lập kế hoạch (không bắt buộc)');
@@ -945,7 +1075,7 @@ const openSeries = async (slug, keepScroll) => {
 
   const b = d.brief;
   app.replaceChildren(
-    h('div', { class: 'row' }, h('div', {}, h('h1', {}, d.name), h('div', { class: 'mut' }, [d.channel, `${d.total || eps.length} tập`, d.format, THEME[d.theme] ?? d.theme, `${d.characters} nhân vật`].filter(Boolean).join(' · '))), h('span', { class: 'sp' }), META.docker ? null : h('button', { class: 'btn', onclick: () => openOutput(slug), title: d.outputDir }, 'Mở thư mục phim'), h('a', { class: 'btn', href: `#/s/${slug}/edit` }, 'Sửa đề bài')),
+    h('div', { class: 'row' }, h('div', {}, h('h1', {}, d.name), h('div', { class: 'mut' }, [d.channel, `${d.total || eps.length} tập`, d.format, THEME[d.theme] ?? d.theme, `${d.characters} nhân vật`].filter(Boolean).join(' · '))), h('span', { class: 'sp' }), META.docker ? null : h('button', { class: 'btn', onclick: () => openOutput(slug), title: d.outputDir }, 'Mở thư mục phim'), h('a', { class: 'btn', href: `#/s/${slug}/clone`, title: 'Tạo series mới giữ nhân vật và cấu hình' }, 'Nhân bản'), h('a', { class: 'btn', href: `#/s/${slug}/edit` }, 'Sửa đề bài')),
     h('div', { class: 'steps' },
       step(1, 'Kế hoạch', nPlan ? `${nPlan} tập · ${nPlan - pending.length} đã duyệt` : 'chưa lập', nPlan && !pending.length ? 'done' : 'cur'),
       step(2, 'Kịch bản + storyboard', `${nScript} tập`, nScript && nScript >= nPlan ? 'done' : nPlan ? 'cur' : ''),
@@ -956,6 +1086,7 @@ const openSeries = async (slug, keepScroll) => {
         batchCard(slug, eps),
         pending.length > 1 ? h('div', { class: 'card row' }, h('div', {}, h('b', {}, `${pending.length} tập đang chờ duyệt kế hoạch`), h('div', { class: 'mut small' }, 'Đọc từng tập bên dưới, duyệt riêng hoặc duyệt hết.')), h('span', { class: 'sp' }), h('button', { class: 'btn pri', onclick: async () => { await api('POST', `/api/series/${slug}/approve`, { episodes: pending.map((e) => e.number) }); openSeries(slug, true); } }, 'Duyệt tất cả')) : null,
         eps.map(epCard),
+        nPlan ? addCard(slug, d) : null,
         nPlan ? planCard : null),
       h('div', { class: 'side' },
         h('div', { class: 'card', id: 'jobbox' }),
@@ -988,9 +1119,10 @@ const route = async () => {
     if (a === 'settings' || a === 'drive') await settingsView();
     else if (a === 'new') await formView();
     else if (a === 's' && b && c === 'edit') await formView(b);
+    else if (a === 's' && b && c === 'clone') await cloneView(b);
     else if (a === 's' && b) await openSeries(b);
     else await home();
-    if (a !== 's' || c === 'edit') window.scrollTo(0, 0);
+    if (a !== 's' || c === 'edit' || c === 'clone') window.scrollTo(0, 0);
   } catch (e) { app.replaceChildren(h('div', { class: 'card' }, h('h2', {}, 'Không tải được'), h('p', { class: 'mut' }, e.message), h('a', { class: 'btn', href: '#/' }, 'Về danh sách'))); }
 };
 addEventListener('hashchange', route);

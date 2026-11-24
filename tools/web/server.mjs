@@ -73,7 +73,7 @@ const episodeState = (slug, e) => {
   const newer = (a, b) => has(a) && has(b) && fs.statSync(path.join(ed, a)).mtimeMs > fs.statSync(path.join(ed, b)).mtimeMs + 1000;
   const timed = readJSON(path.join(ed, 'build/timed.json'), null);
   return {
-    number: e.number, id, title: ep?.title || e.title, logline: e.logline, hook: e.hook, beats: e.beats, visual: e.visual, cta: e.cta, duration: e.duration,
+    number: e.number, id, batch: e.batch ?? null, title: ep?.title || e.title, logline: e.logline, hook: e.hook, beats: e.beats, visual: e.visual, cta: e.cta, duration: e.duration,
     approved: ['duyet', 'kich-ban', 'storyboard', 'voice', 'xong'].includes(e.status) || scenes > 0,
     scenes, board, issues, mp4, srt: has(`out/${id}.srt`), script: has('script.md'),
     seconds: timed ? +(timed.durationInFrames / timed.fps).toFixed(1) : null,
@@ -99,7 +99,7 @@ const seriesInfo = (slug, full = false) => {
   const assets = fs.existsSync(aDir) ? fs.readdirSync(aDir).filter((f) => ASSET_EXT.test(f)).sort() : [];
   const tracks = musicTracks(dir, bible.music).map((t) => ({ name: path.basename(t), uploaded: path.dirname(t) === musicDir(dir), size: fs.statSync(t).size }));
   const mPath = bible.music?.path ? String(bible.music.path) : '';
-  return { ...base, bible, assets, music: { tracks, pathOk: !mPath || fs.existsSync(mPath.replace(/^~(?=\/|$)/, os.homedir())) }, brief: readJSON(path.join(dir, 'brief.json'), null), episodes, materials: mat.summary(dir), outputDir: output.displayPath(output.seriesOutputDir(bible.name || slug)), charactersPng: fs.existsSync(pic) ? fs.statSync(pic).mtimeMs : 0, notes: fs.existsSync(path.join(dir, '.studio/ghi-chu.md')) ? fs.readFileSync(path.join(dir, '.studio/ghi-chu.md'), 'utf8') : '' };
+  return { ...base, bible, assets, music: { tracks, pathOk: !mPath || fs.existsSync(mPath.replace(/^~(?=\/|$)/, os.homedir())) }, brief: readJSON(path.join(dir, 'brief.json'), null), episodes, materials: mat.summary(dir), batches: (readJSON(path.join(dir, 'brief.json'), {}).batches ?? []).map((x) => ({ ...x, files: mat.summary(dir, x.id) })), outputDir: output.displayPath(output.seriesOutputDir(bible.name || slug)), charactersPng: fs.existsSync(pic) ? fs.statSync(pic).mtimeMs : 0, notes: fs.existsSync(path.join(dir, '.studio/ghi-chu.md')) ? fs.readFileSync(path.join(dir, '.studio/ghi-chu.md'), 'utf8') : '' };
 };
 const listSeries = () => (fs.existsSync(SERIES) ? fs.readdirSync(SERIES).filter((d) => SLUG.test(d)).map((d) => seriesInfo(d)).filter(Boolean) : []);
 
@@ -135,21 +135,42 @@ const cleanChar = (c, i) => {
   }
   return out;
 };
+// số tập lớn nhất đang có (kế hoạch + thư mục tập làm tay)
+const planMax = (dir, plan = readJSON(path.join(dir, 'plan.json'), { episodes: [] })) => {
+  const nums = (plan.episodes ?? []).map((e) => +e.number || 0);
+  const ed = path.join(dir, 'episodes');
+  if (fs.existsSync(ed)) for (const d of fs.readdirSync(ed)) if (/^ep\d+$/.test(d) && fs.existsSync(path.join(ed, d, 'episode.json'))) nums.push(+d.slice(2));
+  return Math.max(0, ...nums);
+};
+const STYLE_L = { 'tinh-huong': 'phim tình huống (cảnh story)', 'thong-tin': 'đồ hoạ thông tin', 'ket-hop': 'kết hợp tình huống + thông tin' };
+const briefMd = (brief, characters) => `# Đề bài — ${brief.name}\n\n- Ý tưởng: ${brief.idea}\n- Số tập: ${brief.episodes}\n- Thời lượng mỗi tập: ${brief.duration} giây\n- Kiểu kể: ${STYLE_L[brief.style] ?? brief.style}\n- Bộ màu: ${brief.theme}\n- Khung hình: ${brief.format}\n- Bối cảnh ưu tiên: ${(brief.sets ?? []).join(', ') || 'tuỳ nội dung'}\n- Giọng điệu: ${brief.tone}\n- Nhân vật: ${brief.characterMode} — ${characters.map((c) => `${c.name} (${c.gender === 'nu' ? 'nữ' : 'nam'}, ${c.kind}${c.role ? `, ${c.role}` : ''})`).join('; ')}\n- Người dẫn chuyện: ${brief.narrator ?? '—'}\n- Khán giả: ${brief.audience}\n- Nền tảng: ${brief.platform}\n- Lời kêu gọi cuối tập: ${brief.cta}\n- Ghi chú: ${brief.notes}\n- Nguồn nội dung: ${mat.MODES[brief.sourceMode] ?? brief.sourceMode}${(brief.materials ?? []).length ? ` — ${brief.materials.map((m) => m.ref).join('; ')}` : ''}\n${(brief.batches ?? []).map((b) => `\n## Đợt thêm tập ${b.id}${b.numbers?.length ? ` (tập ${b.numbers.join(', ')})` : ''}\n- Số tập: ${b.count}\n- Nội dung: ${b.idea}\n- Nguồn nội dung: ${mat.MODES[b.sourceMode] ?? b.sourceMode}${b.materials?.length ? ` — ${b.materials.map((m) => m.ref).join('; ')}` : ''}\n`).join('')}\n_File này sinh từ trang web của xưởng; nguồn chính là brief.json._\n`;
+// đợt thêm tập (brief.batches[]): số tập + nội dung + nguồn/tư liệu riêng; nhân vật và cấu hình dùng chung của series
+const cleanBatch = (f, old = {}) => ({
+  count: Math.max(1, Math.min(20, Math.floor(+f.count) || old.count || 1)),
+  idea: String(f.idea ?? old.idea ?? '').trim().slice(0, 4000),
+  sourceMode: mat.MODES[f.sourceMode] ? f.sourceMode : old.sourceMode ?? 'claude',
+  materials: 'materials' in f ? mat.cleanMaterials(f.materials) : old.materials ?? [],
+});
 const saveBrief = (slug, f, isNew) => {
   const dir = seriesDir(slug);
   fs.mkdirSync(path.join(dir, 'episodes'), { recursive: true });
+  const oldBrief = readJSON(path.join(dir, 'brief.json'), {});
+  const plan0 = readJSON(path.join(dir, 'plan.json'), { episodes: [] });
+  // tập của đợt thêm tập luôn được tính vào tổng (sửa đề bài không làm mất tập đã thêm)
+  const floor = Math.max(0, ...(plan0.episodes ?? []).filter((e) => e.batch).map((e) => +e.number || 0));
   const mode = ['dong-nhat', 'moi-tap', 'khong'].includes(f.characterMode) ? f.characterMode : 'dong-nhat';
   const seen = new Set();
   const characters = mode === 'khong' ? [] : (f.characters ?? []).slice(0, 8).map(cleanChar).map((c) => { let id = c.id; for (let k = 2; seen.has(id); k++) id = `${c.id}${k}`; seen.add(id); return { ...c, id }; });
   const narrator = characters.find((c) => c.id === f.narrator || c.name === f.narrator)?.id ?? characters.find((c) => !c.villain)?.id ?? null;
   const brief = {
     name: String(f.name).slice(0, 80), channel: String(f.channel ?? '').slice(0, 60), idea: String(f.idea ?? ''), audience: String(f.audience ?? ''), platform: String(f.platform ?? ''),
-    episodes: Math.max(1, Math.min(30, +f.episodes || 5)), duration: Math.max(20, Math.min(300, +f.duration || 60)), format: FORMATS[f.format] ? f.format : '9:16',
+    episodes: Math.max(floor, Math.max(1, Math.min(30, +f.episodes || 5))), duration: Math.max(20, Math.min(300, +f.duration || 60)), format: FORMATS[f.format] ? f.format : '9:16',
     theme: PRESETS[f.theme] ? f.theme : 'misa-vang', style: ['tinh-huong', 'thong-tin', 'ket-hop'].includes(f.style) ? f.style : 'tinh-huong',
     sets: (f.sets ?? []).filter((s) => SETS[s]), tone: String(f.tone ?? ''), music: String(f.music ?? 'tension'),
     characterMode: mode, narrator, logo: f.logo === 'none' ? 'none' : 'misa', cta: String(f.cta ?? ''), notes: String(f.notes ?? ''),
     sourceMode: mat.MODES[f.sourceMode] ? f.sourceMode : 'claude', materials: mat.cleanMaterials(f.materials),
     driveAuto: !!f.driveAuto, driveFolder: String(f.driveFolder ?? '').replace(/[\\/]+/g, ' ').trim().slice(0, 80), updated: new Date().toISOString(),
+    ...(oldBrief.batches?.length ? { batches: oldBrief.batches } : {}), ...(oldBrief.clonedFrom ? { clonedFrom: oldBrief.clonedFrom } : {}),
   };
   writeJSON(path.join(dir, 'brief.json'), brief);
   const old = readJSON(path.join(dir, 'bible.json'), {});
@@ -162,15 +183,46 @@ const saveBrief = (slug, f, isNew) => {
     chrome: old.chrome ?? { handle: false, progress: true, tag: true }, pronounce: old.pronounce ?? {},
   });
   if (isNew) writeJSON(path.join(dir, 'plan.json'), { brief: {}, episodes: [] });
-  const L = { 'tinh-huong': 'phim tình huống (cảnh story)', 'thong-tin': 'đồ hoạ thông tin', 'ket-hop': 'kết hợp tình huống + thông tin' };
-  fs.writeFileSync(path.join(dir, 'brief.md'), `# Đề bài — ${brief.name}\n\n- Ý tưởng: ${brief.idea}\n- Số tập: ${brief.episodes}\n- Thời lượng mỗi tập: ${brief.duration} giây\n- Kiểu kể: ${L[brief.style]}\n- Bộ màu: ${brief.theme}\n- Khung hình: ${brief.format}\n- Bối cảnh ưu tiên: ${brief.sets.join(', ') || 'tuỳ nội dung'}\n- Giọng điệu: ${brief.tone}\n- Nhân vật: ${mode} — ${characters.map((c) => `${c.name} (${c.gender === 'nu' ? 'nữ' : 'nam'}, ${c.kind}${c.role ? `, ${c.role}` : ''})`).join('; ')}\n- Người dẫn chuyện: ${narrator ?? '—'}\n- Khán giả: ${brief.audience}\n- Nền tảng: ${brief.platform}\n- Lời kêu gọi cuối tập: ${brief.cta}\n- Ghi chú: ${brief.notes}\n- Nguồn nội dung: ${mat.MODES[brief.sourceMode]}${brief.materials.length ? ` — ${brief.materials.map((m) => m.ref).join('; ')}` : ''}\n\n_File này sinh từ trang web của xưởng; nguồn chính là brief.json._\n`);
+  fs.writeFileSync(path.join(dir, 'brief.md'), briefMd(brief, characters));
   return brief;
 };
-
+// Nhân bản series: bản chép độc lập giữ nhân vật + mọi cấu hình (bible, phong cách, watermark, nhạc, mascot, cách đọc);
+// đổi tên / chủ đề / số tập / thời lượng / khổ hình; KHÔNG chép kế hoạch, tập, phim, ghi chú. Tư liệu chỉ chép khi chọn.
+const cloneSeries = (from, f) => {
+  const sd = seriesDir(from);
+  const bible = readJSON(path.join(sd, 'bible.json'), null), brief = readJSON(path.join(sd, 'brief.json'), {});
+  if (!bible) throw Object.assign(new Error('không có series này'), { code: 404 });
+  const name = String(f.name ?? '').trim().slice(0, 80), idea = String(f.idea ?? '').trim();
+  if (!name || !idea) throw Object.assign(new Error('Cần tên series mới và chủ đề / ý tưởng.'), { code: 400 });
+  let slug = slugify(name);
+  for (let k = 2; fs.existsSync(seriesDir(slug)); k++) slug = `${slugify(name)}-${k}`;
+  const dd = seriesDir(slug);
+  const keepMat = !!f.copyMaterials;
+  const format = FORMATS[f.format] ? f.format : brief.format ?? bible.format ?? '9:16';
+  const nb = {
+    ...brief, name, idea, audience: String(f.audience ?? brief.audience ?? ''), notes: String(f.notes ?? brief.notes ?? ''),
+    episodes: Math.max(1, Math.min(30, +f.episodes || brief.episodes || 5)), duration: Math.max(20, Math.min(300, +f.duration || brief.duration || 60)), format,
+    // không mang tư liệu → series mới tự tìm nội dung (chế độ "chỉ tư liệu" mà không có tư liệu thì không chạy được)
+    sourceMode: keepMat ? brief.sourceMode ?? 'claude' : 'claude', materials: keepMat ? brief.materials ?? [] : [],
+    driveAuto: false, driveFolder: '', clonedFrom: from, updated: new Date().toISOString(),
+  };
+  delete nb.batches;
+  try {
+    fs.mkdirSync(path.join(dd, 'episodes'), { recursive: true });
+    for (const d of ['assets', 'nhac']) if (fs.existsSync(path.join(sd, d))) fs.cpSync(path.join(sd, d), path.join(dd, d), { recursive: true });
+    for (const x of ['characters.png', 'characters-huong.png']) if (fs.existsSync(path.join(sd, x))) fs.copyFileSync(path.join(sd, x), path.join(dd, x));
+    if (keepMat) mat.copyUploads(sd, dd);
+    writeJSON(path.join(dd, 'brief.json'), nb);
+    writeJSON(path.join(dd, 'bible.json'), { ...structuredClone(bible), name, slug, episodes: nb.episodes, format });
+    writeJSON(path.join(dd, 'plan.json'), { brief: {}, episodes: [] });
+    fs.writeFileSync(path.join(dd, 'brief.md'), briefMd(nb, bible.characters ?? []));
+  } catch (e) { fs.rmSync(dd, { recursive: true, force: true }); throw e; }
+  return slug;
+};
 // ───────── công việc chạy nền (mỗi lúc một việc)
 let job = null;
 let seq = 0;
-const LABEL = { plan: 'Lập kế hoạch', script: 'Viết kịch bản + storyboard', fix: 'Sửa theo góp ý', render: 'Dựng phim', characters: 'Vẽ bảng nhân vật', upload: 'Đẩy lên Google Drive', storyboard: 'Vẽ lại storyboard' };
+const LABEL = { plan: 'Lập kế hoạch', 'plan-add': 'Lập kế hoạch tập thêm', script: 'Viết kịch bản + storyboard', fix: 'Sửa theo góp ý', render: 'Dựng phim', characters: 'Vẽ bảng nhân vật', upload: 'Đẩy lên Google Drive', storyboard: 'Vẽ lại storyboard' };
 const logLine = (j, s) => {
   for (const part of String(s).split(/\r?\n|\r/)) {
     const t = part.replace(/\s+$/, '');
@@ -338,6 +390,35 @@ const codexFollowUp = (slug, n, action, pk, sourceMode, hadMp4) => async (j) => 
   if (action === 'fix' && hadMp4) { logLine(j, '— Dựng lại phim (giọng chỉ đọc lại câu đã đổi) —'); await runChild(j, process.execPath, ['tools/ep.mjs', ed, 'all']); }
   j.summary ||= 'Codex đã viết xong; storyboard đã vẽ.';
 };
+// Chốt sau giai đoạn plan-add: tập cũ giữ NGUYÊN (lấy lại từ bản chụp trước khi AI chạy, dù AI có lỡ sửa/xoá),
+// chỉ nhận tập mới đúng các số được giao, gắn batch + status de-xuat; cập nhật tổng số tập + plan.html.
+const sealBatch = (slug, batchId, nums, snapshot) => async (j) => {
+  const dir = seriesDir(slug), pf = path.join(dir, 'plan.json');
+  const now = readJSON(pf, null);
+  if (!Array.isArray(now?.episodes)) throw new Error('AI chưa ghi được plan.json.');
+  const want = new Set(nums);
+  const old = snapshot.episodes.filter((e) => !want.has(+e.number));
+  const oldBy = new Map(old.map((e) => [+e.number, JSON.stringify(e)]));
+  const seen = new Set();
+  const add = now.episodes.filter((e) => want.has(+e.number) && !seen.has(+e.number) && seen.add(+e.number))
+    .map((e) => ({ ...e, number: +e.number, id: epId(+e.number), batch: batchId, status: 'de-xuat' }));
+  const nowNums = new Set(now.episodes.map((e) => +e.number));
+  const touched = now.episodes.filter((e) => oldBy.has(+e.number) && JSON.stringify(e) !== oldBy.get(+e.number)).length
+    + old.filter((e) => !nowNums.has(+e.number)).length + now.episodes.filter((e) => !want.has(+e.number) && !oldBy.has(+e.number)).length;
+  if (touched) logLine(j, `! AI đã đụng tới ${touched} tập ngoài đợt này — máy chủ trả lại nguyên trạng các tập cũ.`);
+  if (!add.length) throw new Error('AI chưa thêm được tập nào cho đợt này.');
+  writeJSON(pf, { ...snapshot, episodes: [...old, ...add].sort((a, b) => a.number - b.number) });
+  const brief = readJSON(path.join(dir, 'brief.json'), {}), bible = readJSON(path.join(dir, 'bible.json'), {});
+  const bt = (brief.batches ?? []).find((x) => x.id === batchId);
+  if (bt) Object.assign(bt, { planned: true, numbers: [...new Set([...(bt.numbers ?? []).filter((x) => !want.has(x)), ...add.map((e) => e.number)])].sort((a, b) => a - b) });
+  const total = Math.max(+brief.episodes || 0, planMax(dir));
+  writeJSON(path.join(dir, 'brief.json'), { ...brief, episodes: total });
+  writeJSON(path.join(dir, 'bible.json'), { ...bible, episodes: total });
+  fs.writeFileSync(path.join(dir, 'brief.md'), briefMd({ ...brief, episodes: total }, bible.characters ?? []));
+  await runChild(j, process.execPath, ['tools/series.mjs', 'plan', slug]);
+  logLine(j, `Đã thêm ${add.length} tập (tập ${add.map((e) => e.number).join(', ')}) — tập cũ giữ nguyên.`);
+  if (add.length < nums.length) logLine(j, `! Đợt này cần ${nums.length} tập nhưng AI mới lập ${add.length} — xem ghi chú của AI.`);
+};
 export const promptFor = (action, slug, episode, hasFeedback, extra = '') =>
   `Làm theo skill "series" (đọc skill/SKILL.md trong thư mục này), mục "Chế độ form". Giai đoạn: ${action}. Series: ${slug}.${episode ? ` Tập: ${episode}.` : ''}${hasFeedback ? ` Có góp ý của người dùng ở series/${slug}/.studio/gop-y.md — đọc và làm theo.` : ''}${extra} Không có ai trả lời câu hỏi trong lúc chạy: tự quyết theo mặc định của skill, làm xong đúng giai đoạn này thì dừng.`;
 
@@ -480,11 +561,47 @@ const server = http.createServer(async (req, res) => {
       const dir = seriesDir(slug);
       if (req.method === 'GET' && !m[2]) return send(res, 200, seriesInfo(slug, true));
       if (req.method === 'PUT' && m[2] === '/brief') { saveBrief(slug, await readBody(req), false); return send(res, 200, { ok: true }); }
+      if (req.method === 'POST' && m[2] === '/clone') {
+        try { return send(res, 200, { slug: cloneSeries(slug, await readBody(req)) }); } catch (e) { return fail(res, e.code ?? 500, e.message); }
+      }
+      // đợt thêm tập: tạo / sửa (PUT { id?, count, idea, sourceMode, materials }) · huỷ đợt chưa có tập (DELETE ?id=)
+      if (m[2] === '/batch') {
+        const bf = path.join(dir, 'brief.json'), brief = readJSON(bf, null);
+        if (!brief) return fail(res, 400, 'Series chưa có đề bài.');
+        brief.batches ??= [];
+        if (busyNow() && job.slug === slug && job.action === 'plan-add') return fail(res, 409, 'Đang lập kế hoạch tập thêm — chờ xong.');
+        try {
+          if (req.method === 'PUT') {
+            const f = await readBody(req);
+            let bt = f.id ? brief.batches.find((x) => x.id === f.id) : null;
+            if (f.id && !bt) return fail(res, 404, 'Không thấy đợt thêm tập này.');
+            const nb = cleanBatch(f, bt ?? {});
+            if (!nb.idea) return fail(res, 400, 'Hãy ghi nội dung cần thêm.');
+            if (!bt && planMax(dir) + nb.count > 99) return fail(res, 400, 'Series tối đa 99 tập.');
+            if (!bt) { let k = 2; while (brief.batches.some((x) => x.id === `dot-${k}`)) k++; bt = { id: `dot-${k}`, created: new Date().toISOString(), planned: false }; brief.batches.push(bt); }
+            Object.assign(bt, nb);
+            writeJSON(bf, brief);
+            return send(res, 200, { batch: { ...bt, files: mat.summary(dir, bt.id) } });
+          }
+          if (req.method === 'DELETE') {
+            const id = url.searchParams.get('id') ?? '';
+            const plan = readJSON(path.join(dir, 'plan.json'), { episodes: [] });
+            if (plan.episodes.some((e) => e.batch === id)) return fail(res, 400, 'Đợt này đã có tập trong kế hoạch — không huỷ được.');
+            brief.batches = brief.batches.filter((x) => x.id !== id);
+            if (!brief.batches.length) delete brief.batches;
+            writeJSON(bf, brief);
+            mat.removeBatch(dir, id);
+            return send(res, 200, { ok: true });
+          }
+        } catch (e) { return fail(res, e.code ?? 400, e.message); }
+      }
       if (m[2] === '/upload') {
         const name = url.searchParams.get('name') ?? '';
+        const sub = url.searchParams.get('batch') ?? '';
         try {
-          if (req.method === 'POST') return send(res, 200, await mat.saveUpload(dir, name, req));
-          if (req.method === 'DELETE') { mat.removeUpload(dir, name); return send(res, 200, mat.summary(dir)); }
+          if (sub && !(readJSON(path.join(dir, 'brief.json'), {}).batches ?? []).some((x) => x.id === sub)) throw new Error('Không thấy đợt thêm tập này.');
+          if (req.method === 'POST') return send(res, 200, await mat.saveUpload(dir, name, req, sub));
+          if (req.method === 'DELETE') { mat.removeUpload(dir, name, sub); return send(res, 200, mat.summary(dir, sub)); }
         } catch (e) { return fail(res, 400, e.message); }
       }
       if (m[2] === '/asset' || m[2] === '/music') {
@@ -542,27 +659,51 @@ const server = http.createServer(async (req, res) => {
         const n = b.episode ? Math.floor(+b.episode) : null;
         const fb = String(b.feedback ?? '').trim();
         if (['script', 'fix', 'render', 'upload', 'storyboard'].includes(b.action) && !(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
-        if (['plan', 'script', 'fix'].includes(b.action)) {
-          const pk = ai.pick(b.action);
+        if (['plan', 'plan-add', 'script', 'fix'].includes(b.action)) {
+          const pk = ai.pick(b.action === 'plan-add' ? 'plan' : b.action);
           if (!pk.bin) return fail(res, 400, pk.engine === 'codex' ? 'Máy chưa có lệnh `codex` — cài Codex (npm i -g @openai/codex, rồi codex login) hoặc đổi sang Claude ở Thiết lập.' : 'Máy chưa có lệnh `claude` — dán câu lệnh thay thế vào Claude Code, hoặc đổi sang Codex ở Thiết lập.');
           if (b.action === 'fix' && !fb) return fail(res, 400, 'Cần ghi góp ý.');
           fs.mkdirSync(path.join(dir, '.studio'), { recursive: true });
           const fbFile = path.join(dir, '.studio/gop-y.md');
           if (fb) fs.writeFileSync(fbFile, `# Góp ý (${b.action}${n ? ` · tập ${n}` : ''}) — ${new Date().toLocaleString('vi-VN')}\n\n${fb}\n`); else fs.rmSync(fbFile, { force: true });
           const brief = readJSON(path.join(dir, 'brief.json'), {});
-          // chế độ có tư liệu → gom + đọc tư liệu trước, rồi mới gọi Claude
-          const before = mat.needsMaterials(brief) ? async (j) => { logLine(j, '— Chuẩn bị tư liệu —'); return mat.prepare(dir, brief, { log: (x) => logLine(j, x), run: (c, a) => runChild(j, c, a), signal: j.abort.signal }); } : null;
+          const plan = readJSON(path.join(dir, 'plan.json'), { brief: {}, episodes: [] });
+          // đợt thêm tập: plan-add lập kế hoạch các tập mới; script/fix một tập thuộc đợt → nguồn + tư liệu của đợt đó
+          let batch = null, nums = null, extra = '';
+          if (b.action === 'plan-add') {
+            batch = (brief.batches ?? []).find((x) => x.id === b.batch);
+            if (!batch) return fail(res, 400, 'Không thấy đợt thêm tập.');
+            const mine = plan.episodes.filter((e) => e.batch === batch.id);
+            const locked = (e) => (e.status ?? 'de-xuat') !== 'de-xuat' || fs.existsSync(path.join(dir, 'episodes', e.id ?? epId(e.number), 'episode.json'));
+            const redo = mine.filter((e) => !locked(e)).map((e) => +e.number).sort((x, y) => x - y);
+            const need = batch.count - (mine.length - redo.length);
+            if (need <= 0) return fail(res, 400, 'Các tập của đợt này đã duyệt hết — muốn thêm nữa hãy tạo đợt mới.');
+            // lập lại đợt → dùng lại số của tập chưa duyệt trong đợt; thiếu thì nối tiếp sau tập cuối của series
+            nums = redo.slice(0, need);
+            for (let x = planMax(dir, { episodes: plan.episodes.filter((e) => !redo.includes(+e.number)) }) + 1; nums.length < need; x++) if (!nums.includes(x)) nums.push(x);
+            if (Math.max(...nums) > 99) return fail(res, 400, 'Series tối đa 99 tập.');
+            extra = ` Đợt: ${batch.id} — lập kế hoạch ${nums.length} tập thêm, số tập: ${nums.join(', ')}.`;
+          } else if (n) {
+            const pe = plan.episodes.find((e) => +e.number === n);
+            batch = pe?.batch ? (brief.batches ?? []).find((x) => x.id === pe.batch) ?? null : null;
+            if (batch) extra = ` Tập này thuộc đợt thêm tập "${batch.id}" (brief.json → batches): nội dung và nguồn theo đợt đó.`;
+          }
+          const src = batch ? { ...brief, sourceMode: batch.sourceMode, materials: batch.materials } : brief, sub = batch?.id ?? '';
+          const snapshot = b.action === 'plan-add' ? structuredClone(plan) : null;
+          const seal = snapshot ? sealBatch(slug, batch.id, nums, snapshot) : null;
+          // chế độ có tư liệu → gom + đọc tư liệu trước, rồi mới gọi AI
+          const before = mat.needsMaterials(src) ? async (j) => { logLine(j, `— Chuẩn bị tư liệu${sub ? ' của đợt thêm tập' : ''} —`); return mat.prepare(dir, src, { log: (x) => logLine(j, x), run: (c, a) => runChild(j, c, a), signal: j.abort.signal }, sub); } : null;
           const who = `${pk.engine === 'codex' ? 'Codex' : 'Claude'}${pk.model ? ` ${pk.model}` : ''}${pk.effort ? ` · ${pk.effort}` : ''}`;
           const up = b.action === 'fix' ? autoUpload(slug, n) : null;
           let j;
           if (pk.engine === 'codex') {
             const hadMp4 = n ? fs.existsSync(path.join(dir, 'episodes', epId(n), 'out', `${epId(n)}.mp4`)) : false;
-            const args = (prepared) => ai.codexArgs(promptFor(b.action, slug, n, !!fb, mat.promptPart(slug, brief, prepared)) + ai.CODEX_NOTE, ROOT, { sourceMode: brief.sourceMode, model: pk.model, effort: pk.effort });
-            const follow = b.action === 'plan' ? null : codexFollowUp(slug, n, b.action, pk, brief.sourceMode, hadMp4);
+            const args = (prepared) => ai.codexArgs(promptFor(b.action, slug, n, !!fb, extra + mat.promptPart(slug, src, prepared, sub)) + ai.CODEX_NOTE, ROOT, { sourceMode: src.sourceMode, model: pk.model, effort: pk.effort });
+            const follow = b.action === 'plan' || b.action === 'plan-add' ? seal : codexFollowUp(slug, n, b.action, pk, src.sourceMode, hadMp4);
             j = startJob({ action: b.action, slug, episode: n }, pk.bin, args, { codex: true, who, before, after: follow || up ? async (jj) => { if (follow) await follow(jj); if (up && jj.status === 'running') await up(jj); } : null });
           } else {
-            const args = (prepared) => claudeArgs(promptFor(b.action, slug, n, !!fb, mat.promptPart(slug, brief, prepared)), { sourceMode: brief.sourceMode, addDirs: prepared?.localDirs ?? [], model: pk.model, effort: pk.effort });
-            j = startJob({ action: b.action, slug, episode: n }, pk.bin, args, { claude: true, who, before, after: up });
+            const args = (prepared) => claudeArgs(promptFor(b.action, slug, n, !!fb, extra + mat.promptPart(slug, src, prepared, sub)), { sourceMode: src.sourceMode, addDirs: prepared?.localDirs ?? [], model: pk.model, effort: pk.effort });
+            j = startJob({ action: b.action, slug, episode: n }, pk.bin, args, { claude: true, who, before, after: seal ?? up });
           }
           return send(res, 200, { job: jobView(j) });
         }

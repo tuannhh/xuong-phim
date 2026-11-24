@@ -13,8 +13,11 @@ Chỉ nghe `127.0.0.1`; từ chối Host khác `localhost`/`127.0.0.1`. Mọi y�
 | POST | `/api/series` | Tạo series từ form → `{ slug }` (cần `name`, `idea`; slug tự sinh, không trùng) |
 | GET | `/api/series/<slug>` | Chi tiết: bible, brief, trạng thái từng tập (storyboard, lỗi bố cục, MP4, `stale`), ghi chú Claude |
 | PUT | `/api/series/<slug>/brief` | Sửa đề bài (ghi lại brief.json + bible.json, giữ các trường khác của bible) |
+| POST | `/api/series/<slug>/clone` | `{ name, idea, audience?, notes?, episodes, duration, format?, copyMaterials? }` → `{ slug }` — series mới độc lập: chép bible (nhân vật, watermark, nhạc…), brief (đổi các trường trên), `assets/`, `nhac/`, bảng nhân vật; plan rỗng; không chép tập/phim/ghi chú; `driveAuto` tắt; tư liệu chỉ chép khi `copyMaterials` (không thì `sourceMode` về `claude`) |
+| PUT | `/api/series/<slug>/batch` | Đợt thêm tập: `{ id?, count 1–20, idea, sourceMode, materials[] }` → tạo (`dot-2`, `dot-3`…) hoặc sửa → `{ batch }`; lưu ở `brief.batches[]` |
+| DELETE | `/api/series/<slug>/batch?id=` | Huỷ đợt chưa có tập trong kế hoạch (xoá cả tư liệu của đợt) |
 | POST | `/api/series/<slug>/approve` | `{ episodes: [n…] }` → `status: "duyet"` |
-| POST | `/api/series/<slug>/jobs` | `{ action, episode?, feedback? }` — chạy một việc nền (409 nếu đang có việc — riêng `render` khi đang bận thì xếp vào hàng đợi, trả `{ queued: <vị trí>, queue }`; 409 nếu chính tập đó đang dựng). `action`: `plan`/`script`/`fix` (Claude; series có tư liệu → bước "Chuẩn bị tư liệu" chạy trước), `render`, `storyboard` (check → script → storyboard, sau khi sửa lời thoại), `upload`, `characters` |
+| POST | `/api/series/<slug>/jobs` | `{ action, episode?, feedback? }` — chạy một việc nền (409 nếu đang có việc — riêng `render` khi đang bận thì xếp vào hàng đợi, trả `{ queued: <vị trí>, queue }`; 409 nếu chính tập đó đang dựng). `action`: `plan`/`plan-add` (kèm `batch`: id đợt)/`script`/`fix` (AI; series có tư liệu → bước "Chuẩn bị tư liệu" chạy trước), `render`, `storyboard` (check → script → storyboard, sau khi sửa lời thoại), `upload`, `characters` |
 | GET | `/api/job?from=<n>` | `{ job, queue }` — việc gần nhất + log từ dòng n; `queue = { paused, items[{slug,episode,title}], history[{slug,episode,status: done|error|stopped|skipped,title}] }` |
 | POST | `/api/series/<slug>/queue` | `{ episodes: [n…] }` — thêm các tập vào hàng đợi dựng (bỏ tập đã có / đang dựng; tập chưa có `episode.json` → 400); rảnh thì bắt đầu ngay |
 | DELETE | `/api/queue?slug=&episode=` | Bỏ một tập khỏi hàng đợi; không tham số → xoá cả hàng |
@@ -30,7 +33,7 @@ Chỉ nghe `127.0.0.1`; từ chối Host khác `localhost`/`127.0.0.1`. Mọi y�
 | GET/PUT | `/api/settings` | Thư mục phim chung `{outputDir, defaultOutputDir, locked, canOpen, docker}`; PUT `{outputDir}` (đường dẫn tuyệt đối, `~` được; Docker → 400 vì do `.env` quyết) |
 | POST | `/api/open-output` | `{slug?}` mở thư mục phim (của series) bằng Finder/xdg-open; Docker → 400 kèm đường dẫn trên máy thật |
 | GET | `/api/brand/misa-logo.svg` | Logo MISA đầy đủ (header trang) |
-| POST | `/api/series/<slug>/upload?name=<tên>` | Thân = byte file (không JSON) → `series/<slug>/tu-lieu/tai-len/<tên đã làm sạch>`; chỉ PDF/Word/PPTX/XLSX/CSV/TXT/MD/ảnh, ≤ 300 MB |
+| POST | `/api/series/<slug>/upload?name=<tên>[&batch=dot-N]` | Thân = byte file (không JSON) → `series/<slug>/tu-lieu/tai-len/<tên đã làm sạch>` (có `batch` → `tu-lieu/<id>/tai-len/`); chỉ PDF/Word/PPTX/XLSX/CSV/TXT/MD/ảnh, ≤ 300 MB |
 | DELETE | `/api/series/<slug>/upload?name=<tên>` | Bỏ một file tư liệu → trả tóm tắt tư liệu |
 | GET | `/api/series/<slug>/lines?episode=<n>` | Lời thoại từng cảnh `{scenes:[{id,type,lines:[{text,speaker}]}]}` (speaker = tên nhân vật) |
 | PUT | `/api/series/<slug>/lines?episode=<n>` | `{edits:[{scene, line, text}]}` → sửa chữ câu trong `episode.json` (câu đổi bỏ `say`); 409 nếu đang chạy việc cho đúng tập đó; trả `{changed}` |

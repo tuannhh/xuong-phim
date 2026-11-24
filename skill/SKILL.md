@@ -64,7 +64,7 @@ Người dùng góp ý → sửa episode.json → chạy lại từ bước bị
 
 ## Chế độ form (trang web của xưởng gọi)
 
-Người dùng có thể làm việc qua trang web tại máy: `pnpm web` → http://localhost:4710. Họ điền đề bài vào form, bấm nút; trang ghi `series/<slug>/brief.json` + `bible.json` rồi gọi Claude chạy ngầm (`claude -p`) với câu lệnh dạng "…mục Chế độ form. Giai đoạn: `plan|script|fix`. Series: `<slug>`. Tập: `<n>`". Ba điểm duyệt vẫn giữ nguyên — người dùng duyệt **trên trang**, không phải trong chat.
+Người dùng có thể làm việc qua trang web tại máy: `pnpm web` → http://localhost:4710. Họ điền đề bài vào form, bấm nút; trang ghi `series/<slug>/brief.json` + `bible.json` rồi gọi Claude chạy ngầm (`claude -p`) với câu lệnh dạng "…mục Chế độ form. Giai đoạn: `plan|plan-add|script|fix`. Series: `<slug>`. Tập: `<n>`". Ba điểm duyệt vẫn giữ nguyên — người dùng duyệt **trên trang**, không phải trong chat.
 
 Khi được gọi kiểu này:
 - **Không có ai trả lời.** Không hỏi lại, không AskUserQuestion, không đăng Artifact, không SendUserFile, không commit, không mở trình duyệt. Thiếu thông tin → lấy mặc định ở mục 0 và ghi giả định vào `series/<slug>/.studio/ghi-chu.md` (trang hiện file này).
@@ -73,10 +73,12 @@ Khi được gọi kiểu này:
 - `brief.style`: `tinh-huong` → kể bằng cảnh `story` là chính; `thong-tin` → template thông tin (title, list, stat, compare, talk…); `ket-hop` → mở bằng tình huống `story`, chốt bằng template thông tin. `brief.sets` là bối cảnh ưu tiên. `brief.logo: "none"` → nhân vật không mặc đồng phục MISA, cảnh kết không gắn logo MISA.
 - `characterMode: "moi-tap"` → mỗi tập khai dàn nhân vật riêng trong `episode.characters` (vẫn có nam có nữ, giọng đúng giới); `khong` → không dùng nhân vật, lời đọc là giọng dẫn `bible.voice`.
 - Có `series/<slug>/.studio/gop-y.md` → đó là góp ý mới nhất của người dùng, làm theo.
+- Tập thuộc đợt thêm tập (`plan.json` có `batch`, câu lệnh ghi "thuộc đợt thêm tập"): nội dung theo `brief.batches[<id>].idea`, nguồn theo `sourceMode` của đợt, tư liệu ở `series/<slug>/.studio/tu-lieu-<id>/` (không phải `tu-lieu/` của series). Nhân vật, giọng, phong cách, bộ màu vẫn của series.
 
 | Giai đoạn | Việc phải làm | Dừng khi |
 |---|---|---|
-| `plan` | Mục 1 bước 2–5: viết `plan.json` (`brief` tóm tắt + đủ `brief.episodes` tập, `status:"de-xuat"`); giữ nguyên tập đã `duyet` hoặc đã có `episode.json` trừ khi góp ý yêu cầu đổi; `pnpm series plan <slug>` | có `plan.json` đủ tập — KHÔNG viết `episode.json` |
+| `plan` | Mục 1 bước 2–5: viết `plan.json` (`brief` tóm tắt + đủ `brief.episodes` tập, `status:"de-xuat"`); giữ nguyên tập đã `duyet` hoặc đã có `episode.json` trừ khi góp ý yêu cầu đổi; tập có trường `batch` (đợt thêm tập) giữ nguyên `batch` và nội dung theo đợt đó; `pnpm series plan <slug>` | có `plan.json` đủ tập — KHÔNG viết `episode.json` |
+| `plan-add` | Đợt thêm tập cho series đang chạy (câu lệnh ghi `Đợt: <id>` + các số tập phải viết). Đọc `brief.json` → `batches[]` mục `id` đó: `count`, `idea` (nội dung cần thêm), `sourceMode` + tư liệu riêng của đợt (đã đọc sẵn ở `.studio/tu-lieu-<id>/index.md`). Đọc các tập đã có trong `plan.json` để KHÔNG trùng góc nhìn/tình huống. Thêm vào `plan.json` đúng các số tập được giao (thay mục cùng số nếu đã có — là lập lại đợt theo góp ý), mỗi tập `batch:"<id>"`, `status:"de-xuat"`, cùng cấu trúc tập thường, đứng độc lập. Dùng đúng dàn nhân vật trong `bible.json` (không thêm/đổi nhân vật chính). **Không sửa, không xoá tập nào khác** (máy chủ khôi phục nếu bị đổi). `pnpm series plan <slug>` | có đủ các tập mới trong `plan.json` — KHÔNG viết `episode.json` |
 | `script <n>` | (Có tư liệu → đọc theo mục "Tư liệu" trước.) Mục 2 bước 1–3 cho tập n: `pnpm series ep` (nếu chưa có khung) → viết `episode.json` → `check` sạch → `script` → `storyboard` báo `✓ bố cục`; tự xem ảnh storyboard và sửa cho đạt | có `script.md` + storyboard sạch — KHÔNG đọc voice, KHÔNG render |
 | `fix <n>` | Đọc `gop-y.md`, sửa `episode.json` (chỉ phần bị góp ý), `check` → `script` → `storyboard`. Nếu tập đã có `out/epNN.mp4` thì chạy tiếp `pnpm ep <dir> all` để ra bản mới (voice chỉ đọc lại câu đổi) | storyboard sạch (và MP4 mới nếu trước đó đã có MP4) |
 

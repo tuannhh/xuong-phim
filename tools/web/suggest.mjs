@@ -18,6 +18,7 @@ export const FIELDS = {
   watermark: 'chữ watermark trên video (≤ 6 chữ, vd tên kênh hoặc tên đơn vị)',
   feedback: 'góp ý sửa tập phim (2–3 ý cụ thể, câu ngắn, giọng người duyệt)',
   topic: 'ý tưởng một tập mới (1–2 câu)',
+  batchIdea: 'nội dung cho đợt tập thêm vào series đang có: chủ đề mới chưa có trong các tập cũ, các tập mới nói gì (2–3 câu)',
 };
 
 let busy = false;
