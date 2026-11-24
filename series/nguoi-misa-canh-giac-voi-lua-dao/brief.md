@@ -8,7 +8,7 @@
 - Khung hình: 9:16
 - Bối cảnh ưu tiên: van-phong, nha, hang-o
 - Giọng điệu: 
-- Nhân vật: moi-tap — Tuấn (nam, misa, nhân viên MISA, người dẫn chuyện); Linh (nữ, misa, đồng nghiệp, hay gặp tình huống); Anh Hoàng (nam, vest, Giám đốc); Chị Phương Anh (nam, so-mi, kế toán); Kẻ lừa đảo (nam, hoodie)
+- Nhân vật: moi-tap — Tuấn (nam, misa, nhân viên MISA, người dẫn chuyện); Linh (nữ, misa, đồng nghiệp, hay gặp tình huống); Anh Hoàng (nam, vest, Giám đốc); Chị Phương Anh (nữ, so-mi, kế toán); Kẻ lừa đảo (nam, hoodie)
 - Người dẫn chuyện: tuan
 - Khán giả: nhân viên văn phòng từ 22 - 40 tuổi, khách hàng, đối tác, người thân, bạn bè
 - Nền tảng: TikTok, Facebook Reels, YouTube Shorts
