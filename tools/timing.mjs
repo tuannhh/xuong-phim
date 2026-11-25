@@ -10,7 +10,9 @@ import { isMain } from './platform.mjs';
 
 const TRANS_DEFAULT = { type: 'slide', frames: 12 };
 
-export function buildTiming(epArg) {
+// opts.durOverride: { idCâu: giây } — ép thời lượng từng câu (voice-fix dựng lại đúng lịch hình của bản đã render)
+// opts.write=false: chỉ tính, không ghi timed.json / audio.json / .srt
+export function buildTiming(epArg, { durOverride = null, write = true } = {}) {
   const D = dirs();
   const { epDir, bible, episode } = loadEpisode(epArg);
   const fps = episode.fps ?? bible.fps ?? 30;
@@ -42,7 +44,7 @@ export function buildTiming(epArg) {
     const sl = [];
     const beats = [];
     for (const l of lines.filter((x) => x.scene === s.id)) {
-      let d = dur[l.id];
+      let d = durOverride?.[l.id] ?? dur[l.id];
       if (d == null) {
         d = estimateDur(l.say ?? l.text);
         estimated++;
@@ -165,6 +167,7 @@ export function buildTiming(epArg) {
     if (track) audio.music.file = track;
     else if ((episode.music?.source ?? bible.music?.source) === 'file') console.log('  ! series chọn nhạc của tôi nhưng chưa có bài nào — dùng nhạc tự tổng hợp');
   }
+  if (!write) return { timed, audio, estimated, staleVoice, total: lines.length, seconds: durationInFrames / fps };
   writeJSON(path.join(epDir, D.build, 'timed.json'), timed);
   writeJSON(path.join(epDir, D.build, 'audio.json'), audio);
 

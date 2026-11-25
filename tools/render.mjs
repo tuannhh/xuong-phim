@@ -79,6 +79,22 @@ export async function renderStoryboard(epDir) {
   return { props, files, frames, layout };
 }
 
+// Số tab Chrome vẽ song song (mặc định nửa số nhân, tối đa 8 — đo 2026-11-25 trên i7-12700K: 4→8 nhanh hơn ~15%, trên 8 không nhanh thêm).
+// XUONG_CONCURRENCY ghi đè (số, hoặc "50%").
+export async function renderConcurrency() {
+  const v = process.env.XUONG_CONCURRENCY;
+  if (v) return /%$/.test(v) ? v : Math.max(1, Math.floor(+v) || 1);
+  const os = await import('node:os');
+  return Math.max(2, Math.min(8, Math.floor(os.cpus().length / 2)));
+}
+// Chrome vẽ bằng GPU (ANGLE): Windows nhanh hơn ~1,4 lần, ảnh giống bản CPU (SSIM ≥ 0,99) — bẫy 29.
+// macOS thì chậm hơn (memory-bank 07) nên giữ mặc định. XUONG_GL ghi đè: angle | angle-egl | swangle | swiftshader | egl | default.
+export function renderGl() {
+  const v = process.env.XUONG_GL;
+  if (v) return v === 'default' ? null : v;
+  return process.platform === 'win32' ? 'angle' : null;
+}
+
 export async function renderVideo(epDir, { preview = false } = {}) {
   const props = loadProps(epDir);
   if (!props.audio) console.log('  ! chưa có build/mix.wav — video sẽ không có tiếng');
@@ -89,10 +105,13 @@ export async function renderVideo(epDir, { preview = false } = {}) {
   fs.mkdirSync(path.dirname(output), { recursive: true });
   const t = Date.now();
   let last = -1;
-  await renderMedia({
+  const gl = renderGl();
+  const concurrency = await renderConcurrency();
+  const go = (glMode) => renderMedia({
     composition: comp, serveUrl, inputProps: props, codec: 'h264', outputLocation: output,
+    ...(glMode ? { chromiumOptions: { gl: glMode } } : {}),
     crf: preview ? 28 : 18, scale: preview ? 0.5 : 1, audioBitrate: '192k', pixelFormat: 'yuv420p',
-    concurrency: Math.max(2, Math.min(4, Math.floor((await import('node:os')).cpus().length / 2))),
+    concurrency,
     timeoutInMilliseconds: 120000,
     // In mỗi khi qua một mốc 5% (tiến độ hay nhảy cóc 36 → 38 → 41: so "đúng bội số 5" sẽ bỏ lỡ mốc và đứng yên mãi — bẫy 20).
     // Kèm số khung đã vẽ để người xem biết máy vẫn chạy. Trang web đọc stdout theo dòng → xuống dòng `\n` (in `\r` thì trang chậm một nhịp).
@@ -101,6 +120,14 @@ export async function renderVideo(epDir, { preview = false } = {}) {
       if (b > last) { last = b; progressLine(`  render ${p}% · khung ${renderedFrames}/${comp.durationInFrames}`); }
     },
   });
+  try { await go(gl); }
+  catch (e) {
+    if (!gl) throw e;
+    progressDone();
+    console.log(`  ! vẽ bằng GPU (${gl}) lỗi: ${String(e.message).split('\n')[0]} — vẽ lại bằng CPU`);
+    last = -1;
+    await go(null);
+  }
   progressDone();
   console.log(`  xong ${((Date.now() - t) / 1000).toFixed(0)}s → ${path.relative(process.cwd(), output)}`);
   return output;

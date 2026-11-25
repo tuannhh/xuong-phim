@@ -8,6 +8,8 @@
 //   audio       nhạc nền + SFX + voice → build/mix.wav, build/mouth.json
 //   render      xuất MP4 (out/<id>.mp4); --preview = nửa độ phân giải, nhanh
 //   all         voice → timing → audio → render
+//   voice-fix   chỉ sửa giọng: đọc lại câu đã đổi lời → trộn lại âm → thay tiếng vào MP4 cũ (không vẽ lại hình, ~30 giây).
+//               Hình/chữ trên màn hình đổi, hoặc câu mới không vừa chỗ cũ → tự dựng lại đầy đủ (báo lý do).
 //   studio      mở Remotion Studio để xem/chỉnh trực tiếp
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,7 +21,7 @@ import { SETS } from '../shared/catalog.mjs';
 import { ttsVi, which, spawnBin } from './platform.mjs';
 
 const [, , epArg, step = 'check', ...rest] = process.argv;
-if (!epArg) die('cách dùng: node tools/ep.mjs <thư-mục-tập> <check|script|storyboard|voice|timing|audio|render|all|studio>');
+if (!epArg) die('cách dùng: node tools/ep.mjs <thư-mục-tập> <check|script|storyboard|voice|timing|audio|render|all|voice-fix|studio>');
 const flags = new Set(rest);
 // --gemini: làm bản voice Gemini TTS song song (voice-gemini/, build-gemini/, out/<id>-gemini.mp4) để so sánh
 if (flags.has('--gemini')) process.env.SERIES_ENGINE = 'gemini';
@@ -200,10 +202,77 @@ async function storyboard() {
 async function render() {
   const { renderVideo } = await import('./render.mjs');
   await renderVideo(epDir, { preview: flags.has('--preview') });
-  if (flags.has('--preview') || flags.has('--gemini')) return; // bản xem nhanh / bản so sánh Gemini không chép ra thư mục xuất
+  if (flags.has('--preview')) return;
+  // lịch hình của bản MP4 vừa dựng — voice-fix ghép tiếng mới theo đúng lịch này
+  fs.copyFileSync(path.join(epDir, dirs().build, 'timed.json'), path.join(epDir, dirs().build, 'rendered.json'));
+  if (flags.has('--gemini')) return; // bản so sánh Gemini không chép ra thư mục xuất
+  await exportOut();
+}
+
+async function exportOut() {
   const { exportEpisode, displayPath } = await import('./output.mjs');
   const dst = exportEpisode(path.dirname(path.dirname(epDir)), path.basename(epDir));
   if (dst) console.log(`  xuất → ${displayPath(dst)}`);
+}
+
+// ───── chỉ sửa giọng (memory-bank bẫy 29)
+// Câu mới được đặt vào đúng chỗ (khung hình) của câu cũ: ngắn hơn → để lặng phần thừa; dài hơn tối đa FIT_FAST → nói nhanh lên (atempo, giữ cao độ).
+const FIT_FAST = 1.12, FIT_SLOW = 0.7;
+async function voiceFix() {
+  const D = dirs();
+  const b = (f) => path.join(epDir, D.build, f);
+  const mp4 = path.join(epDir, 'out', `${episode.id}${D.out}.mp4`);
+  const t0 = Date.now();
+  // lịch hình của bản đã dựng: rendered.json (ghi sau mỗi lần render); bản dựng trước khi có tính năng này → timed.json nếu không mới hơn MP4
+  let old = readJSON(b('rendered.json'), null);
+  if (!old && fs.existsSync(mp4) && fs.existsSync(b('timed.json')) && fs.statSync(b('timed.json')).mtimeMs <= fs.statSync(mp4).mtimeMs) old = readJSON(b('timed.json'));
+  const full = async (why) => {
+    console.log(`voice-fix: ${why} → dựng lại đầy đủ`);
+    timing(); audio(); await render();
+  };
+  check();
+  voice();
+  if (!fs.existsSync(mp4) || !old) return full('chưa có bản dựng trước (hoặc không rõ lịch hình của nó) để ghép tiếng');
+  const fps = old.fps;
+  const slots = {};
+  for (const s of old.scenes) for (const l of s.lines) slots[l.id] = (l.to - l.from) / fps;
+  // dựng lại lịch với thời lượng câu cũ: trùng khít bản đã render nghĩa là hình + chữ không đổi, chỉ giọng đổi
+  const sim = buildTiming(epDir, { durOverride: slots, write: false });
+  if (JSON.stringify(sim.timed) !== JSON.stringify(old)) return full('hình, chữ trên màn hình hoặc số câu đã đổi — không chỉ giọng');
+  const dur = readJSON(path.join(epDir, D.voice, 'dur.json'), {});
+  const fitDir = b('voice-fit');
+  fs.rmSync(fitDir, { recursive: true, force: true });
+  const plan = [];
+  for (const v of sim.audio.voiceLines) {
+    const slot = slots[v.id], d = dur[v.id];
+    if (d == null) return full(`câu ${v.id} chưa có giọng`);
+    const r = d / slot;
+    if (Math.abs(r - 1) < 0.02) continue;
+    const pct = `${r > 1 ? '+' : ''}${Math.round((r - 1) * 100)}%`;
+    if (r > FIT_FAST) return full(`câu ${v.id} dài hơn chỗ cũ ${pct} (tối đa +${Math.round((FIT_FAST - 1) * 100)}%)`);
+    if (r < FIT_SLOW) return full(`câu ${v.id} ngắn hơn chỗ cũ ${pct} — miệng nhân vật và phụ đề sẽ lệch rõ`);
+    plan.push({ v, r, pct });
+  }
+  for (const { v, r } of plan.filter((p) => p.r > 1)) {
+    fs.mkdirSync(fitDir, { recursive: true });
+    const out = path.join(fitDir, `${v.id}.wav`);
+    const f = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', path.join(epDir, v.file), '-filter:a', `atempo=${r.toFixed(4)}`, out], { stdio: 'inherit' });
+    if (f.status !== 0) die(`ffmpeg lỗi khi nén câu ${v.id}`);
+    v.file = `${D.build}/voice-fit/${v.id}.wav`;
+  }
+  plan.forEach((p) => console.log(`  ${p.v.id}: ${p.pct} so với chỗ cũ → ${p.r > 1 ? 'nói nhanh lên cho vừa' : 'để lặng phần thừa'}`));
+  // ghi lại lịch đúng như bản đã render (timed.json, phụ đề .srt) rồi trộn âm theo lịch đó
+  buildTiming(epDir, { durOverride: slots });
+  writeJSON(b('audio.json'), sim.audio);
+  audio();
+  const tmp = mp4.replace(/\.mp4$/, '.voice-fix.mp4');
+  const mux = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', mp4, '-i', b('mix.wav'), '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000',
+    '-t', (old.durationInFrames / fps).toFixed(3), '-movflags', '+faststart', tmp], { stdio: 'inherit' });
+  if (mux.status !== 0 || !fs.existsSync(tmp)) { fs.rmSync(tmp, { force: true }); die('ffmpeg lỗi khi ghép tiếng vào MP4'); }
+  fs.renameSync(tmp, mp4);
+  fs.copyFileSync(b('timed.json'), b('rendered.json'));
+  console.log(`  xong ${((Date.now() - t0) / 1000).toFixed(0)}s → ${rel(mp4)} (chỉ thay tiếng, giữ nguyên hình)`);
+  if (!flags.has('--gemini')) await exportOut();
 }
 
 async function studio() {
@@ -214,7 +283,7 @@ async function studio() {
   spawnBin(which('npx') ?? 'npx', ['remotion', 'studio', 'remotion/index.ts', `--props=${props}`, `--public-dir=${pub}`], { stdio: 'inherit', cwd: ROOT });
 }
 
-const steps = { check, script, storyboard, voice, timing, audio, render, studio };
+const steps = { check, script, storyboard, voice, timing, audio, render, studio, 'voice-fix': voiceFix };
 if (step === 'all') {
   check(); voice(); timing(); audio(); await render();
 } else if (steps[step]) await steps[step]();

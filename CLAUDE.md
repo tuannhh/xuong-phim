@@ -38,6 +38,7 @@ pnpm series characters <slug>                # bảng nhân vật
 pnpm series characters <slug> --huong        # bảng kiểm tra hướng cử chỉ (mọi tư thế khi quay phải / trái) → characters-huong.png
 pnpm series ep <slug> <số>                   # khung tập
 pnpm ep <thư-mục-tập> check|script|storyboard|voice|timing|audio|render [--preview]|all|studio
+pnpm ep <thư-mục-tập> voice-fix            # chỉ sửa giọng: đọc lại câu đổi + ghép tiếng vào MP4 cũ (~20 s), tự dựng lại đầy đủ nếu hình đổi
 pnpm typecheck
 pnpm ep <dir> all --gemini                  # bản voice Gemini TTS để so sánh
 pnpm series styles                           # cập nhật danh mục phong cách lemo-opuscar

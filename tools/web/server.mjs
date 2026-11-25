@@ -223,7 +223,7 @@ const cloneSeries = (from, f) => {
 // ───────── công việc chạy nền (mỗi lúc một việc)
 let job = null;
 let seq = 0;
-const LABEL = { plan: 'Lập kế hoạch', 'plan-add': 'Lập kế hoạch tập thêm', script: 'Viết kịch bản + storyboard', fix: 'Sửa theo góp ý', render: 'Dựng phim', characters: 'Vẽ bảng nhân vật', upload: 'Đẩy lên Google Drive', storyboard: 'Vẽ lại storyboard' };
+const LABEL = { plan: 'Lập kế hoạch', 'plan-add': 'Lập kế hoạch tập thêm', script: 'Viết kịch bản + storyboard', fix: 'Sửa theo góp ý', render: 'Dựng phim', voicefix: 'Chỉ sửa giọng', characters: 'Vẽ bảng nhân vật', upload: 'Đẩy lên Google Drive', storyboard: 'Vẽ lại storyboard' };
 const logLine = (j, s) => {
   for (const part of String(s).split(/\r?\n|\r/)) {
     const t = part.replace(/\s+$/, '');
@@ -659,7 +659,7 @@ const server = http.createServer(async (req, res) => {
         if (busyNow()) return fail(res, 409, `Đang chạy: ${job.label}. Chờ xong hoặc bấm Dừng.`);
         const n = b.episode ? Math.floor(+b.episode) : null;
         const fb = String(b.feedback ?? '').trim();
-        if (['script', 'fix', 'render', 'upload', 'storyboard'].includes(b.action) && !(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
+        if (['script', 'fix', 'render', 'voicefix', 'upload', 'storyboard'].includes(b.action) && !(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
         if (['plan', 'plan-add', 'script', 'fix'].includes(b.action)) {
           const pk = ai.pick(b.action === 'plan-add' ? 'plan' : b.action);
           if (!pk.bin) return fail(res, 400, pk.engine === 'codex' ? 'Máy chưa có lệnh `codex` — cài Codex (npm i -g @openai/codex, rồi codex login) hoặc đổi sang Claude ở Thiết lập.' : 'Máy chưa có lệnh `claude` — dán câu lệnh thay thế vào Claude Code, hoặc đổi sang Codex ở Thiết lập.');
@@ -712,6 +712,12 @@ const server = http.createServer(async (req, res) => {
           if (!fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json'))) return fail(res, 400, 'Tập này chưa có kịch bản.');
           queue.remove(slug, n); // bấm dựng ngay thì bỏ khỏi hàng đợi (nếu có)
           return send(res, 200, { job: jobView(startRender(slug, n)) });
+        }
+        // chỉ sửa giọng: đọc lại câu đã đổi lời, thay tiếng vào MP4 cũ (không vẽ lại hình); không ghép được thì ep.mjs tự dựng đầy đủ
+        if (b.action === 'voicefix') {
+          if (!fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json'))) return fail(res, 400, 'Tập này chưa có kịch bản.');
+          queue.remove(slug, n);
+          return send(res, 200, { job: jobView(startJob({ action: 'voicefix', slug, episode: n }, process.execPath, ['tools/ep.mjs', renderDir(slug, n), 'voice-fix'], { after: autoUpload(slug, n) })) });
         }
         if (b.action === 'storyboard') {
           const ed = path.join('series', slug, 'episodes', epId(n));

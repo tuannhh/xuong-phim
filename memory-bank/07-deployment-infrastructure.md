@@ -48,7 +48,7 @@ Biến bỏ bước: `XUONG_SKIP_TTS=1`, `XUONG_SKIP_SKILL=1`, `XUONG_SKIP_CLAUD
 | `.env` | Biến cho docker compose (mẫu `.env.example`) | Chỉ khi chạy Docker |
 | `series/*/.studio/drive.json`, `out/drive.json` | id thư mục/file Drive gắn với tài khoản trên máy này | — |
 
-**Biến môi trường:** `PORT` (trang web, mặc định 4710), `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác), `GEMINI_API_KEY` (ghi đè file khoá), `LEMO_LIB` (thư viện lemo-opuscar), `XUONG_CONFIG_DIR` (thư mục cấu hình), `XUONG_OUTPUT_DIR` (thư mục phim, ghi đè trang Thiết lập), `XUONG_OUTPUT_HOST_PATH` (Docker: đường dẫn máy thật để hiển thị), `XUONG_DOCKER`, `STUDIO_GOOGLE_BASE` (chỉ để kiểm thử với máy chủ Google giả lập).
+**Biến môi trường:** `PORT` (trang web, mặc định 4710), `STUDIO_CLAUDE_BIN` (đường dẫn lệnh claude), `STUDIO_CLAUDE_MODEL` (model cho bước sáng tác), `GEMINI_API_KEY` (ghi đè file khoá), `LEMO_LIB` (thư viện lemo-opuscar), `XUONG_CONFIG_DIR` (thư mục cấu hình), `XUONG_OUTPUT_DIR` (thư mục phim, ghi đè trang Thiết lập), `XUONG_OUTPUT_HOST_PATH` (Docker: đường dẫn máy thật để hiển thị), `XUONG_DOCKER`, `STUDIO_GOOGLE_BASE` (chỉ để kiểm thử với máy chủ Google giả lập), `XUONG_GL` (`angle`/`swangle`/`default` — cách Chrome vẽ khung; mặc định `angle` trên Windows), `XUONG_CONCURRENCY` (số luồng vẽ, số hoặc `50%`; mặc định nửa số nhân, 2–8).
 
 ## Docker (2026-11-22)
 
@@ -83,7 +83,7 @@ docker compose up -d --build  # → http://localhost:4710
 - Google Drive mới kiểm thử với máy chủ Google giả lập (OAuth + PKCE, tải lên theo khúc, ghi đè, tạo lại thư mục, làm mới/thu hồi token). Chưa chạy với Google thật vì cần người dùng tạo OAuth client trong Google Cloud.
 - `setup.sh` mới chạy thử trên máy đã có Homebrew/Node/uv/ffmpeg (bước cài các phần mềm đó chưa chạy thật trên máy trắng).
 - **Tốc độ Docker vs chạy thẳng (đo 2026-11-22, cùng Mac Apple Silicon):** giọng VieNeu 4 câu ~5 s (thẳng) vs ~39 s (Docker, ~8×); vẽ 300 khung 12,0 s vs 21,5 s (~1,8×); storyboard 11,2 s vs 17,4 s. Docker trên Mac chạy trong máy ảo Linux, không có Metal/GPU, CPU bị chia. → Trên Mac khuyên chạy thẳng (`pnpm web`); Docker để mang sang máy khác.
-- **GPU:** Remotion `chromiumOptions.gl='angle'` chậm hơn với SVG/CSS của xưởng, `swangle` chậm hơn nhiều; mã hoá phần cứng (VideoToolbox) không đổi gì vì nút thắt là vẽ khung. VieNeu mặc định ONNX Runtime CPU; nhánh GPU cần PyTorch CUDA (card NVIDIA, Windows/Linux, `vieneu[gpu]`) — chưa thử. Docker trên Windows + NVIDIA có thể chuyển GPU qua WSL2 — chưa thử.
+- **GPU:** trên Mac Remotion `chromiumOptions.gl='angle'` chậm hơn với SVG/CSS của xưởng (trên Windows thì ngược lại: ANGLE qua Direct3D nhanh ~1,7× → bật mặc định cho win32, xem bẫy 29; ghi đè `XUONG_GL`, số luồng `XUONG_CONCURRENCY`), `swangle` chậm hơn nhiều; mã hoá phần cứng (VideoToolbox) không đổi gì vì nút thắt là vẽ khung. VieNeu mặc định ONNX Runtime CPU; nhánh GPU cần PyTorch CUDA (card NVIDIA, Windows/Linux, `vieneu[gpu]`) — chưa thử. Docker trên Windows + NVIDIA có thể chuyển GPU qua WSL2 — chưa thử.
 
 ## Cài thẳng trên máy khác — không cần Docker (2026-11-22)
 

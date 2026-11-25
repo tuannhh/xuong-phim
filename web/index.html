@@ -246,7 +246,7 @@ const DRAFT = new Map(); // góp ý đang gõ, giữ qua các lần vẽ lại
 const busy = () => JOB && (JOB.status === 'running' || JOB.status === 'stopping');
 let QUEUE = { items: [], history: [], paused: false };
 const inQueue = (slug, n) => QUEUE.items.some((i) => i.slug === slug && i.episode === n);
-const rendering = (slug, n) => busy() && JOB.action === 'render' && JOB.slug === slug && JOB.episode === n;
+const rendering = (slug, n) => busy() && (JOB.action === 'render' || JOB.action === 'voicefix') && JOB.slug === slug && JOB.episode === n;
 // hàng đợi dựng phim (cột bên, mọi series)
 const QST = { done: ['ok', 'xong'], error: ['bad', 'lỗi'], stopped: ['', 'đã dừng'], skipped: ['', 'bỏ qua'] };
 const queuePanel = () => {
@@ -270,6 +270,10 @@ const renderBtn = (slug, e, label, cls) => {
   if (inQueue(slug, e.number)) return h('span', { class: 'pill info' }, `trong hàng đợi · thứ ${QUEUE.items.findIndex((i) => i.slug === slug && i.episode === e.number) + 1}`);
   return h('button', { class: `btn ${cls}`, onclick: () => runJob(slug, 'render', e.number) }, label);
 };
+
+// chỉ sửa giọng: sửa cách đọc / lời đọc mà hình và chữ trên màn hình giữ nguyên → đọc lại câu đổi, thay tiếng vào MP4 cũ (~30 giây)
+const voiceFixBtn = (slug, e) => rendering(slug, e.number) || inQueue(slug, e.number) ? null
+  : h('button', { class: 'btn', 'data-job': 1, disabled: busy(), title: 'Đọc lại các câu đã đổi lời rồi thay tiếng vào phim cũ, không vẽ lại hình (khoảng nửa phút). Nếu hình hoặc chữ trên màn hình đã đổi, hay câu mới không vừa chỗ cũ, máy tự dựng lại đầy đủ.', onclick: () => runJob(slug, 'voicefix', e.number) }, 'Chỉ sửa giọng');
 
 // ───────── công việc chạy nền
 const jobPill = () => {
@@ -1061,7 +1065,7 @@ const openSeries = async (slug, keepScroll) => {
         h('div', { class: 'grid', style: { gap: '12px' } },
           e.stale ? h('div', { class: 'note warn' }, 'Kịch bản đã sửa sau lần dựng này — bấm "Dựng lại" để có bản mới.') : null,
           h('div', { class: 'row' }, h('a', { class: 'btn dark', href: file(`${base}/out/${e.id}.mp4`), download: `${slug}-${e.id}.mp4` }, 'Tải MP4'), e.srt && h('a', { class: 'btn', href: file(`${base}/out/${e.id}.srt`), download: `${slug}-${e.id}.srt` }, 'Phụ đề SRT'),
-            renderBtn(slug, e, 'Dựng lại', '')),
+            renderBtn(slug, e, 'Dựng lại', ''), voiceFixBtn(slug, e)),
           exportRow(e), driveRow(e), links, linesEditor(e, base), fix)),
       board && h('details', {}, h('summary', {}, `Storyboard (${e.board.length} cảnh)`), board)];
     return h('div', { class: 'card ep', id: e.id }, h('div', { class: 'hd' }, h('div', { class: 'no' }, String(e.number).padStart(2, '0')), h('div', { style: { flex: 1 } }, h('h3', {}, e.title || `Tập ${e.number}`), h('div', { class: 'mut small' }, [e.duration ? `khoảng ${e.duration} giây` : '', e.batch ? `tập thêm · đợt ${batchNo(e.batch)}` : ''].filter(Boolean).join(' · '))), h('span', { class: `pill ${chip[0]}` }, chip[1])), body);

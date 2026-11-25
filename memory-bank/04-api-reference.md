@@ -17,7 +17,7 @@ Chỉ nghe `127.0.0.1`; từ chối Host khác `localhost`/`127.0.0.1`. Mọi y�
 | PUT | `/api/series/<slug>/batch` | Đợt thêm tập: `{ id?, count 1–20, idea, sourceMode, materials[] }` → tạo (`dot-2`, `dot-3`…) hoặc sửa → `{ batch }`; lưu ở `brief.batches[]` |
 | DELETE | `/api/series/<slug>/batch?id=` | Huỷ đợt chưa có tập trong kế hoạch (xoá cả tư liệu của đợt) |
 | POST | `/api/series/<slug>/approve` | `{ episodes: [n…] }` → `status: "duyet"` |
-| POST | `/api/series/<slug>/jobs` | `{ action, episode?, feedback? }` — chạy một việc nền (409 nếu đang có việc — riêng `render` khi đang bận thì xếp vào hàng đợi, trả `{ queued: <vị trí>, queue }`; 409 nếu chính tập đó đang dựng). `action`: `plan`/`plan-add` (kèm `batch`: id đợt)/`script`/`fix` (AI; series có tư liệu → bước "Chuẩn bị tư liệu" chạy trước), `render`, `storyboard` (check → script → storyboard, sau khi sửa lời thoại), `upload`, `characters` |
+| POST | `/api/series/<slug>/jobs` | `{ action, episode?, feedback? }` — chạy một việc nền (409 nếu đang có việc — riêng `render` khi đang bận thì xếp vào hàng đợi, trả `{ queued: <vị trí>, queue }`; 409 nếu chính tập đó đang dựng). `action`: `plan`/`plan-add` (kèm `batch`: id đợt)/`script`/`fix` (AI; series có tư liệu → bước "Chuẩn bị tư liệu" chạy trước), `render`, `voicefix` (chỉ sửa giọng: `node tools/ep.mjs <dir> voice-fix` — đọc lại câu đổi, ghép tiếng vào MP4 cũ; tự dựng đầy đủ khi hình đổi), `storyboard` (check → script → storyboard, sau khi sửa lời thoại), `upload`, `characters` |
 | GET | `/api/job?from=<n>` | `{ job, queue }` — việc gần nhất + log từ dòng n; `queue = { paused, items[{slug,episode,title}], history[{slug,episode,status: done|error|stopped|skipped,title}] }` |
 | POST | `/api/series/<slug>/queue` | `{ episodes: [n…] }` — thêm các tập vào hàng đợi dựng (bỏ tập đã có / đang dựng; tập chưa có `episode.json` → 400); rảnh thì bắt đầu ngay |
 | DELETE | `/api/queue?slug=&episode=` | Bỏ một tập khỏi hàng đợi; không tham số → xoá cả hàng |
@@ -60,7 +60,7 @@ pnpm series status <slug>          trạng thái các tập
 pnpm series styles                 cập nhật docs/lemo-styles.md
 pnpm series export <slug>          chép mọi phim đã dựng vào thư mục phim chung
 uv run tools/materials/extract.py --out <dir> <file|thư mục>…   đọc tư liệu → index.md + text/ + images/
-pnpm ep <dir> check|script|storyboard|voice|timing|audio|render [--preview]|all [--gemini] [--force]|studio
+pnpm ep <dir> check|script|storyboard|voice|timing|audio|render [--preview]|all [--gemini] [--force]|voice-fix|studio
 pnpm typecheck
 node tools/tts/test.mjs            kiểm thử bộ chuẩn hoá lời đọc
 tts-vi …                           xem tools/tts-vi/README.md
