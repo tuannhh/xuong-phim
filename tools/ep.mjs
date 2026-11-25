@@ -16,6 +16,7 @@ import { ROOT, die, dirs, episodeLines, loadEpisode, readJSON, voiceSig, writeJS
 import { castVoices } from './voices.mjs';
 import { buildTiming } from './timing.mjs';
 import { SETS } from '../shared/catalog.mjs';
+import { ttsVi, which, spawnBin } from './platform.mjs';
 
 const [, , epArg, step = 'check', ...rest] = process.argv;
 if (!epArg) die('cách dùng: node tools/ep.mjs <thư-mục-tập> <check|script|storyboard|voice|timing|audio|render|all|studio>');
@@ -118,7 +119,9 @@ function voice() {
   // bảng lời đọc đã chuẩn hoá (để soát cách đọc)
   fs.writeFileSync(path.join(vdir, 'loi-doc.md'), `| câu | người nói | giọng | chữ hiển thị | máy đọc |\n|---|---|---|---|---|\n` + lines.map((l) => `| ${l.id} | ${l.speaker ?? ''} | ${D.engine === 'gemini' ? l.geminiVoice : l.voice ?? ''} | ${l.text} | ${l.say ?? '='} |`).join('\n') + '\n');
   const engines = readJSON(path.join(vdir, 'engines.json'), {});
-  const r = spawnSync('tts-vi', ['--lines', tmp, '-d', vdir, ...(D.engine === 'gemini' ? ['--engine', 'gemini-api'] : [])], { stdio: 'inherit' });
+  const tts = ttsVi();
+  if (!tts) die('chưa có lệnh tts-vi — cài: ' + (process.platform === 'win32' ? 'setup.cmd' : 'bash setup.sh'));
+  const r = spawnSync(tts.cmd, [...tts.pre, '--lines', tmp, '-d', vdir, ...(D.engine === 'gemini' ? ['--engine', 'gemini-api'] : [])], { stdio: 'inherit' });
   if (r.status !== 0) die('tts-vi lỗi (xem log ở trên)');
   Object.assign(engines, readJSON(path.join(vdir, 'engine.json'), {}));
   writeJSON(path.join(vdir, 'engines.json'), engines);
@@ -208,7 +211,7 @@ async function studio() {
   const pub = preparePublic(epDir);
   const props = path.join(epDir, dirs().build, 'props.json');
   writeJSON(props, loadProps(epDir));
-  spawn('npx', ['remotion', 'studio', 'remotion/index.ts', `--props=${props}`, `--public-dir=${pub}`], { stdio: 'inherit', cwd: ROOT });
+  spawnBin(which('npx') ?? 'npx', ['remotion', 'studio', 'remotion/index.ts', `--props=${props}`, `--public-dir=${pub}`], { stdio: 'inherit', cwd: ROOT });
 }
 
 const steps = { check, script, storyboard, voice, timing, audio, render, studio };

@@ -14,13 +14,17 @@ function chromePath() {
     for (const d of fs.readdirSync(base)) {
       const dir = path.join(base, d);
       for (const sub of fs.readdirSync(dir)) {
-        const exe = path.join(dir, sub, 'chrome-headless-shell');
-        if (fs.existsSync(exe)) return exe;
+        for (const name of ['chrome-headless-shell', 'chrome-headless-shell.exe']) {
+          const exe = path.join(dir, sub, name);
+          if (fs.existsSync(exe)) return exe;
+        }
       }
     }
   }
-  const mac = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-  if (fs.existsSync(mac)) return mac;
+  const known = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    ...['PROGRAMFILES', 'PROGRAMFILES(X86)', 'LOCALAPPDATA'].filter((k) => process.env[k]).map((k) => path.join(process.env[k], 'Google/Chrome/Application/chrome.exe'))];
+  const found = known.find((p) => fs.existsSync(p));
+  if (found) return found;
   throw new Error('Không thấy Chrome — chạy một lần pnpm ep … storyboard để Remotion tải Chrome.');
 }
 

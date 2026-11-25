@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { ROOT } from './lib.mjs';
+import { isMain } from './platform.mjs';
 
 export function buildLemoStyles(lib = process.env.LEMO_LIB || path.join(os.homedir(), 'lemo-opuscar')) {
   const dir = path.join(lib, 'styles');
@@ -26,4 +27,4 @@ export function buildLemoStyles(lib = process.env.LEMO_LIB || path.join(os.homed
   fs.writeFileSync(path.join(ROOT, 'docs/lemo-styles.md'), out.join('\n') + '\n');
   return list.length;
 }
-if (import.meta.url === `file://${process.argv[1]}`) console.log(`lemo-opuscar: ${buildLemoStyles()} phong cách → docs/lemo-styles.md`);
+if (isMain(import.meta.url)) console.log(`lemo-opuscar: ${buildLemoStyles()} phong cách → docs/lemo-styles.md`);

@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { IS_WIN, isMain, spawnBin } from '../platform.mjs';
 import { FORMATS, PRESETS, ROOT, readJSON, writeJSON } from '../lib.mjs';
 import { HAIRS, KINDS, MASCOTS, SETS, allHairs } from '../../shared/catalog.mjs';
 import { WM_DEFAULT, cleanWatermark } from '../../shared/watermark.mjs';
@@ -285,7 +286,7 @@ const childEnv = (claude) => {
 // chạy một tiến trình con trong việc j, đẩy log lên trang; xong mã 0 → resolve, còn lại → reject
 const runChild = (j, cmd, args, { claude = false, codex = false } = {}) => new Promise((ok, no) => {
   if (j.status !== 'running') return no(new Error(''));
-  const child = (j.child = spawn(cmd, args, { cwd: ROOT, env: childEnv(claude || codex), stdio: ['ignore', 'pipe', 'pipe'] }));
+  const child = (j.child = spawnBin(cmd, args, { cwd: ROOT, env: childEnv(claude || codex), stdio: ['ignore', 'pipe', 'pipe'] }));
   if (codex)
     pipeLines(child.stdout, (line) => {
       let m;
@@ -310,7 +311,7 @@ const runChild = (j, cmd, args, { claude = false, codex = false } = {}) => new P
           if (c.type === 'tool_use') {
             const i = c.input ?? {};
             const d = c.name === 'Bash' ? i.command : i.file_path ?? i.path ?? i.pattern ?? i.skill ?? i.query ?? i.url ?? '';
-            logLine(j, `  ▸ ${c.name}${d ? `: ${String(d).replace(ROOT + '/', '').split('\n')[0].slice(0, 150)}` : ''}`);
+            logLine(j, `  ▸ ${c.name}${d ? `: ${String(d).replace(ROOT + '/', '').replace(ROOT + '\\', '').split('\n')[0].slice(0, 150)}` : ''}`);
           }
         }
       if (m.type === 'result') {
@@ -520,7 +521,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, autostart.status());
     }
     if (p === '/api/settings') {
-      const view = () => ({ outputDir: output.displayPath(output.outputDir()), defaultOutputDir: output.defaultOutputDir(), locked: output.outputLocked(), canOpen: !process.env.XUONG_DOCKER && ['darwin', 'linux'].includes(process.platform), docker: !!process.env.XUONG_DOCKER });
+      const view = () => ({ outputDir: output.displayPath(output.outputDir()), defaultOutputDir: output.defaultOutputDir(), locked: output.outputLocked(), canOpen: !process.env.XUONG_DOCKER && ['darwin', 'linux', 'win32'].includes(process.platform), docker: !!process.env.XUONG_DOCKER });
       if (req.method === 'GET') return send(res, 200, view());
       if (req.method === 'PUT') {
         try { output.setOutputDir((await readBody(req)).outputDir); } catch (e) { return fail(res, 400, e.message); }
@@ -533,7 +534,7 @@ const server = http.createServer(async (req, res) => {
       let dir = output.outputDir();
       if (b.slug && SLUG.test(b.slug)) { const bible = readJSON(path.join(seriesDir(b.slug), 'bible.json'), null); if (bible) dir = output.seriesOutputDir(bible.name || b.slug); }
       fs.mkdirSync(dir, { recursive: true });
-      spawn(process.platform === 'darwin' ? 'open' : 'xdg-open', [dir], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
+      spawn(IS_WIN ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open', [dir], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
       return send(res, 200, { ok: true, dir: output.displayPath(dir) });
     }
     if (p.startsWith('/api/drive')) {
@@ -739,7 +740,7 @@ const server = http.createServer(async (req, res) => {
     fail(res, e.code === 400 ? 400 : 500, e.message);
   }
 });
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   // cổng đã có Xưởng phim khác chạy (vd bản tự mở khi bật máy) → thoát êm, mã 0 (launchd/systemd không chạy lại vòng lặp)
   // HOST=0.0.0.0 chỉ dùng trong Docker (cổng được publish ra 127.0.0.1 của máy thật); chạy thẳng trên máy luôn là 127.0.0.1
   const listen = () => server.listen(PORT, process.env.XUONG_DOCKER ? process.env.HOST || '0.0.0.0' : '127.0.0.1', () => console.log(`Xưởng phim: http://localhost:${PORT}${CLAUDE ? '' : '  (chưa thấy lệnh claude — các bước sáng tác phải dán lệnh vào Claude Code)'}`));

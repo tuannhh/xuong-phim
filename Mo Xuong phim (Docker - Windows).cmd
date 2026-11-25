@@ -1,5 +1,5 @@
 @echo off
-rem Mở Xưởng phim bằng Docker Desktop trên Windows (bấm đúp). Chạy thẳng trên Windows: dùng WSL2 Ubuntu rồi chạy  bash start.sh
+rem Mở Xưởng phim bằng Docker Desktop trên Windows (bấm đúp). Chạy thẳng trên Windows (nhanh hơn): bấm đúp start.cmd (lần đầu setup.cmd)
 chcp 65001 >nul
 cd /d "%~dp0"
 where docker >nul 2>nul || (echo Chua co Docker Desktop - cai tai https://www.docker.com/products/docker-desktop/ & pause & exit /b 1)

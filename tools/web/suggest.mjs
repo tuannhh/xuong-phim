@@ -1,7 +1,7 @@
 // Nút "Gợi ý" cạnh các ô nhập trên trang: hỏi nhanh Claude hoặc Codex (model nhẹ, không công cụ) 3 phương án cho một ô,
 // dựa trên những gì người dùng đã điền. Không ghi file, không đi qua hàng việc nền (chạy song song được với việc dựng phim).
 // Công cụ + model + effort lấy từ Thiết lập AI (vai trò "suggest", tools/web/ai.mjs).
-import { spawn } from 'node:child_process';
+import { spawnBin } from '../platform.mjs';
 import os from 'node:os';
 
 // Ô nào gợi ý được + Claude cần viết gì cho ô đó
@@ -58,7 +58,7 @@ export function suggest(ai, env, field, ctx, timeoutMs = 90000) {
   if (busy) return Promise.reject(Object.assign(new Error('Đang lấy một gợi ý khác — thử lại sau vài giây.'), { code: 409 }));
   busy = true;
   return new Promise((ok, no) => {
-    const child = spawn(ai.bin, argsOf[name](promptOf(field, ctx), ai.model, ai.effort), { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawnBin(ai.bin, argsOf[name](promptOf(field, ctx), ai.model, ai.effort), { env, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '', err = '';
     const timer = setTimeout(() => { child.kill('SIGTERM'); no(new Error('Gợi ý quá lâu — thử lại.')); }, timeoutMs);
     child.stdout.on('data', (d) => (out += d));

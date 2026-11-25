@@ -6,6 +6,7 @@ import { FORMATS, dirs, episodeLines, estimateDur, loadEpisode, readJSON, resolv
 import { revealFrames, revealItems, storyTimes, STORY_SFX } from '../shared/reveal.mjs';
 import { watermarkProps } from '../shared/watermark.mjs';
 import { pickTrack } from './music-source.mjs';
+import { isMain } from './platform.mjs';
 
 const TRANS_DEFAULT = { type: 'slide', frames: 12 };
 
@@ -179,7 +180,7 @@ export function buildTiming(epArg) {
   return { timed, audio, estimated, staleVoice, total: lines.length, seconds: durationInFrames / fps };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const r = buildTiming(process.argv[2] ?? '.');
   console.log(`timing: ${r.timed.scenes.length} cảnh, ${r.seconds.toFixed(1)}s${r.estimated ? ` (ước lượng ${r.estimated}/${r.total} câu — chưa có voice)` : ''}`);
 }

@@ -17,6 +17,9 @@ import numpy as np
 import soundfile as sf
 
 HERE = Path(__file__).resolve().parent
+for _s in (sys.stdout, sys.stderr):  # Windows: console mặc định cp1252 không in được tiếng Việt / emoji
+    try: _s.reconfigure(encoding="utf-8")
+    except Exception: pass
 SR = 48000
 CTX = ssl.create_default_context(cafile="/etc/ssl/cert.pem" if os.path.exists("/etc/ssl/cert.pem") else None)
 

@@ -10,7 +10,7 @@ Sản xuất series phim ngắn (TikTok/Reels/Shorts) bằng Claude Code: ý tư
 |---|---|
 | macOS (Apple Silicon hoặc Intel) | mở Terminal, chạy 2 lệnh dưới |
 | Linux (Ubuntu/Debian) | như trên (sẽ hỏi mật khẩu để cài gói hệ thống) |
-| Windows 10/11 | cài WSL2 + Ubuntu (PowerShell quản trị: `wsl --install -d Ubuntu`, khởi động lại máy), mở Ubuntu, chạy 2 lệnh dưới **trong thư mục nhà của Ubuntu** (`~`), không clone vào ổ `C:` (`/mnt/c/…` chậm hơn nhiều). Trang web mở bằng trình duyệt Windows ở http://localhost:4710 như bình thường |
+| Windows 10/11 | **chạy thẳng trên Windows, không cần WSL** — xem mục "Windows" ngay dưới. (Vẫn có thể dùng WSL2 + Ubuntu rồi chạy 2 lệnh dưới **trong thư mục nhà của Ubuntu** `~`, không clone vào `/mnt/c/…` vì chậm hơn nhiều) |
 
 ```bash
 git clone https://github.com/tuannhh/xuong-phim.git ~/social-series-studio
@@ -28,6 +28,19 @@ Mọi thư viện đều ghim phiên bản (`pnpm-lock.yaml`, `uv.lock`, VieNeu 
 Mở thư mục này bằng Claude Desktop (tab Code) cũng được: nếu máy chưa cài đủ, Claude tự nhận ra (hook trong `.claude/settings.json`) và chạy `setup.sh` giúp.
 
 Muốn Gemini làm giọng dự phòng: điền đường dẫn file khoá vào `tools/tts-vi/config.env` (không commit).
+
+### Windows (chạy thẳng, không WSL)
+
+```powershell
+git clone https://github.com/tuannhh/xuong-phim.git
+cd xuong-phim
+.\setup.cmd      # cài mọi thứ còn thiếu bằng winget (Git, Node ≥ 20, uv, ffmpeg) + pnpm, thư viện, Chrome headless, giọng VieNeu, skill /series, Claude CLI; cuối cùng dựng thử tập mẫu
+.\start.cmd      # mở trang http://localhost:4710 (lần đầu hỏi chạy thẳng hay Docker; --chon để đổi)
+```
+
+Cả hai bấm đúp được. Cần Windows 10 21H1+/11 có `winget` (App Installer). `setup.cmd` chạy lại bao nhiêu lần cũng được. Nên để repo ở ổ nhanh (SSD) và ngoài thư mục bị đồng bộ/diệt virus quét liên tục. Giọng VieNeu cài vào thư mục `VieNeu-TTS` nằm cạnh thư mục xưởng (đổi bằng biến `VIENEU_DIR`; đã có `tools\tts-vi\config.env` thì dùng lại đúng thư mục đó). Bật "Tự mở khi đăng nhập máy" ở trang Thiết lập hoạt động trên Windows (tệp `.vbs` trong thư mục Startup).
+
+Nếu Chrome headless báo thiếu `chrome-headless-shell.exe`: phần mềm diệt virus đã xoá nó — thêm `node_modules\.remotion` vào danh sách loại trừ rồi chạy lại `setup.cmd`.
 
 ## Chạy bằng Docker (không cần cài từng phần mềm)
 

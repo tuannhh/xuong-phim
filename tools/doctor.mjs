@@ -10,12 +10,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { IS_WIN, isMain, probe as probeCmd, ttsVi, spawnBinSync } from './platform.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const run = (cmd, args = []) => {
-  const r = spawnSync(cmd, args, { encoding: 'utf8', timeout: 15000 });
-  return r.status === 0 ? (r.stdout || r.stderr).trim().split('\n')[0] : null;
-};
+const run = probeCmd;
+const SETUP = IS_WIN ? 'setup.cmd' : 'bash setup.sh';
+const tts = () => { const t = ttsVi(); if (!t) return false; return spawnBinSync(t.cmd, [...t.pre, '-h'], { encoding: 'utf8', timeout: 30000 }).status === 0; };
 const exists = (p) => fs.existsSync(path.join(ROOT, p));
 
 export function checks() {
@@ -32,7 +32,7 @@ export function checks() {
     { id: 'fonts', label: 'Font', ok: exists('assets/fonts/fonts.json') && fs.readdirSync(path.join(ROOT, 'assets/fonts')).some((f) => f.endsWith('.woff2')), need: true },
     { id: 'venv', label: 'Môi trường Python âm thanh', ok: exists('.venv'), need: true },
     { id: 'sfx', label: 'Kho SFX', ok: exists('assets/sfx') && fs.readdirSync(path.join(ROOT, 'assets/sfx')).some((f) => f.endsWith('.wav')), need: true },
-    { id: 'tts', label: 'Lệnh tts-vi (giọng đọc)', ok: !!run('tts-vi', ['-h']), need: true },
+    { id: 'tts', label: 'Lệnh tts-vi (giọng đọc)', ok: tts(), need: true },
     { id: 'skill', label: 'Skill /series', ok: skillTarget === path.join(ROOT, 'skill'), info: skillTarget ?? 'chưa gắn', need: false },
     { id: 'claude', label: 'Lệnh claude (nút AI trên trang web)', ok: !!run('claude', ['--version']), need: false },
   ];
@@ -44,7 +44,7 @@ const REF = { name: 'MacBook Pro M1 Pro (máy gốc)', voice: 12, render: 12, to
 
 async function selfTest() {
   const r = checks();
-  if (!r.ok) { console.log(`Còn thiếu: ${r.list.filter((c) => !c.ok && c.need).map((c) => c.label).join(', ')} — chạy: bash setup.sh`); return 1; }
+  if (!r.ok) { console.log(`Còn thiếu: ${r.list.filter((c) => !c.ok && c.need).map((c) => c.label).join(', ')} — chạy: ${SETUP}`); return 1; }
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'xuong-thu-may-'));
   fs.cpSync(path.join(ROOT, 'tools/selftest/thu-may'), path.join(tmp, 'thu-may'), { recursive: true });
   const epDir = path.join(tmp, 'thu-may/episodes/ep01');
@@ -77,7 +77,7 @@ async function selfTest() {
   const probe = fs.existsSync(mp4) ? run('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height:format=duration', '-of', 'csv=p=0', mp4]) : null;
   fs.rmSync(tmp, { recursive: true, force: true });
   if (code !== 0 || !probe) {
-    console.log(`\n✗ Dựng thử KHÔNG thành công (mã thoát ${code}).${err ? `\n${err}` : ''}\n  Chạy lại: bash setup.sh  rồi  pnpm doctor --thu`);
+    console.log(`\n✗ Dựng thử KHÔNG thành công (mã thoát ${code}).${err ? `\n${err}` : ''}\n  Chạy lại: ${SETUP}  rồi  pnpm doctor --thu`);
     return 1;
   }
   const f = (x) => `${x.toFixed(0)} giây`;
@@ -86,12 +86,12 @@ async function selfTest() {
   console.log(`  Giọng đọc (gồm nạp model): ${f(tVoice)}${engine ? ` · ${engine}` : ''}   [máy gốc ~${REF.voice} giây]`);
   console.log(`  Vẽ + xuất MP4:             ${f(tRender)}   [máy gốc ~${REF.render} giây]`);
   console.log(`  Tổng:                      ${f(total)}   [máy gốc ~${REF.total} giây — ${REF.name}]`);
-  if (engine && !engine.startsWith('vieneu')) console.log('  ! Giọng không chạy bằng VieNeu (đang dùng dự phòng Gemini) — kiểm tra lại: bash tools/tts-vi/install.sh');
+  if (engine && !engine.startsWith('vieneu')) console.log('  ! Giọng không chạy bằng VieNeu (đang dùng dự phòng Gemini) — kiểm tra lại: ' + (IS_WIN ? 'powershell -ExecutionPolicy Bypass -File tools\\tts-vi\\install.ps1' : 'bash tools/tts-vi/install.sh'));
   console.log(ratio <= 1.3 ? '  Tốc độ ngang máy gốc.' : `  Chậm hơn máy gốc khoảng ${ratio.toFixed(1)} lần — một tập 90 giây sẽ mất tương ứng lâu hơn.`);
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const r = checks();
   if (process.argv.includes('--thu')) process.exitCode = await selfTest();
   else if (process.argv.includes('--json')) console.log(JSON.stringify(r));
@@ -99,10 +99,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     const miss = r.list.filter((c) => !c.ok);
     if (miss.length)
       console.log(`Xưởng phim chưa cài đủ trên máy này: ${miss.map((c) => c.label).join(', ')}.
-Hãy chạy \`bash setup.sh\` ở thư mục xưởng (chạy nền, mất vài phút; lần đầu tải VieNeu và Chrome headless). Nếu script dừng vì cần mật khẩu máy (cài Homebrew) thì nhờ người dùng tự chạy \`bash setup.sh\` trong Terminal. Xong thì chạy \`node tools/doctor.mjs\` để kiểm tra lại. Lệnh claude cần đăng nhập một lần (\`claude\` → \`/login\`) — việc đó người dùng tự làm.`);
+Hãy chạy \`${SETUP}\` ở thư mục xưởng (chạy nền, mất vài phút; lần đầu tải VieNeu và Chrome headless). Nếu script dừng vì cần mật khẩu máy (cài Homebrew) thì nhờ người dùng tự chạy \`${SETUP}\` trong Terminal. Xong thì chạy \`node tools/doctor.mjs\` để kiểm tra lại. Lệnh claude cần đăng nhập một lần (\`claude\` → \`/login\`) — việc đó người dùng tự làm.`);
   } else {
     for (const c of r.list) console.log(`  ${c.ok ? '✓' : c.need ? '✗' : '!'} ${c.label}${c.info ? ` — ${c.info}` : ''}`);
-    console.log(r.ok ? 'Đủ để dùng xưởng.' : 'Còn thiếu — chạy: bash setup.sh');
+    console.log(r.ok ? 'Đủ để dùng xưởng.' : `Còn thiếu — chạy: ${SETUP}`);
     process.exitCode = r.ok ? 0 : 1;
   }
 }

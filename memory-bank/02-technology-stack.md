@@ -43,7 +43,8 @@
 |---|---|
 | `remotion/` | `Episode.tsx` (composition), `kit/` (nhân vật, bối cảnh, phụ đề, logo, theme), `scenes/` (template cảnh), `custom/` (cảnh riêng) |
 | `shared/reveal.mjs` | Lịch hiện mục — dùng chung cho hình và SFX |
-| `setup.sh` | Cài máy mới (mọi phần mềm + thư viện) |
+| `setup.sh` · `setup.ps1` (`setup.cmd`) | Cài máy mới (mọi phần mềm + thư viện) — macOS/Linux · Windows |
+| `tools/platform.mjs` | Đa nền tảng: `isMain`, `which`, `spawnBin`, `ttsVi` |
 | `.claude/` | `settings.json` (hook SessionStart → `doctor.mjs --hook`), `launch.json` (khởi động trang web trong Claude Desktop) |
 | `tools/` | `ep.mjs`, `series.mjs`, `timing.mjs`, `render.mjs`, `voices.mjs`, `lib.mjs`, `doctor.mjs`, `tts/`, `tts-vi/`, `audio/`, `web/` (`server.mjs`, `drive.mjs`) |
 | `web/index.html` | Giao diện trang web tại máy |

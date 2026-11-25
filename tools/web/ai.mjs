@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawn, spawnSync } from 'node:child_process';
+import { which, spawnBin, spawnBinSync } from '../platform.mjs';
 
 export const ROLES = {
   plan: 'Lập kế hoạch + thiết kế nhân vật',
@@ -43,7 +43,6 @@ const FILE = () => path.join(process.env.XUONG_CONFIG_DIR || path.join(os.homedi
 const MODEL_RE = /^[\w.\-:[\]]{0,80}$/;
 const EFFORT_RE = /^[a-z]{0,12}$/;
 
-const which = (bin) => spawnSync('which', [bin], { encoding: 'utf8' }).stdout.trim() || null;
 export const BIN = {
   claude: process.env.STUDIO_CLAUDE_BIN || which('claude'),
   codex: process.env.STUDIO_CODEX_BIN || which('codex'),
@@ -86,7 +85,7 @@ export function codexModels({ refresh = false, timeoutMs = 20000 } = {}) {
   if (!BIN.codex) return Promise.resolve({ list: [], error: 'Máy chưa có lệnh codex.' });
   if (!refresh && codexCache.list && Date.now() - codexCache.at < 10 * 60 * 1000) return Promise.resolve(codexCache);
   return new Promise((ok) => {
-    const child = spawn(BIN.codex, ['app-server'], { stdio: ['pipe', 'pipe', 'ignore'] });
+    const child = spawnBin(BIN.codex, ['app-server'], { stdio: ['pipe', 'pipe', 'ignore'] });
     const list = [];
     let buf = '', id = 1, done = false;
     const end = (error = '') => {
@@ -123,7 +122,7 @@ export function codexModels({ refresh = false, timeoutMs = 20000 } = {}) {
 let codexLogin = { at: 0, ok: false };
 export function status() {
   if (BIN.codex && Date.now() - codexLogin.at > 60000) {
-    const r = spawnSync(BIN.codex, ['login', 'status'], { encoding: 'utf8', timeout: 10000 });
+    const r = spawnBinSync(BIN.codex, ['login', 'status'], { encoding: 'utf8', timeout: 10000 });
     codexLogin = { at: Date.now(), ok: r.status === 0 && !/not logged in/i.test(r.stdout + r.stderr) };
   }
   return {
@@ -155,7 +154,7 @@ export const CODEX_NOTE = ' Bạn là Codex, chạy trong hộp cát: KHÔNG m�
 
 // đọc một dòng JSONL của `codex exec --json` → dòng log cho trang (null = bỏ qua)
 export function codexLine(m, root) {
-  const rel = (s) => String(s ?? '').replaceAll(root + '/', '');
+  const rel = (s) => String(s ?? '').replaceAll(root + '/', '').replaceAll(root + '\\', '');
   if (m.type === 'item.completed' || m.type === 'item.started') {
     const it = m.item ?? {};
     if (m.type === 'item.started' && it.type !== 'command_execution') return null;
