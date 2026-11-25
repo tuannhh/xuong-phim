@@ -45,6 +45,7 @@ code.path{background:var(--soft);border-radius:7px;padding:2px 7px;font:12.5px/1
 header.top nav{display:flex;gap:4px;flex:1}
 header.top nav a{color:#D5E0F5;text-decoration:none;padding:7px 12px;border-radius:9px;font-weight:600;font-size:14px}
 header.top nav a.on,header.top nav a:hover{background:rgba(255,255,255,.16);color:#fff}
+@media (max-width:640px){header.top{gap:10px;padding:0 10px}header.top .brand b{display:none}.logo-plate{height:34px;padding:2px 10px 2px 6px}.logo-plate img{height:28px}header.top nav{overflow-x:auto;scrollbar-width:none}header.top nav a{padding:6px 8px;font-size:13px;white-space:nowrap}}
 .pill{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:650;background:var(--soft);color:var(--mut);white-space:nowrap}
 .pill.run{background:#FFF3BF;color:#6B5600}.pill.ok{background:#DDF5E7;color:#0E6B3A}.pill.bad{background:#FDE4E1;color:#A32117}.pill.info{background:#E3ECFF;color:#1F4AA8}
 @media (prefers-color-scheme:dark){.pill.run{background:#4A3F08;color:#FFE873}.pill.ok{background:#10381F;color:#7BE6A8}.pill.bad{background:#4A1712;color:#FFA79E}.pill.info{background:#182B55;color:#A9C4FF}}
@@ -177,6 +178,7 @@ const app = document.getElementById('app');
 const api = async (method, url, body) => {
   const r = await fetch(url, { method, headers: method === 'GET' ? {} : { 'content-type': 'application/json', 'x-xuong': '1' }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { location.reload(); throw new Error('Cần đăng nhập lại.'); } // mở từ xa, phiên hết hạn → trang đăng nhập
   if (!r.ok) throw new Error(j.error || `Lỗi ${r.status}`);
   return j;
 };
@@ -927,14 +929,95 @@ const autoCard = async () => {
           draw();
         } }), 'Tự mở khi đăng nhập máy')
       : h('div', { class: 'note small' }, A.why),
-    A.on ? h('p', { class: 'mut small', style: { margin: 0 } }, 'Nhật ký chạy nền: ', h('code', { class: 'path' }, A.log)) : null].filter(Boolean));
+    A.on || A.boot?.on ? h('p', { class: 'mut small', style: { margin: 0 } }, 'Nhật ký chạy nền: ', h('code', { class: 'path' }, A.log)) : null,
+    // Windows: chạy ngay khi bật máy, chưa cần đăng nhập (Task Scheduler)
+    A.boot?.supported ? h('div', { class: 'grid', style: { gap: '8px', borderTop: '1px solid var(--line)', paddingTop: '12px' } },
+      h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: A.boot.on, onchange: async (e) => {
+        const want = e.target.checked;
+        e.target.disabled = true;
+        toast('Windows sẽ hỏi quyền quản trị (UAC) — bấm "Yes".');
+        try { A = await api('PUT', '/api/autostart/boot', { on: want }); toast(want ? 'Đã bật: bật máy là xưởng chạy, chưa cần đăng nhập Windows.' : 'Đã tắt chạy khi bật máy.'); }
+        catch (err) { toast(err.message, true); A = await api('GET', '/api/autostart'); }
+        draw();
+      } }), 'Chạy ngay khi bật máy, chưa cần đăng nhập Windows'),
+      h('p', { class: 'mut small', style: { margin: 0 } }, 'Dùng khi muốn bật nguồn là xưởng chạy, rồi điều khiển từ điện thoại (Telegram / mở từ xa bên dưới). Xưởng chạy bằng tài khoản Windows của bạn, không lưu mật khẩu. Tạo hoặc gỡ cần quyền quản trị: Windows hỏi một lần. Khi chưa đăng nhập, máy có thể không dùng được card đồ hoạ nên dựng phim chậm hơn một chút. Nên để máy không bao giờ ngủ (Settings → System → Power).'),
+      A.boot.on ? h('div', { class: 'row small' }, h('span', { class: 'pill ok' }, h('span', { class: 'dot' }), `tác vụ "Xuong phim": ${A.boot.state === 'Running' ? 'đang chạy' : A.boot.state === 'Ready' ? 'sẵn sàng' : A.boot.state}`), A.boot.here ? null : h('span', { class: 'pill bad' }, 'đang trỏ tới bản xưởng ở thư mục khác — tắt rồi bật lại để dùng bản này')) : null) : null].filter(Boolean));
+  draw();
+  return box;
+};
+// ───────── Telegram: báo khi dựng xong / lỗi + ra lệnh từ điện thoại
+const tgCard = async () => {
+  let T = await api('GET', '/api/telegram');
+  const box = h('div', { class: 'card grid' });
+  const tok = h('input', { type: 'password', placeholder: '123456789:ABC…', autocomplete: 'off' });
+  const act = (fn, ok) => async () => { try { T = await fn(); if (ok) toast(ok); } catch (e) { toast(e.message, true); } draw(); };
+  let watch = null;
+  const draw = () => {
+    clearInterval(watch);
+    // đang chờ người dùng gửi mã cho bot → tự soát lại
+    if (T.configured && !T.linked) watch = setInterval(async () => { if (!box.isConnected) return clearInterval(watch); const n = await api('GET', '/api/telegram').catch(() => T); if (n.linked) { T = n; toast('Đã liên kết Telegram.'); draw(); } }, 3000);
+    const N = T.notify ?? {};
+    const ck = (k, label) => h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: N[k], onchange: (e) => act(() => api('PUT', '/api/telegram', { notify: { [k]: e.target.checked } }))() }), label);
+    box.replaceChildren(...[
+      h('div', { class: 'row' }, h('h2', {}, 'Thông báo và điều khiển qua Telegram'), h('span', { class: 'sp' }), T.linked ? h('span', { class: 'pill ok' }, h('span', { class: 'dot' }), 'đã liên kết') : T.configured ? h('span', { class: 'pill run' }, 'chờ liên kết') : h('span', { class: 'pill' }, 'chưa bật')),
+      h('p', { class: 'mut', style: { margin: 0 } }, 'Dựng xong hoặc lỗi là bot nhắn vào Telegram của bạn; gõ lệnh để dựng phim, sửa giọng, góp ý sửa tập, xem phim ngay trên điện thoại. Máy chỉ cần bật và có Internet, không cần mở cổng mạng.'),
+      !T.configured ? [
+        h('ol', { style: { margin: 0, paddingLeft: '20px' } },
+          h('li', {}, 'Trong Telegram tìm ', h('a', { href: 'https://t.me/BotFather', target: '_blank', rel: 'noopener' }, '@BotFather'), ', gõ ', h('code', {}, '/newbot'), ', đặt tên hiển thị và tên bot (phải kết thúc bằng "bot").'),
+          h('li', {}, 'BotFather gửi lại mã bot dạng ', h('code', {}, '123456789:ABC…'), ' — dán vào ô dưới rồi bấm Lưu.')),
+        lab2('Mã bot', 'lưu trên máy này, không đưa lên GitHub', tok),
+        h('div', { class: 'row' }, h('button', { class: 'btn pri', onclick: act(() => api('PUT', '/api/telegram', { token: tok.value }), 'Đã lưu mã bot.') }, 'Lưu'))]
+      : !T.linked ? [
+        h('div', { class: 'note' }, 'Bước cuối: mở bot ', h('b', {}, `@${T.bot}`), ' trên điện thoại và gửi ', h('code', {}, `/start ${T.code}`), ' (bấm nút dưới là Telegram tự gửi). Trang này tự cập nhật khi liên kết xong.'),
+        h('div', { class: 'row' }, h('a', { class: 'btn pri', href: `https://t.me/${T.bot}?start=${T.code}`, target: '_blank', rel: 'noopener' }, 'Mở bot trên Telegram'), h('button', { class: 'btn', onclick: act(() => api('DELETE', '/api/telegram')) }, 'Đổi mã bot'))]
+      : [
+        h('p', { style: { margin: 0 } }, 'Bot ', h('b', {}, `@${T.bot}`), ' đang gửi tin cho ', h('b', {}, T.chatName || 'tài khoản đã liên kết'), '. Gõ ', h('code', {}, '/giup'), ' trong Telegram để xem lệnh (vd ', h('code', {}, '/dungphim 11'), ', ', h('code', {}, '/suagiong 11'), ', ', h('code', {}, '/xem 11'), ').'),
+        h('div', { class: 'row' }, ck('done', 'Báo khi xong'), ck('error', 'Báo khi lỗi'), ck('boot', 'Báo khi máy vừa bật xưởng')),
+        h('div', { class: 'row' }, h('button', { class: 'btn', onclick: act(() => api('POST', '/api/telegram/test', {}), 'Đã gửi thử — xem Telegram.') }, 'Gửi thử'), h('button', { class: 'btn', onclick: act(() => api('POST', '/api/telegram/unlink', {})) }, 'Liên kết tài khoản khác'), h('button', { class: 'btn danger', onclick: () => confirm('Tắt bot Telegram và xoá mã bot khỏi máy này?') && act(() => api('DELETE', '/api/telegram'))() }, 'Tắt bot'))],
+      T.error ? h('div', { class: 'note warn' }, T.error) : null].flat().filter(Boolean));
+  };
+  draw();
+  return box;
+};
+// ───────── Mở xưởng từ điện thoại / máy khác qua Tailscale (mật khẩu)
+const remoteCard = async () => {
+  let R = await api('GET', '/api/remote');
+  const box = h('div', { class: 'card grid' });
+  const pw = h('input', { type: 'password', autocomplete: 'new-password', placeholder: 'ít nhất 8 ký tự' });
+  const put = async (body, ok, warn) => {
+    if (warn) toast(warn);
+    try { R = await api('PUT', '/api/remote', body); if (ok) toast(ok); } catch (e) { toast(e.message, true); R = await api('GET', '/api/remote'); }
+    draw();
+  };
+  const draw = () => box.replaceChildren(...[
+    h('div', { class: 'row' }, h('h2', {}, 'Mở xưởng từ điện thoại (Tailscale)'), h('span', { class: 'sp' }), R.on ? h('span', { class: 'pill ok' }, h('span', { class: 'dot' }), 'đang bật') : h('span', { class: 'pill' }, 'đang tắt')),
+    h('p', { class: 'mut', style: { margin: 0 } }, 'Tailscale nối điện thoại và máy này thành một mạng riêng (miễn phí cho cá nhân) nên mở được trang xưởng ở bất cứ đâu mà máy không lộ ra Internet. Mở từ xa phải nhập mật khẩu; ngồi tại máy thì không.'),
+    !R.tailscale ? h('div', { class: 'note warn' }, h('ol', { style: { margin: 0, paddingLeft: '20px' } },
+      h('li', {}, 'Cài Tailscale trên máy này (', h('a', { href: 'https://tailscale.com/download/windows', target: '_blank', rel: 'noopener' }, 'tailscale.com/download'), ' hoặc lệnh ', h('code', {}, 'winget install tailscale.tailscale'), ') rồi đăng nhập.'),
+      h('li', {}, 'Cài app Tailscale trên điện thoại, đăng nhập cùng tài khoản.'),
+      h('li', {}, 'Máy công ty: hỏi bộ phận IT trước — mạng công ty có thể chặn hoặc không cho cài.')))
+      : !R.ips.length ? h('div', { class: 'note warn' }, 'Đã cài Tailscale nhưng máy chưa kết nối — mở Tailscale và đăng nhập.') : null,
+    lab2('Mật khẩu truy cập', R.hasPassword ? 'đã đặt — nhập mật khẩu mới để đổi (mọi thiết bị phải đăng nhập lại)' : 'ít nhất 8 ký tự', pw),
+    h('div', { class: 'row' },
+      h('button', { class: 'btn', onclick: () => put({ password: pw.value }, 'Đã lưu mật khẩu.') }, 'Lưu mật khẩu'),
+      h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: R.on, disabled: !R.hasPassword, onchange: (e) => put({ on: e.target.checked }, e.target.checked ? 'Đã bật mở từ xa.' : 'Đã tắt mở từ xa.', e.target.checked && R.firewall && !R.firewall.ok ? 'Windows sẽ hỏi quyền quản trị để mở tường lửa (chỉ cho mạng Tailscale) — bấm "Yes".' : '') }), 'Cho phép mở từ xa')),
+    R.on && R.urls.length ? h('div', { class: 'grid', style: { gap: '6px' } }, h('span', { class: 'small mut' }, 'Trên điện thoại (đã bật Tailscale) mở:'), ...R.urls.map((u) => h('code', { class: 'path' }, u))) : null,
+    R.on && R.firewall && !R.firewall.ok ? h('div', { class: 'note warn row' }, 'Tường lửa Windows chưa mở cho xưởng (hoặc đã đổi bản Node).', h('button', { class: 'btn sm', onclick: () => put({ on: true }, 'Đã mở tường lửa.', 'Windows sẽ hỏi quyền quản trị — bấm "Yes".') }, 'Mở tường lửa')) : null,
+    R.sessions ? h('div', { class: 'row small' }, h('span', { class: 'mut' }, `${R.sessions} thiết bị đang đăng nhập.`), h('button', { class: 'btn sm', onclick: async () => { R = { ...R, ...(await api('POST', '/api/remote/logout-all', {})) }; toast('Đã đăng xuất mọi thiết bị.'); draw(); } }, 'Đăng xuất tất cả')) : null].filter(Boolean));
   draw();
   return box;
 };
 const settingsView = async () => {
   VIEW = 'settings'; CUR = null;
   const [D, S] = await Promise.all([api('GET', '/api/drive'), api('GET', '/api/settings')]);
-  const [aiBox, autoBox] = await Promise.all([aiCard(), autoCard()]);
+  // mở từ xa: thiết lập máy chỉ đổi khi ngồi tại máy → chỉ hiện AI + lời nhắc
+  if (META?.remote) {
+    const aiOnly = await aiCard();
+    return app.replaceChildren(h('h1', {}, 'Thiết lập'), h('div', { class: 'grid', style: { maxWidth: '820px' } },
+      h('div', { class: 'note' }, 'Bạn đang mở xưởng từ xa. Tự mở xưởng, Telegram, mở từ xa, Google Drive và thư mục phim chỉ đổi được khi ngồi tại máy chạy xưởng.'),
+      h('div', { class: 'row' }, h('button', { class: 'btn', onclick: async () => { await api('POST', '/api/logout', {}).catch(() => {}); location.reload(); } }, 'Đăng xuất')), aiOnly));
+  }
+  const [aiBox, autoBox, tgBox, remoteBox] = await Promise.all([aiCard(), autoCard(), tgCard(), remoteCard()]);
   DRIVE = D;
   const dirBox = h('input', { type: 'text', value: S.outputDir, disabled: S.locked });
   const saveDir = async () => { try { const r = await api('PUT', '/api/settings', { outputDir: dirBox.value }); dirBox.value = r.outputDir; toast('Đã đổi thư mục xuất. Phim dựng từ giờ được chép vào đây; phim cũ: bấm "Dựng lại" hoặc chạy pnpm series export <series>.'); } catch (e) { toast(e.message, true); } };
@@ -967,8 +1050,8 @@ const settingsView = async () => {
          h('div', { class: 'row' }, D.canRead ? null : h('button', { class: 'btn pri', onclick: () => driveConnect('#/settings', true) }, 'Cho phép đọc tư liệu trên Drive'), h('button', { class: 'btn', onclick: () => driveConnect('#/settings') }, 'Kết nối lại / đổi tài khoản'), h('button', { class: 'btn danger', onclick: async () => { DRIVE = await api('POST', '/api/drive/disconnect', {}); toast('Đã ngắt kết nối.'); settingsView(); } }, 'Ngắt kết nối'))]
       : [h('p', { class: 'mut', style: { margin: 0 } }, D.configured ? 'Bấm nút, đăng nhập Google và cho phép quyền Google Drive. Xong trình duyệt tự quay lại trang này.' : 'Làm bước 1 trước.'),
          h('div', { class: 'row' }, h('button', { class: 'btn pri', disabled: !D.configured, onclick: () => driveConnect('#/settings') }, 'Kết nối Google Drive'), h('button', { class: 'btn', disabled: !D.configured, onclick: () => driveConnect('#/settings', true) }, 'Kết nối + cho phép đọc tư liệu'))]);
-  app.replaceChildren(h('h1', {}, 'Thiết lập'), h('p', { class: 'lead' }, 'AI viết kịch bản, tự mở xưởng, nơi lưu phim trên máy và kết nối Google Drive.'),
-    h('div', { class: 'grid', style: { maxWidth: '820px' } }, aiBox, autoBox, outCard, h('h2', { style: { margin: '10px 0 0' } }, 'Google Drive'), D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
+  app.replaceChildren(h('h1', {}, 'Thiết lập'), h('p', { class: 'lead' }, 'AI viết kịch bản, tự mở xưởng, điều khiển từ điện thoại, nơi lưu phim trên máy và kết nối Google Drive.'),
+    h('div', { class: 'grid', style: { maxWidth: '820px' } }, aiBox, autoBox, tgBox, remoteBox, outCard, h('h2', { style: { margin: '10px 0 0' } }, 'Google Drive'), D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
 };
 
 // thẻ "Nguồn nội dung" ở cột phải trang series
@@ -1119,6 +1202,7 @@ const route = async () => {
   document.getElementById('nav-settings').className = a === 'settings' || a === 'drive' ? 'on' : '';
   try {
     if (!META) META = await api('GET', '/api/meta');
+    if (META.remote && !document.getElementById('nav-out')) document.querySelector('header nav').append(h('a', { href: '#', id: 'nav-out', onclick: async (e) => { e.preventDefault(); await api('POST', '/api/logout', {}).catch(() => {}); location.reload(); } }, 'Đăng xuất'));
     DRIVE = await api('GET', '/api/drive');
     if (a === 'settings' || a === 'drive') await settingsView();
     else if (a === 'new') await formView();

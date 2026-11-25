@@ -3,7 +3,8 @@
 //   pnpm web            → http://localhost:4710
 // Phần cần sáng tác (kế hoạch, kịch bản, sửa theo góp ý) giao cho Claude Code chạy ngầm (`claude -p`, skill series — "Chế độ form").
 // Phần máy móc (voice → timing → trộn âm → render) chạy thẳng `tools/ep.mjs`, không cần Claude.
-// Chỉ nghe ở 127.0.0.1; mọi lệnh ghi yêu cầu header x-xuong để trang web khác không gọi lén được.
+// Nghe ở 127.0.0.1; mọi lệnh ghi yêu cầu header x-xuong để trang web khác không gọi lén được.
+// Bật "mở từ xa" thì nghe thêm trên IP Tailscale, yêu cầu từ đó phải đăng nhập (remote.mjs). Bot Telegram: telegram.mjs.
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -24,6 +25,8 @@ import { checks as doctorChecks } from '../doctor.mjs';
 import * as output from '../output.mjs';
 import * as mat from './materials.mjs';
 import { createQueue } from './queue.mjs';
+import * as tg from './telegram.mjs';
+import * as remote from './remote.mjs';
 
 const PORT = +(process.env.PORT ?? 4710);
 const SERIES = path.join(ROOT, 'series');
@@ -241,6 +244,9 @@ const finish = (j, code) => {
   if (j.queued) queue.done({ slug: j.slug, episode: j.episode }, j.status);
   // bấm Dừng = dừng tập đang dựng và TẠM DỪNG hàng đợi (không tự nhảy sang tập sau); tập lỗi thì vẫn dựng tiếp tập sau
   if (j.status === 'stopped' && queue.size) queue.pause();
+  // báo lên Telegram (nếu đã liên kết)
+  const title = j.slug ? (j.episode ? queueTitle({ slug: j.slug, episode: j.episode }) : readJSON(path.join(seriesDir(j.slug), 'bible.json'), {}).name ?? j.slug) : '';
+  try { tg.jobFinished({ job: jobView(j), title, queueLeft: queue.paused ? 0 : queue.size, queueEnded: !!j.queued && !queue.size, log: j.log }); } catch { /* không để lỗi gửi tin làm hỏng việc */ }
   setImmediate(pump);
 };
 
@@ -455,15 +461,38 @@ const sceneLines = (slug, n) => {
 };
 
 // ───────── HTTP
-const server = http.createServer(async (req, res) => {
+// Đổi thiết lập máy (tự mở, truy cập từ xa, Telegram, Drive, thư mục phim) chỉ được làm khi ngồi tại máy
+const localOnly = (p, method) => /^\/api\/(autostart|remote|telegram)(\/|$)/.test(p) || (p.startsWith('/api/drive') && method !== 'GET') || p === '/api/open-output' || (p === '/api/settings' && method !== 'GET');
+const handler = async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const p = decodeURIComponent(url.pathname);
     const host = String(req.headers.host ?? '').split(':')[0];
-    if (!['localhost', '127.0.0.1'].includes(host)) return fail(res, 403, 'chỉ dùng tại máy');
-    if (req.method !== 'GET') {
-      const origin = req.headers.origin;
-      if (req.headers['x-xuong'] !== '1' || (origin && new URL(origin).host !== req.headers.host)) return fail(res, 403, 'yêu cầu không hợp lệ');
+    // yêu cầu từ máy khác (qua Tailscale): phải bật truy cập từ xa + đăng nhập. Docker: cổng chỉ publish ra 127.0.0.1 → coi như tại máy.
+    // "từ xa" = yêu cầu vào qua cổng nghe trên địa chỉ Tailscale (không phải 127.0.0.1); máy gửi cũng phải thuộc dải Tailscale
+    const far = !process.env.XUONG_DOCKER && !remote.isLoopback(req.socket.localAddress);
+    const sameOrigin = () => { const origin = req.headers.origin; return req.headers['x-xuong'] === '1' && (!origin || new URL(origin).host === req.headers.host); };
+    if (far) {
+      if (!remote.enabled() || !remote.isTailnet(req.socket.remoteAddress)) return void req.socket.destroy();
+      if (!remote.validSession(req)) {
+        if (req.method === 'POST' && p === '/api/login') {
+          if (!sameOrigin()) return fail(res, 403, 'yêu cầu không hợp lệ');
+          try {
+            const s = remote.login((await readBody(req)).password, remote.isTailnet(req.socket.remoteAddress) ? req.socket.remoteAddress : '?');
+            res.setHeader('set-cookie', `${remote.COOKIE}=${s.token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${s.maxAge}`);
+            return send(res, 200, { ok: true });
+          } catch (e) { return fail(res, e.code ?? 401, e.message); }
+        }
+        if (req.method === 'GET' && !p.startsWith('/api/') && !p.startsWith('/files/')) return serveFile(req, res, path.join(WEB, 'login.html'));
+        return fail(res, 401, 'Cần đăng nhập lại.');
+      }
+      if (localOnly(p, req.method)) return fail(res, 403, 'Thiết lập này chỉ đổi được khi ngồi tại máy.');
+    } else if (!['localhost', '127.0.0.1'].includes(host)) return fail(res, 403, 'chỉ dùng tại máy');
+    if (req.method !== 'GET' && !sameOrigin()) return fail(res, 403, 'yêu cầu không hợp lệ');
+    if (req.method === 'POST' && p === '/api/logout') {
+      remote.logout(remote.cookieOf(req));
+      res.setHeader('set-cookie', `${remote.COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
+      return send(res, 200, { ok: true });
     }
     if (req.method === 'GET' && (p === '/' || p === '/index.html')) return serveFile(req, res, path.join(WEB, 'index.html'));
     if (req.method === 'GET' && p.startsWith('/files/')) {
@@ -478,7 +507,7 @@ const server = http.createServer(async (req, res) => {
         themes: Object.entries(PRESETS).map(([id, t]) => ({ id, bg: t.bg, fg: t.fg, accent: t.accent, accent2: t.accent2, card: t.card })),
         voices: VIENEU, formats: Object.keys(FORMATS), claude: !!CLAUDE, root: ROOT, docker: !!process.env.XUONG_DOCKER, sourceModes: mat.MODES,
         hairs: HAIRS, kinds: KINDS, sets: Object.fromEntries(Object.entries(SETS).map(([k, v]) => [k, v.label])), mascots: MASCOTS, wmDefault: WM_DEFAULT,
-        moods: ['tension', 'lofi', 'upbeat', 'inspire', 'playful', 'calm'],
+        moods: ['tension', 'lofi', 'upbeat', 'inspire', 'playful', 'calm'], remote: far,
       });
     if (req.method === 'GET' && p === '/api/series') return send(res, 200, listSeries());
     if (req.method === 'POST' && p === '/api/suggest') {
@@ -518,8 +547,43 @@ const server = http.createServer(async (req, res) => {
     // tự mở xưởng khi đăng nhập máy
     if (p === '/api/autostart') {
       if (req.method === 'PUT') { const b = await readBody(req); return send(res, 200, b.on ? autostart.enable() : autostart.disable()); }
-      return send(res, 200, autostart.status());
+      return send(res, 200, { ...autostart.status(), boot: autostart.bootStatus() });
     }
+    // chạy ngay khi bật máy, chưa cần đăng nhập Windows (Task Scheduler — cần quyền quản trị, Windows hỏi UAC)
+    if (p === '/api/autostart/boot' && req.method === 'PUT') {
+      try { const b = await readBody(req); return send(res, 200, b.on ? await autostart.bootEnable() : await autostart.bootDisable()); }
+      catch (e) { return fail(res, 400, e.message); }
+    }
+    // bot Telegram: báo khi xong / lỗi + nhận lệnh từ điện thoại
+    if (p === '/api/telegram') {
+      try {
+        if (req.method === 'GET') return send(res, 200, tg.status());
+        if (req.method === 'DELETE') return send(res, 200, tg.forget());
+        if (req.method === 'PUT') {
+          const b = await readBody(req);
+          return send(res, 200, b.token !== undefined ? await tg.setToken(b.token) : tg.setNotify(b.notify));
+        }
+      } catch (e) { return fail(res, e.code === 400 ? 400 : 502, e.message); }
+    }
+    if (p === '/api/telegram/test' && req.method === 'POST') { try { return send(res, 200, await tg.sendTest()); } catch (e) { return fail(res, 400, e.message); } }
+    if (p === '/api/telegram/unlink' && req.method === 'POST') return send(res, 200, tg.unlink());
+    // mở xưởng từ điện thoại / máy khác qua Tailscale (mật khẩu)
+    if (p === '/api/remote') {
+      const view = async () => ({ ...remote.status(PORT), firewall: IS_WIN ? autostart.firewallStatus() : null });
+      if (req.method === 'GET') return send(res, 200, await view());
+      if (req.method === 'PUT') {
+        const b = await readBody(req);
+        try {
+          if (b.password !== undefined) remote.setPassword(b.password);
+          if (b.on !== undefined) remote.setOn(b.on);
+          // Windows: mở tường lửa cho cổng này, chỉ từ dải Tailscale (một lần, Windows hỏi UAC)
+          if (b.on && IS_WIN && !remote.TEST && !autostart.firewallStatus().ok) await autostart.firewallEnable(PORT);
+        } catch (e) { return fail(res, e.code === 400 ? 400 : 500, e.message); }
+        syncListeners();
+        return send(res, 200, await view());
+      }
+    }
+    if (p === '/api/remote/logout-all' && req.method === 'POST') { remote.logoutAll(); return send(res, 200, remote.status(PORT)); }
     if (p === '/api/settings') {
       const view = () => ({ outputDir: output.displayPath(output.outputDir()), defaultOutputDir: output.defaultOutputDir(), locked: output.outputLocked(), canOpen: !process.env.XUONG_DOCKER && ['darwin', 'linux', 'win32'].includes(process.platform), docker: !!process.env.XUONG_DOCKER });
       if (req.method === 'GET') return send(res, 200, view());
@@ -745,11 +809,33 @@ const server = http.createServer(async (req, res) => {
   } catch (e) {
     fail(res, e.code === 400 ? 400 : 500, e.message);
   }
-});
-if (isMain(import.meta.url)) {
+};
+const server = http.createServer(handler);
+// truy cập từ xa: nghe thêm trên từng địa chỉ Tailscale của máy (Tailscale có thể bật sau máy chủ → soát lại mỗi 30 giây)
+const extra = new Map();
+function syncListeners() {
+  if (process.env.XUONG_DOCKER) return;
+  const want = remote.enabled() ? remote.tailscaleIPs() : [];
+  for (const [ip, s] of extra) if (!want.includes(ip)) { s.close(); s.closeAllConnections?.(); extra.delete(ip); }
+  for (const ip of want) {
+    if (extra.has(ip)) continue;
+    const s = http.createServer(handler);
+    s.on('error', (e) => { console.log(`! Không mở được truy cập từ xa ${ip}:${PORT} — ${e.message}`); extra.delete(ip); });
+    s.listen(PORT, ip, () => console.log(`Truy cập từ xa (Tailscale): http://${ip}:${PORT}`));
+    extra.set(ip, s);
+  }
+}
+// mở máy chủ: chạy thẳng `node tools/web/server.mjs`, hoặc tools/boot.mjs gọi (chạy nền khi bật máy)
+export function main() {
   // cổng đã có Xưởng phim khác chạy (vd bản tự mở khi bật máy) → thoát êm, mã 0 (launchd/systemd không chạy lại vòng lặp)
   // HOST=0.0.0.0 chỉ dùng trong Docker (cổng được publish ra 127.0.0.1 của máy thật); chạy thẳng trên máy luôn là 127.0.0.1
-  const listen = () => server.listen(PORT, process.env.XUONG_DOCKER ? process.env.HOST || '0.0.0.0' : '127.0.0.1', () => console.log(`Xưởng phim: http://localhost:${PORT}${CLAUDE ? '' : '  (chưa thấy lệnh claude — các bước sáng tác phải dán lệnh vào Claude Code)'}`));
+  const listen = () => server.listen(PORT, process.env.XUONG_DOCKER ? process.env.HOST || '0.0.0.0' : '127.0.0.1', () => {
+    console.log(`Xưởng phim: http://localhost:${PORT}${CLAUDE ? '' : '  (chưa thấy lệnh claude — các bước sáng tác phải dán lệnh vào Claude Code)'}`);
+    tg.init({ port: PORT, root: ROOT });
+    if (process.env.XUONG_BOOT) tg.bootNotice();
+    syncListeners();
+    setInterval(syncListeners, 30000);
+  });
   let waiting = false;
   server.on('error', (e) => {
     if (e.code !== 'EADDRINUSE') throw e;
@@ -764,3 +850,4 @@ if (isMain(import.meta.url)) {
   });
   listen();
 }
+if (isMain(import.meta.url)) main();

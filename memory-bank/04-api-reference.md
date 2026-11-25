@@ -30,6 +30,11 @@ Chỉ nghe `127.0.0.1`; từ chối Host khác `localhost`/`127.0.0.1`. Mọi y�
 | GET/PUT | `/api/ai` | Thiết lập AI `{config:{engine, claude:{plan,script,fix,suggest:{model,effort}}, codex:{…}}, defaults, roles, status:{claude:{installed}, codex:{installed,loggedIn}}, claude:{models,efforts}}`; PUT nhận `config` (làm sạch: engine claude/codex, model `[\w.\-:[\]]{0,80}`, effort Claude trong low…max) — lưu `~/.config/xuong-phim/ai.json` |
 | GET | `/api/ai/codex-models` | Danh sách model Codex `{list:[{id,label,description,efforts[],defaultEffort,isDefault}], error}` — hỏi `codex app-server` (`initialize` → `model/list`, bỏ model ẩn), giữ 10 phút; `?refresh=1` hỏi lại |
 | GET/PUT | `/api/autostart` | Tự mở khi đăng nhập máy `{supported, why, on, log, self}`; PUT `{on}` → LaunchAgent `vn.xuong-phim.web` (macOS) / systemd user `xuong-phim.service` (Linux). Tắt khi chính bản chạy nền đang trả lời → chỉ xoá file, chạy tiếp tới lần khởi động lại (`stillRunning`) |
+| PUT | `/api/autostart/boot` | `{on}` → Windows: tạo/gỡ tác vụ Task Scheduler "Xuong phim" chạy khi bật máy (UAC). GET `/api/autostart` có thêm `boot: {supported, on, state, logon, here, log}` |
+| GET/PUT/DELETE | `/api/telegram` | Bot Telegram `{configured, bot, linked, chatName, code, notify, polling, error}`; PUT `{token}` (kiểm bằng getMe, sinh mã liên kết) hoặc `{notify: {done, error, boot}}`; DELETE = tắt bot, xoá mã |
+| POST | `/api/telegram/test` · `/api/telegram/unlink` | Gửi thử · bỏ liên kết (sinh mã mới) |
+| GET/PUT | `/api/remote` | Mở từ xa qua Tailscale `{on, hasPassword, ips, urls, tailscale, sessions, firewall}`; PUT `{password}` (≥ 8 ký tự, đăng xuất mọi máy) / `{on}` (Windows: mở tường lửa qua UAC nếu chưa có) |
+| POST | `/api/remote/logout-all` · `/api/login` · `/api/logout` | Đăng xuất mọi thiết bị · đăng nhập từ xa `{password}` → cookie `xp_s` (HttpOnly, SameSite=Strict, 30 ngày; 5 lần sai/10 phút → 429) · đăng xuất |
 | GET/PUT | `/api/settings` | Thư mục phim chung `{outputDir, defaultOutputDir, locked, canOpen, docker}`; PUT `{outputDir}` (đường dẫn tuyệt đối, `~` được; Docker → 400 vì do `.env` quyết) |
 | POST | `/api/open-output` | `{slug?}` mở thư mục phim (của series) bằng Finder/xdg-open; Docker → 400 kèm đường dẫn trên máy thật |
 | GET | `/api/brand/misa-logo.svg` | Logo MISA đầy đủ (header trang) |

@@ -10,14 +10,26 @@
 
 | Điểm | Thiết kế | Lý do |
 |---|---|---|
-| Đăng nhập | **Không có** | Công cụ một người dùng, chỉ chạy tại máy |
-| Nghe mạng | Chỉ `127.0.0.1`; Host phải là `localhost`/`127.0.0.1` | Máy khác trong mạng không vào được; chống DNS rebinding |
+| Đăng nhập | **Không có** khi ngồi tại máy; mở từ xa (Tailscale) bắt buộc mật khẩu | Công cụ một người dùng; xem mục "Mở từ xa" |
+| Nghe mạng | `127.0.0.1` (Host phải là `localhost`/`127.0.0.1`); bật mở từ xa thì nghe thêm CHỈ trên IP Tailscale | Máy khác trong mạng LAN không vào được; chống DNS rebinding |
 | Ghi (POST/PUT) | Bắt buộc header `x-xuong: 1` + Origin cùng host | Trang web lạ không gọi lén được (CSRF) |
 | File | `/files/<slug>/…` kiểm slug bằng regex + `path.resolve` phải nằm trong `series/<slug>/` | Chống đọc file ngoài thư mục |
 | Dữ liệu form | Lọc theo danh sách giá trị hợp lệ, cắt độ dài, màu phải `#RRGGBB` | Không tin dữ liệu client |
 | Giao diện | Mọi chữ qua `textContent` | Chống XSS từ nội dung Claude viết |
 
-**Không được** mở cổng ra ngoài (đổi sang `0.0.0.0`, port-forward, tunnel) khi chưa thêm đăng nhập.
+**Không được** mở cổng ra Internet (đổi sang `0.0.0.0`, port-forward, tunnel công khai) — chỉ qua Tailscale có mật khẩu.
+
+## Mở từ xa (Tailscale) và Telegram (2026-11-25)
+
+| Điểm | Thiết kế |
+|---|---|
+| Ai vào được | Yêu cầu vào qua cổng nghe trên IP Tailscale VÀ máy gửi thuộc 100.64.0.0/10 VÀ đã bật mở từ xa (có mật khẩu); sai → cắt kết nối |
+| Mật khẩu | ≥ 8 ký tự, băm scrypt + muối ngẫu nhiên trong `~/.config/xuong-phim/remote.json` (quyền 600); đổi mật khẩu = huỷ mọi phiên |
+| Phiên | Cookie `xp_s` ngẫu nhiên 32 byte, HttpOnly, SameSite=Strict, 30 ngày; máy chủ chỉ lưu SHA-256 của cookie; 5 lần sai / 10 phút / địa chỉ → khoá 10 phút |
+| Việc chỉ làm tại máy | Đổi tự mở / chạy khi bật máy, Telegram, mở từ xa, Google Drive, thư mục phim, mở thư mục — từ xa trả 403 |
+| Tường lửa | Quy tắc cho node.exe + cổng xưởng, chỉ từ 100.64.0.0/10 (không mở cho LAN/Internet) |
+| Telegram | Mã bot lưu `~/.config/xuong-phim/telegram.json` (quyền 600, ngoài repo). Chỉ chat đã liên kết bằng mã 6 số được ra lệnh; chat khác bị bỏ qua. Lệnh đi qua API của chính máy chủ (cùng kiểm tra như trang). Không gửi mã bot/đường dẫn nội bộ ra tin nhắn |
+| Chạy khi bật máy | S4U: không lưu mật khẩu Windows; chỉ dùng tài nguyên trên máy (không vào ổ mạng). Tạo/gỡ bằng UAC, người dùng tự bấm |
 
 ## Claude chạy ngầm (`claude -p`)
 
