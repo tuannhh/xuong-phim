@@ -1,7 +1,7 @@
 // Đối chiếu bộ chuẩn hoá với các ca kiểm thử trích từ VOICE_OFF_TTS_RULES v5 (§38–48) + ca riêng của xưởng.
 // node tools/tts/test.mjs
 import fs from 'node:fs';
-import { normalize } from './normalize.mjs';
+import { normalize, EN_LETTER } from './normalize.mjs';
 const cases = JSON.parse(fs.readFileSync(new URL('./rules-tests.json', import.meta.url))).filter((c) => c.src !== 'source');
 const extra = [
   ['MISA tổ chức Demo AI Agent cho CEO.', 'mi xa tổ chức Demo AI Agent cho CEO.', 'gemini'],
@@ -23,7 +23,10 @@ const extra = [
   ['Tên miền thêm chữ lạ như misavpn.com, misasme.com đều là giả.', 'Tên miền thêm chữ lạ như mi xa vi pi en chấm com, mi xa ét em i chấm com đều là giả.'],
   ['Tên miền như misavpn, misasme, misavnp', 'Tên miền như mi xa vi pi en, mi xa ét em i, mi xa vi en pi'],
   ['Tin chính thức xem ở fanpage MISAJSC.', 'Tin chính thức xem ở fanpage mi xa giây ét xi.'],
-  ['bắt tải file APK hoặc IPA', 'bắt tải file ây pi kây hoặc ai pi ây'],
+  ['bắt tải file APK hoặc IPA', 'bắt tải file ây pi cây hoặc ai pi ây'],
+  // người dùng 2026-11-25: "kây" sai chính tả → VieNeu đọc lệch; K đọc "cây"
+  ['Không cài app từ file APK.', 'Không cài app từ file ây pi cây.'],
+  ['Xác thực eKYC trên app', 'Xác thực i cây oai xi trên app'],
   // tỉ lệ khung hình không đọc thành giờ (video hướng dẫn 2026-11-23)
   ['Khung hình 9:16 hoặc 16:9', 'Khung hình chín trên mười sáu hoặc mười sáu trên chín'],
   ['tỉ lệ 1:1 cho Facebook', 'tỉ lệ một trên một cho Facebook'],
@@ -37,5 +40,14 @@ const check = (src, want, engine = 'gemini') => {
 // quy ước người dùng: MISA → "mi xa" (thay cho "MISA" giữ nguyên trong tài liệu gốc)
 for (const c of cases) check(c.src, c.want.replace(/MISA/g, 'mi xa'));
 for (const [s, w, e] of extra) check(s, w, e);
+// lời đọc phải đúng chính tả tiếng Việt, nếu không VieNeu đánh vần lệch (vd "kây" → "ka-â-xơ-cơm-phlếch-xi"):
+// k chỉ đứng trước i/e/ê/y; c/q không đứng trước i/e/ê/y (trừ "qu"); g không đứng trước e/ê (phải "gh"); ng không đứng trước i/e/ê (phải "ngh")
+const BAD_SPELL = [/(?<![\p{L}])k(?=[aăâoôơuư])/iu, /(?<![\p{L}])c(?=[ieêyíìỉĩịéèẻẽẹếềểễệ])/iu, /(?<![\p{L}])g(?=[eêéèẻẽẹếềểễệ])/iu, /(?<![\p{L}])ng(?=[ieêíìỉĩịéèẻẽẹếềểễệ])/iu];
+const lexicon = JSON.parse(fs.readFileSync(new URL('./lexicon.json', import.meta.url)));
+const spoken = [...Object.entries(EN_LETTER).map(([k, v]) => [`EN_LETTER.${k}`, v]), ...lexicon.filter((e) => e.say).map((e) => [`lexicon ${e.src}`, e.say])];
+for (const [where, say] of spoken) {
+  const w = say.split(/[\s,.\-–]+/).find((x) => BAD_SPELL.some((re) => re.test(x)));
+  if (w) { bad++; console.log(`✗ ${where}: "${say}" — "${w}" sai chính tả tiếng Việt, VieNeu sẽ đọc lệch`); } else ok++;
+}
 console.log(`\n${ok}/${ok + bad} đạt`);
 process.exit(bad ? 1 : 0);

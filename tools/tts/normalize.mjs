@@ -83,9 +83,10 @@ const readNumber = (s) => {
 const VI_LETTER = { A: 'a', Ă: 'á', Â: 'ớ', B: 'bê', C: 'xê', D: 'dê', Đ: 'đê', E: 'e', Ê: 'ê', G: 'giê', H: 'hát', I: 'i', K: 'ca', L: 'lờ', M: 'mờ', N: 'nờ', O: 'o', Ô: 'ô', Ơ: 'ơ', P: 'pê', Q: 'quy', R: 'rờ', S: 'ét', T: 'tê', U: 'u', Ư: 'ư', V: 'vê', X: 'ích', Y: 'i' };
 const readViLetters = (s) => [...s.replace(/[^A-ZĐĂÂÊÔƠƯ]/g, '')].map((c) => VI_LETTER[c] ?? c).join(' ');
 
-// ───── chữ cái kiểu tiếng Anh, viết theo âm tiếng Việt (VieNeu chỉ đọc đúng âm tiết tiếng Việt: "giây" chứ không "jây", "kây" chứ không "kê")
-// Dùng cho tên miền (misa.vn → mi xa chấm vi en), viết tắt công nghệ (APK → ây pi kây) và hậu tố ghép sau tên thương hiệu (MISAJSC).
-export const EN_LETTER = { A: 'ây', B: 'bi', C: 'xi', D: 'đi', E: 'i', F: 'ép', G: 'gi', H: 'ết', I: 'ai', J: 'giây', K: 'kây', L: 'eo', M: 'em', N: 'en', O: 'âu', P: 'pi', Q: 'kiu', R: 'a', S: 'ét', T: 'ti', U: 'diu', V: 'vi', W: 'đắp bồ diu', X: 'ếch', Y: 'oai', Z: 'dét' };
+// ───── chữ cái kiểu tiếng Anh, viết theo âm tiếng Việt (VieNeu chỉ đọc đúng âm tiết viết ĐÚNG CHÍNH TẢ tiếng Việt: "giây" chứ không "jây", "cây" chứ không "kây" —
+// "kây" sai chính tả (k chỉ đứng trước i/e/ê/y) nên bộ chuyển âm của VieNeu đánh vần thành "ka-â-xơ-cơm-phlếch-xi"; tools/tts/test.mjs chặn lỗi này)
+// Dùng cho tên miền (misa.vn → mi xa chấm vi en), viết tắt công nghệ (APK → ây pi cây) và hậu tố ghép sau tên thương hiệu (MISAJSC).
+export const EN_LETTER = { A: 'ây', B: 'bi', C: 'xi', D: 'đi', E: 'i', F: 'ép', G: 'gi', H: 'ết', I: 'ai', J: 'giây', K: 'cây', L: 'eo', M: 'em', N: 'en', O: 'âu', P: 'pi', Q: 'kiu', R: 'a', S: 'ét', T: 'ti', U: 'diu', V: 'vi', W: 'đắp bồ diu', X: 'ếch', Y: 'oai', Z: 'dét' };
 export const readEnLetters = (s) => [...String(s).toUpperCase().replace(/[^A-Z]/g, '')].map((c) => EN_LETTER[c]).join(' ');
 // đuôi tên miền hay gặp
 const TLD = { vn: 'vi en', com: 'com', net: 'nét', org: 'o rờ gờ', info: 'in phô', io: 'ai âu', top: 'tóp', xyz: 'ếch oai dét', online: 'on lai', site: 'sai', link: 'linh', click: 'clích', shop: 'sóp', me: 'mi', co: 'cô', edu: 'e đu', gov: 'gâu', www: 'vê kép vê kép vê kép' };

@@ -10,6 +10,7 @@ Tri thức dự án theo quy chuẩn MISA Backend: `memory-bank/` (đọc `memor
 - Voice: luôn qua lệnh `tts-vi` (VieNeu → Gemini API key → Gemini Agent Platform). Không chép khoá vào repo.
 - `episode.json` là nguồn duy nhất của một tập; script.md, storyboard, build/ đều sinh lại được.
 - Không bịa số liệu; số liệu phải có nguồn.
+- Nội dung an ninh mạng: tấn công không chỉ nhắm Android (file APK) hay máy tính Windows — iPhone và MacBook cũng bị (hồ sơ cấu hình lạ, app ngoài App Store, file .dmg/.pkg, trang đăng nhập giả). Không để người xem hiểu iPhone/Mac là an toàn; lời khuyên nêu cho mọi thiết bị (chi tiết: skill mục 2).
 - Logo MISA (`assets/brand/`) là tài sản thương hiệu MISA: giữ nguyên hình, không đổi màu trừ bản một màu trên nền tối. LUÔN dùng bản đầy đủ có khẩu hiệu "Tin cậy – Tiện ích – Tận tình" (component `MisaLogo`), không dùng bản chỉ có chữ MISA.
 - Các bước sáng tác chạy bằng Claude Code hoặc Codex (người dùng chọn ở Thiết lập); quy tắc ở file này dùng chung cho mọi agent.
 - Không tự đăng video lên mạng xã hội. Đẩy lên Google Drive của chính người dùng chỉ khi họ bấm nút hoặc bật "tự đẩy" cho series.
@@ -17,7 +18,7 @@ Tri thức dự án theo quy chuẩn MISA Backend: `memory-bank/` (đọc `memor
 - Font: Barlow (tiêu đề) + Google Sans (nội dung). Không để chữ đè chữ / đè nhân vật — storyboard phải báo `✓ bố cục`.
 - Nhân vật vẽ dáng người thật, đầy đặn, đầu–thân cân đối; khuỷu tay gần thân, không giơ hai tay quá đầu (người dùng chê dáng còm nhom, tay chân lòng khòng). Phim tình huống dùng cảnh `story` (bối cảnh nhiều lớp, máy quay, nhãn bật).
 - Tay cử chỉ phải hướng về người nghe: nhân vật quay mặt sang một phía thì tay đưa ra ở phía đó, tay kia gập trước bụng — không mở ngang ra sau lưng (người dùng báo lỗi "tay bị ngược" 22/11/2026). Luật nằm ở `orientPose` trong `remotion/kit/Character.tsx`; sửa tư thế xong chạy `pnpm series characters <slug> --huong` để soát. Cùng lỗi này còn do cách vẽ: cẳng tay phải nằm lớp trên bắp tay/tay áo, ngón cái bàn tay xoè cố định theo tay, tay mở ra ngoài không gập chữ L sát sườn (memory-bank bẫy 18).
-- Mỗi tập nhiều nhân vật nam + nữ; nhân vật nam giọng nam, nữ giọng nữ (`check` chặn nếu sai). MISA đọc là "mi xa"; tên miền/viết tắt tiếng Anh tự chuẩn hoá (misa.vn → "mi xa chấm vi en", APK → "ây pi kây") — sửa cách đọc ở `tools/tts/lexicon.json` + ca kiểm thử.
+- Mỗi tập nhiều nhân vật nam + nữ; nhân vật nam giọng nam, nữ giọng nữ (`check` chặn nếu sai). MISA đọc là "mi xa"; tên miền/viết tắt tiếng Anh tự chuẩn hoá (misa.vn → "mi xa chấm vi en", APK → "ây pi cây"; phiên âm phải đúng chính tả tiếng Việt — "kây"/"ka" sai, VieNeu đọc lệch) — sửa cách đọc ở `tools/tts/lexicon.json` + ca kiểm thử.
 - Mỗi tập đứng độc lập: không hẹn "tập sau" (người dùng duyệt một số tập, đăng không theo thứ tự); outro không có `next`.
 
 ## Lệnh

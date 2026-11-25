@@ -64,7 +64,7 @@
 ## Chuẩn hoá lời đọc: tên miền, viết tắt tiếng Anh (2026-11-22)
 
 - `tools/tts/normalize.mjs`: đường link tách tên miền / đường dẫn; nhãn tên miền đọc theo `TLD` (vn → "vi en", com → "com", net → "nét", www → "vê kép vê kép vê kép"…), nhãn khác: thương hiệu (`BRANDS`: misa → "mi xa", kể cả dính liền như misavpn → "mi xa vi pi en"), từ trong lexicon, còn lại đánh vần chữ cái tiếng Anh (`EN_LETTER`).
-- Viết tắt tiếng Anh trong `lexicon.json` đọc theo tên chữ cái tiếng Anh: JSC "giây ét xi", APK "ây pi kây", QR "kiu a", URL "diu a eo", SMS "ét em ét"… "MISA JSC" giữ luật đã duyệt "Công ty Cổ phần mi xa"; "MISAJSC" dính liền → "mi xa giây ét xi".
+- Viết tắt tiếng Anh trong `lexicon.json` đọc theo tên chữ cái tiếng Anh: JSC "giây ét xi", APK "ây pi cây" (2026-11-25: "kây" sai chính tả → VieNeu đọc "ka-â-xơ…"; K = "cây"), QR "kiu a", URL "diu a eo", SMS "ét em ét"… "MISA JSC" giữ luật đã duyệt "Công ty Cổ phần mi xa"; "MISAJSC" dính liền → "mi xa giây ét xi".
 
 ## Watermark, nhạc nền riêng, gợi ý nội dung, tập tới 5 phút (2026-11-23)
 

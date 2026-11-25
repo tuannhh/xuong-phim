@@ -568,8 +568,8 @@
  },
  {
   "src": "APK",
-  "say": "ây pi kây",
-  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+  "say": "ây pi cây",
+  "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER); 2026-11-25: \"kây\" → \"cây\" (VieNeu đọc sai \"kây\")"
  },
  {
   "src": "IPA",
@@ -603,7 +603,7 @@
  },
  {
   "src": "eKYC",
-  "say": "i kây oai xi",
+  "say": "i cây oai xi",
   "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
  }
 ]
