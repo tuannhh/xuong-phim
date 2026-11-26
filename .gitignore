@@ -38,3 +38,7 @@ series/*/nhac/
 
 # lựa chọn cách chạy của start.sh (chạy thẳng / Docker) — riêng từng máy
 .xuong-mode
+
+# series của người dùng — không đưa lên GitHub (mỗi máy tự tạo); chỉ giữ video hướng dẫn dùng xưởng
+series/*
+!series/huong-dan-xuong-phim/
