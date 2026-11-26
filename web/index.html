@@ -22,6 +22,7 @@ header.top .brand b{font-weight:800}
 @media (prefers-color-scheme:dark){.drop:hover,.drop.on{background:#2A2710}}
 .sugw{display:grid;gap:6px}.sugrow{display:flex;gap:6px;align-items:flex-start}.sugrow>input,.sugrow>textarea{flex:1;min-width:0}
 .sugb{flex:none;border:1px solid #C9D6EE;background:#EEF3FC;color:var(--navy);border-radius:9px;padding:7px 10px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
+details.post textarea{font-size:14px;line-height:1.45;width:100%}details.post>summary .pill{margin-left:6px}
 .sugb:hover{background:#E1EAFA}.sugb:disabled{opacity:.6;cursor:wait}
 .sugs{display:flex;flex-wrap:wrap;gap:6px}.sugs:empty{display:none}
 .sug{border:1px dashed #9DB3DD;background:var(--panel);border-radius:9px;padding:6px 10px;font-size:13px;text-align:left;cursor:pointer;color:var(--ink);max-width:100%}
@@ -187,7 +188,15 @@ const toast = (msg, bad) => { const t = document.getElementById('toast'); t.text
 const lb = document.getElementById('lb');
 lb.onclick = () => (lb.style.display = 'none');
 const zoom = (src) => { lb.firstElementChild.src = src; lb.style.display = 'grid'; };
-const copy = async (text) => { try { await navigator.clipboard.writeText(text); toast('Đã chép câu lệnh.'); } catch { prompt('Chép câu lệnh này:', text); } };
+// chép vào bộ nhớ tạm — mở từ xa qua http (điện thoại) không có navigator.clipboard → chép bằng ô ẩn + execCommand
+const copy = async (text, msg = 'Đã chép câu lệnh.') => {
+  try { await navigator.clipboard.writeText(text); return toast(msg); } catch {}
+  const t = h('textarea', { value: text, readonly: true, style: { position: 'fixed', top: '0', left: '0', opacity: '0' } });
+  document.body.append(t); t.focus(); t.select(); t.setSelectionRange(0, text.length);
+  let ok = false; try { ok = document.execCommand('copy'); } catch {}
+  t.remove();
+  ok ? toast(msg) : prompt('Chép nội dung này:', text);
+};
 const epDir = (n) => `ep${String(n).padStart(2, '0')}`;
 const mmss = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 
@@ -241,6 +250,42 @@ const rangeRow = (val, min, max, step, fmt, on) => {
   return h('div', { class: 'rng' }, h('input', { type: 'range', min, max, step, value: val, oninput: (e) => { out.textContent = fmt(+e.target.value); on(+e.target.value); } }), out);
 };
 const openOutput = async (slug) => { try { const r = await api('POST', '/api/open-output', { slug }); toast(`Đã mở: ${r.dir}`); } catch (e) { toast(e.message, true); } };
+
+// ───────── bài đăng mạng xã hội của một tập (AI viết sau khi dựng xong: bản ngắn < 100 từ, bản dài < 300 từ)
+const countWords = (s) => (String(s ?? '').match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}'’._\-/@&]*/gu) ?? []).length;
+const postBox = (slug, e) => {
+  let P = e.post, open = false;
+  const det = h('details', { class: 'post' });
+  const summary = () => h('summary', {}, 'Bài đăng mạng xã hội ', P?.busy ? h('span', { class: 'pill run' }, h('span', { class: 'dot' }), 'AI đang viết') : P?.short ? h('span', { class: `pill ${P.stale ? 'run' : 'ok'}` }, P.stale ? 'cần viết lại' : 'sẵn sàng để chép') : h('span', { class: 'pill' }, 'chưa có'));
+  const write = async (btn) => {
+    btn.disabled = true; P = { ...(P ?? {}), busy: true }; draw();
+    try { P = (await api('POST', `/api/series/${slug}/post`, { episode: e.number })).post; toast('AI đã viết xong bài đăng.'); }
+    catch (err) { toast(err.message, true); P = (await api('GET', `/api/series/${slug}/post?episode=${e.number}`).catch(() => ({}))).post ?? null; }
+    open = true; draw();
+  };
+  const version = (label, limit, text) => {
+    const ta = h('textarea', { rows: Math.min(14, Math.max(4, Math.ceil(text.length / 48) + (text.match(/\n/g) ?? []).length)), value: text });
+    const cnt = h('span', { class: 'mut small' }, `${countWords(text)} từ`);
+    ta.oninput = () => { const w = countWords(ta.value); cnt.textContent = `${w} từ${w >= limit ? ` — quá ${limit - 1} từ` : ''}`; };
+    return h('div', { class: 'grid', style: { gap: '6px' } }, h('div', { class: 'row' }, h('b', {}, label), cnt, h('span', { class: 'sp' }), h('button', { type: 'button', class: 'btn sm pri', onclick: () => copy(ta.value, `Đã chép ${label.toLowerCase()} — dán lên mạng xã hội.`) }, 'Chép')), ta);
+  };
+  const draw = () => {
+    const kids = [summary()];
+    if (P?.busy) kids.push(h('p', { class: 'mut small' }, 'AI đang viết bài đăng theo kịch bản tập này (thường dưới một phút)…'));
+    else if (P?.short) {
+      if (P.stale) kids.push(h('div', { class: 'note warn' }, 'Kịch bản đã sửa sau khi viết bài — bấm "Viết lại" để bài khớp phim mới.'));
+      kids.push(version('Bản ngắn', 100, P.short), version('Bản dài', 300, P.long));
+    } else kids.push(h('p', { class: 'mut small' }, 'AI viết hai bản bài đăng bám kịch bản tập và thông điệp series: bản ngắn (dưới 100 từ) và bản dài (dưới 300 từ). Dựng phim xong là tự viết.'));
+    if (!P?.busy && META.claude) { const b = h('button', { type: 'button', class: `btn ${P?.short && !P.stale ? 'sm' : 'pri'}` }, h('span', { class: 'ai' }, 'AI'), P?.short ? 'Viết lại bài đăng' : 'Viết bài đăng'); b.onclick = () => write(b); kids.push(h('div', { class: 'row' }, b, P?.short ? h('span', { class: 'mut small' }, 'Sửa tạm trong ô rồi bấm Chép cũng được (không lưu).') : null)); }
+    det.open = open || !!det.open;
+    det.replaceChildren(...kids);
+    // đang viết (tự động sau khi dựng) → hỏi lại máy chủ đến khi xong
+    if (P?.busy) setTimeout(async () => { if (!det.isConnected) return; try { const r = await api('GET', `/api/series/${slug}/post?episode=${e.number}`); if (!r.post?.busy) { P = r.post; draw(); } else setTimeout(() => det.isConnected && draw(), 0); } catch {} }, 4000);
+  };
+  det.addEventListener('toggle', () => (open = det.open));
+  draw();
+  return det;
+};
 
 // ───────── trạng thái chung
 let META = null, JOB = null, LOG = [], CUR = null, VIEW = '', DRIVE = null;
@@ -1149,7 +1194,7 @@ const openSeries = async (slug, keepScroll) => {
           e.stale ? h('div', { class: 'note warn' }, 'Kịch bản đã sửa sau lần dựng này — bấm "Dựng lại" để có bản mới.') : null,
           h('div', { class: 'row' }, h('a', { class: 'btn dark', href: file(`${base}/out/${e.id}.mp4`), download: `${slug}-${e.id}.mp4` }, 'Tải MP4'), e.srt && h('a', { class: 'btn', href: file(`${base}/out/${e.id}.srt`), download: `${slug}-${e.id}.srt` }, 'Phụ đề SRT'),
             renderBtn(slug, e, 'Dựng lại', ''), voiceFixBtn(slug, e)),
-          exportRow(e), driveRow(e), links, linesEditor(e, base), fix)),
+          postBox(slug, e), exportRow(e), driveRow(e), links, linesEditor(e, base), fix)),
       board && h('details', {}, h('summary', {}, `Storyboard (${e.board.length} cảnh)`), board)];
     return h('div', { class: 'card ep', id: e.id }, h('div', { class: 'hd' }, h('div', { class: 'no' }, String(e.number).padStart(2, '0')), h('div', { style: { flex: 1 } }, h('h3', {}, e.title || `Tập ${e.number}`), h('div', { class: 'mut small' }, [e.duration ? `khoảng ${e.duration} giây` : '', e.batch ? `tập thêm · đợt ${batchNo(e.batch)}` : ''].filter(Boolean).join(' · '))), h('span', { class: `pill ${chip[0]}` }, chip[1])), body);
   };

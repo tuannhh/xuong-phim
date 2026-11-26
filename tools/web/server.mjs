@@ -27,6 +27,7 @@ import * as mat from './materials.mjs';
 import { createQueue } from './queue.mjs';
 import * as tg from './telegram.mjs';
 import * as remote from './remote.mjs';
+import * as posts from './post.mjs';
 
 const PORT = +(process.env.PORT ?? 4710);
 const SERIES = path.join(ROOT, 'series');
@@ -85,6 +86,7 @@ const episodeState = (slug, e) => {
     mtime: mp4 ? fs.statSync(path.join(ed, `out/${id}.mp4`)).mtimeMs : 0,
     drive: mp4 ? drive.episodeDrive(ed, id) : null,
     export: mp4 ? output.episodeExport(ed, id) : null,
+    post: mp4 || scenes ? posts.read(seriesDir(slug), e.number) : null, // bài đăng mạng xã hội (post.mjs)
   };
 };
 const seriesInfo = (slug, full = false) => {
@@ -247,7 +249,16 @@ const finish = (j, code) => {
   // báo lên Telegram (nếu đã liên kết)
   const title = j.slug ? (j.episode ? queueTitle({ slug: j.slug, episode: j.episode }) : readJSON(path.join(seriesDir(j.slug), 'bible.json'), {}).name ?? j.slug) : '';
   try { tg.jobFinished({ job: jobView(j), title, queueLeft: queue.paused ? 0 : queue.size, queueEnded: !!j.queued && !queue.size, log: j.log }); } catch { /* không để lỗi gửi tin làm hỏng việc */ }
+  if (j.status === 'done' && ['render', 'voicefix'].includes(j.action) && j.episode) autoPost(j.slug, j.episode, title);
   setImmediate(pump);
+};
+// ───────── bài đăng mạng xã hội (post.mjs): dựng xong một tập → AI viết bài ngắn + dài (song song với việc kế, không chiếm hàng)
+const writePost = (slug, n) => posts.generate(seriesDir(slug), n, ai.pick('post'), childEnv(true), (s) => console.log(s));
+const autoPost = (slug, n, title) => {
+  try { if (!posts.needs(seriesDir(slug), n)) return; } catch { return; }
+  writePost(slug, n).then(
+    (p) => { try { tg.postReady({ slug, episode: n, title, post: p }); } catch {} },
+    (e) => { console.error(`bài đăng tập ${n}: ${e.message}`); try { tg.postFailed({ slug, episode: n, title, error: e.message }); } catch {} });
 };
 
 // ───────── hàng đợi dựng phim (tools/web/queue.mjs): bấm dựng khi máy đang bận → xếp hàng; xong việc này tự dựng tập kế
@@ -708,6 +719,14 @@ const handler = async (req, res) => {
         const added = queue.add(slug, eps.filter((n) => n !== running));
         if (!busyNow()) { queue.resume(); pump(); }
         return send(res, 200, { added, job: jobView(job), queue: queue.view(queueTitle) });
+      }
+      // bài đăng mạng xã hội của một tập: GET ?episode=n → bài đã viết · POST { episode } → AI viết (lại), chờ xong rồi trả bài
+      if (m[2] === '/post') {
+        const n = +(req.method === 'GET' ? url.searchParams.get('episode') : (await readBody(req)).episode);
+        if (!Number.isInteger(n) || n < 1) return fail(res, 400, 'số tập sai');
+        if (req.method === 'GET') return send(res, 200, { post: posts.read(dir, n) });
+        if (req.method !== 'POST') return fail(res, 405, 'không hỗ trợ');
+        try { return send(res, 200, { post: await writePost(slug, n) }); } catch (e) { return fail(res, typeof e.code === 'number' ? e.code : 500, e.message); }
       }
       if (req.method === 'POST' && m[2] === '/jobs') {
         const b = await readBody(req);

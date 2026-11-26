@@ -1,6 +1,6 @@
 // Thiết lập AI của xưởng: chọn công cụ (Claude Code / Codex) + model và effort cho từng vai trò.
 // Lưu theo MÁY ở ~/.config/xuong-phim/ai.json (ngoài repo) — mỗi máy một tài khoản, một bộ model.
-//   { engine: 'claude'|'codex', claude: { plan|script|fix|suggest: { model, effort } }, codex: { …như trên } }
+//   { engine: 'claude'|'codex', claude: { plan|script|fix|suggest|post: { model, effort } }, codex: { …như trên } }
 // model '' = để công cụ tự chọn (mặc định của tài khoản). Danh sách model Codex hỏi thẳng Codex (`codex app-server`,
 // lệnh model/list) nên có model mới là trang tự hiện; Claude dùng tên tắt opus/sonnet/haiku = luôn bản mới nhất.
 import fs from 'node:fs';
@@ -13,6 +13,7 @@ export const ROLES = {
   script: 'Viết kịch bản từng tập',
   fix: 'Sửa tập theo góp ý',
   suggest: 'Nút "Gợi ý"',
+  post: 'Viết bài đăng mạng xã hội',
 };
 export const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 export const CLAUDE_MODELS = [
@@ -30,12 +31,14 @@ export const DEFAULTS = {
     script: { model: 'sonnet', effort: 'medium' },
     fix: { model: 'sonnet', effort: 'medium' },
     suggest: { model: 'haiku', effort: 'low' },
+    post: { model: 'sonnet', effort: 'low' },
   },
   codex: {
     plan: { model: '', effort: 'medium' },
     script: { model: '', effort: 'medium' },
     fix: { model: '', effort: 'medium' },
     suggest: { model: '', effort: 'low' },
+    post: { model: '', effort: 'low' },
   },
 };
 

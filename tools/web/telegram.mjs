@@ -157,7 +157,7 @@ export function jobFinished({ job: j, title, queueLeft = 0, queueEnded = false, 
   if (j.slug) {
     const k = sk(j.slug), e = j.episode;
     if (j.status === 'done') {
-      if (['render', 'voicefix'].includes(j.action) && e) b.push([btn('🎬 Xem phim', `xem:${k}:${e}`), btn(`📂 Tập ${e}`, `ep:${k}:${e}`)]);
+      if (['render', 'voicefix'].includes(j.action) && e) b.push([btn('🎬 Xem phim', `xem:${k}:${e}`), btn(`📂 Tập ${e}`, `ep:${k}:${e}`)], [btn('📝 Bài đăng', `bd:${k}:${e}`)]);
       else if (['script', 'fix', 'storyboard'].includes(j.action) && e) b.push([btn(`🖼 Xem tập ${e} (storyboard)`, `ep:${k}:${e}`)]);
       else if (['plan', 'plan-add'].includes(j.action)) b.push([btn('📋 Xem kế hoạch', `kh:${k}`)]);
       else if (j.action === 'characters') b.push([btn('👥 Xem bảng nhân vật', `nv:${k}`)]);
@@ -169,14 +169,50 @@ export function jobFinished({ job: j, title, queueLeft = 0, queueEnded = false, 
   send(lines.join('\n'), b.length ? b : null);
 }
 
+// ───────── bài đăng mạng xã hội (post.mjs): mỗi bản một tin riêng → giữ ngón tay lên tin, chọn Sao chép là dán được ngay
+const words = (t) => (String(t ?? '').match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}'’._\-/@&]*/gu) ?? []).length;
+async function sendPost(chatId, slug, n, title, p) {
+  const k = sk(slug);
+  await reply(chatId, [`📝 Bài đăng mạng xã hội — ${title}`, p.stale ? '🟡 Kịch bản đã sửa sau khi viết bài — bấm "Viết lại" để cập nhật.' : '',
+    `Hai tin dưới đây: bản ngắn (${words(p.short)} từ) và bản dài (${words(p.long)} từ). Giữ ngón tay lên tin → Sao chép, rồi dán lên Facebook, TikTok, YouTube, Zalo…`].filter(Boolean).join('\n'));
+  await reply(chatId, p.short);
+  await reply(chatId, p.long, [[btn('🔄 Viết lại bài đăng', `bdv:${k}:${n}`), btn(`📂 Tập ${n}`, `ep:${k}:${n}`)]]);
+}
+// máy chủ gọi khi AI viết xong bài sau lần dựng (tự động)
+export function postReady({ slug, episode, title, post }) {
+  const c = read();
+  if (!c.token || !c.chatId || !post?.short || !{ ...NOTIFY_DEFAULT, ...c.notify }.done) return;
+  sendPost(c.chatId, slug, episode, title, post).catch((e) => { lastError = `Gửi tin lỗi: ${e.message}`; });
+}
+export function postFailed({ slug, episode, title, error }) {
+  const c = read();
+  if (!c.token || !c.chatId || !{ ...NOTIFY_DEFAULT, ...c.notify }.error) return;
+  send(`⚠️ Chưa viết được bài đăng cho ${title}: ${error}`, [[btn('🔄 Viết lại bài đăng', `bdv:${sk(slug)}:${episode}`)]]);
+}
+// xem bài đăng của tập n (chưa có → AI viết, chờ xong rồi gửi); force = viết lại
+async function postView(chatId, slug, n, force = false) {
+  const s = await seriesFull(slug);
+  const e = s.episodes.find((x) => x.number === n);
+  if (!e) return reply(chatId, `${s.name} không có tập ${n}.`);
+  if (!e.scenes) return reply(chatId, `Tập ${n} chưa có kịch bản — chưa viết bài đăng được.`, [[btn('📂 Mở tập', `ep:${sk(slug)}:${n}`)]]);
+  const title = `${s.name} · Tập ${n}${e.title ? `: ${e.title}` : ''}`;
+  const { post } = await local('GET', `/api/series/${slug}/post?episode=${n}`);
+  if (post?.busy) return reply(chatId, `✍️ AI đang viết bài đăng tập ${n} — xong sẽ gửi ngay.`);
+  if (post?.short && !force) return sendPost(chatId, slug, n, title, post);
+  await reply(chatId, `✍️ AI đang ${post?.short ? 'viết lại' : 'viết'} bài đăng tập ${n} (thường dưới một phút)…`);
+  await call('sendChatAction', { chat_id: chatId, action: 'typing' }).catch(() => {});
+  const r = await local('POST', `/api/series/${slug}/post`, { episode: n }, 5 * 60000);
+  return sendPost(chatId, slug, n, title, r.post);
+}
+
 export function bootNotice() {
   const c = read();
   if (c.chatId && { ...NOTIFY_DEFAULT, ...c.notify }.boot) send(`🟢 Xưởng phim đã chạy trên máy ${os.hostname()} (${new Date().toLocaleString('vi-VN')}).`);
 }
 
 // ───────── gọi API của chính máy chủ
-async function local(method, p, body) {
-  const r = await fetch(`http://127.0.0.1:${ctx.port}${p}`, { method, headers: method === 'GET' ? {} : { 'content-type': 'application/json', 'x-xuong': '1' }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(30000) });
+async function local(method, p, body, timeout = 30000) {
+  const r = await fetch(`http://127.0.0.1:${ctx.port}${p}`, { method, headers: method === 'GET' ? {} : { 'content-type': 'application/json', 'x-xuong': '1' }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(timeout) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new TgError(j.error || `Lỗi ${r.status}`, r.status);
   return j;
@@ -194,6 +230,7 @@ const COMMANDS = [
   ['suagiong', 'Chỉ sửa giọng: /suagiong 11'],
   ['gopy', 'Sửa tập theo góp ý: /gopy 11 nội dung góp ý'],
   ['xem', 'Gửi phim về điện thoại: /xem 11'],
+  ['baidang', 'Bài đăng mạng xã hội của tập: /baidang 11'],
   ['nhanvat', 'Bảng nhân vật của series'],
   ['seriesmoi', 'Tạo series mới (từ đầu, hoặc nhân bản series có sẵn)'],
   ['hang', 'Hàng đợi dựng phim'],
@@ -281,7 +318,7 @@ async function episodeView(chatId, slug, n, { board = true } = {}) {
   if (st === 'de-xuat') b.push([btn('✅ Duyệt tập này', `dy:${k}:${n}`)]);
   if (st === 'duyet') b.push([btn('✍️ Viết kịch bản + storyboard', `vk:${k}:${n}`)], [btn('💬 Viết, kèm lưu ý', `vkn:${k}:${n}`)]);
   if (st === 'kich-ban') b.push([btn('✅ Duyệt và dựng phim', `dp:${k}:${n}`)], [btn('💬 Góp ý để sửa', `gy:${k}:${n}`), btn('📄 Kịch bản', `kb:${k}:${n}`)]);
-  if (st === 'phim') b.push([btn('🎬 Xem phim', `xem:${k}:${n}`), btn('🖼 Storyboard', `sb:${k}:${n}`)], [btn('💬 Góp ý để sửa', `gy:${k}:${n}`), btn('🔊 Chỉ sửa giọng', `sg:${k}:${n}`)], [btn('🔁 Dựng lại', `dp:${k}:${n}`), btn('📄 Kịch bản', `kb:${k}:${n}`)]);
+  if (st === 'phim') b.push([btn('🎬 Xem phim', `xem:${k}:${n}`), btn('📝 Bài đăng', `bd:${k}:${n}`)], [btn('🖼 Storyboard', `sb:${k}:${n}`)], [btn('💬 Góp ý để sửa', `gy:${k}:${n}`), btn('🔊 Chỉ sửa giọng', `sg:${k}:${n}`)], [btn('🔁 Dựng lại', `dp:${k}:${n}`), btn('📄 Kịch bản', `kb:${k}:${n}`)]);
   if (board && st === 'kich-ban' && e.board?.length) await sendBoard(chatId, slug, e);
   return reply(chatId, t.join('\n'), b);
 }
@@ -483,6 +520,13 @@ async function command(chatId, text) {
       if (!n) return reply(chatId, 'Ghi số tập, ví dụ: /xem 11');
       return sendVideo(chatId, s.slug, n);
     }
+    case 'baidang': {
+      const s = await activeSeries(chatId);
+      const n = nums(args)[0];
+      if (!s) return;
+      if (!n) return reply(chatId, 'Ghi số tập, ví dụ: /baidang 11 — AI viết bài ngắn (dưới 100 từ) và bài dài (dưới 300 từ) theo kịch bản tập đó.');
+      return postView(chatId, s.slug, n);
+    }
     case 'seriesmoi': {
       if (!(await seriesList()).length) return startNew(chatId);
       ask(chatId, { kind: 'new', step: 'type', data: {} });
@@ -537,6 +581,8 @@ async function callback(q) {
     case 'sb': { const e = (await seriesFull(slug)).episodes.find((x) => x.number === n); return e ? sendBoard(chatId, slug, e) : null; }
     case 'kb': return sendScript(chatId, slug, n);
     case 'xem': return sendVideo(chatId, slug, n);
+    case 'bd': return postView(chatId, slug, n);
+    case 'bdv': return postView(chatId, slug, n, true);
     case 'nv': return charactersView(chatId, slug);
     case 'vnv': { const r = await local('POST', `/api/series/${slug}/jobs`, { action: 'characters' }); return reply(chatId, `▶ ${r.job.label} — xong sẽ báo.`); }
     case 'dp': return startEpisodes(chatId, slug, [n], 'render');

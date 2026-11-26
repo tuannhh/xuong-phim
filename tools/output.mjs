@@ -49,10 +49,26 @@ export function exportEpisode(seriesDir, id) {
   copy(mp4, `${base}.mp4`);
   const srt = path.join(out, `${id}.srt`);
   if (fs.existsSync(srt)) copy(srt, `${base}.srt`);
-  for (const old of [prev.mp4, prev.srt]) if (old && !old.startsWith(base + '.') && old.startsWith(outputDir() + path.sep) && fs.existsSync(old)) fs.rmSync(old);
+  for (const old of [prev.mp4, prev.srt, prev.mp4?.replace(/\.mp4$/, ' - Bài đăng.txt')]) if (old && !old.startsWith(base + '.') && !old.startsWith(base + ' - ') &&old.startsWith(outputDir() + path.sep) && fs.existsSync(old)) fs.rmSync(old);
   const st = fs.statSync(mp4);
+  writePostTxt(ed, base);
   fs.writeFileSync(rec, JSON.stringify({ mp4: `${base}.mp4`, srt: fs.existsSync(srt) ? `${base}.srt` : null, mtime: st.mtimeMs, size: st.size, at: new Date().toISOString() }, null, 1));
   return `${base}.mp4`;
+}
+
+// Bài đăng mạng xã hội (episodes/epNN/bai-dang.json, tools/web/post.mjs) → "<tên phim> - Bài đăng.txt" cạnh MP4 đã xuất
+const writePostTxt = (ed, base) => {
+  const p = readJSON(path.join(ed, 'bai-dang.json'), null);
+  if (!p?.short) return;
+  fs.writeFileSync(`${base} - Bài đăng.txt`, `BẢN NGẮN\n\n${p.short}\n\n────────────\n\nBẢN DÀI\n\n${p.long}\n`);
+};
+// viết lại file bài đăng cạnh MP4 đã xuất (gọi sau khi AI viết xong bài)
+export function exportPost(seriesDir, id) {
+  const ed = path.join(seriesDir, 'episodes', id), r = readJSON(path.join(ed, 'out', 'export.json'), null);
+  if (!r?.mp4 || !fs.existsSync(path.dirname(r.mp4))) return null;
+  const base = r.mp4.replace(/\.mp4$/, '');
+  writePostTxt(ed, base);
+  return `${base} - Bài đăng.txt`;
 }
 
 // Trạng thái xuất của một tập cho trang web

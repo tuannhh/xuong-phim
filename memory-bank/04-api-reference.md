@@ -23,11 +23,12 @@ Chỉ nghe `127.0.0.1`; từ chối Host khác `localhost`/`127.0.0.1`. Mọi y�
 | DELETE | `/api/queue?slug=&episode=` | Bỏ một tập khỏi hàng đợi; không tham số → xoá cả hàng |
 | POST/DELETE | `/api/series/<slug>/asset?name=&kind=logo\|mascot` | Tải lên / xoá ảnh dùng chung của series → `assets/<kind>-<tên>` (PNG/WEBP/JPG/SVG ≤ 15 MB) |
 | POST/DELETE | `/api/series/<slug>/music?name=` | Tải lên / xoá nhạc nền → `nhac/` (MP3/WAV/M4A/AAC/OGG/FLAC ≤ 80 MB) |
+| GET/POST | `/api/series/<slug>/post` | GET `?episode=n` → `{ post: {short, long, words, at, stale, busy} \| null }`; POST `{ episode }` → AI viết (lại) bài đăng, chờ xong rồi trả `{ post }` (400 tập chưa có kịch bản, 502 AI viết quá dài 3 lần). Thông tin tập (`GET /api/series/<slug>`) có thêm `post` |
 | POST | `/api/suggest` | `{ field, context }` → `{ items: [3 chuỗi] }` — gợi ý nội dung cho một ô (`FIELDS` trong `tools/web/suggest.mjs`), chạy bằng công cụ + model của vai trò "suggest" trong Thiết lập AI; mỗi lúc một gợi ý (409 nếu đang bận) |
 | POST | `/api/queue/pause` · `/api/queue/resume` | Tạm dừng / chạy tiếp hàng đợi (tạm dừng không cắt tập đang dựng) |
 | POST | `/api/job/stop` | Dừng việc đang chạy (SIGTERM tiến trình con / huỷ tải lên) |
 | GET | `/api/doctor` | Kết quả `tools/doctor.mjs` (máy cài đủ chưa) |
-| GET/PUT | `/api/ai` | Thiết lập AI `{config:{engine, claude:{plan,script,fix,suggest:{model,effort}}, codex:{…}}, defaults, roles, status:{claude:{installed}, codex:{installed,loggedIn}}, claude:{models,efforts}}`; PUT nhận `config` (làm sạch: engine claude/codex, model `[\w.\-:[\]]{0,80}`, effort Claude trong low…max) — lưu `~/.config/xuong-phim/ai.json` |
+| GET/PUT | `/api/ai` | Thiết lập AI `{config:{engine, claude:{plan,script,fix,suggest,post:{model,effort}}, codex:{…}}, defaults, roles, status:{claude:{installed}, codex:{installed,loggedIn}}, claude:{models,efforts}}`; PUT nhận `config` (làm sạch: engine claude/codex, model `[\w.\-:[\]]{0,80}`, effort Claude trong low…max) — lưu `~/.config/xuong-phim/ai.json` |
 | GET | `/api/ai/codex-models` | Danh sách model Codex `{list:[{id,label,description,efforts[],defaultEffort,isDefault}], error}` — hỏi `codex app-server` (`initialize` → `model/list`, bỏ model ẩn), giữ 10 phút; `?refresh=1` hỏi lại |
 | GET/PUT | `/api/autostart` | Tự mở khi đăng nhập máy `{supported, why, on, log, self}`; PUT `{on}` → LaunchAgent `vn.xuong-phim.web` (macOS) / systemd user `xuong-phim.service` (Linux). Tắt khi chính bản chạy nền đang trả lời → chỉ xoá file, chạy tiếp tới lần khởi động lại (`stillRunning`) |
 | PUT | `/api/autostart/boot` | `{on}` → Windows: tạo/gỡ tác vụ Task Scheduler "Xuong phim" chạy khi bật máy (UAC). GET `/api/autostart` có thêm `boot: {supported, on, state, logon, here, log}` |

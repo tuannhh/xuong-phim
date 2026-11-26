@@ -46,35 +46,44 @@ const answerOf = {
   },
 };
 const argsOf = {
-  claude: (prompt, model, effort) => ['-p', prompt, '--output-format', 'json', '--model', model || process.env.STUDIO_SUGGEST_MODEL || 'haiku', ...(effort ? ['--effort', effort] : []), '--max-turns', '1', '--disallowedTools', 'Bash', 'Edit', 'Write', 'WebSearch', 'WebFetch'],
+  claude: (prompt, model, effort) => ['-p', prompt, '--output-format', 'json', ...(model ? ['--model', model] : []), ...(effort ? ['--effort', effort] : []), '--max-turns', '1', '--disallowedTools', 'Bash', 'Edit', 'Write', 'WebSearch', 'WebFetch'],
   codex: (prompt, model, effort) => ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '-s', 'read-only', '-C', os.tmpdir(), ...(model ? ['-m', model] : []), ...(effort ? ['-c', `model_reasoning_effort="${effort}"`] : []), prompt],
 };
 
-// ai = { engine: 'claude'|'codex', bin, model, effort } (ai.pick('suggest'))
-export function suggest(ai, env, field, ctx, timeoutMs = 90000) {
+// Hỏi AI một câu (không công cụ, một lượt) → câu trả lời dạng chữ. Dùng chung cho "Gợi ý" và bài đăng (post.mjs).
+// ai = { engine: 'claude'|'codex', bin, model, effort } (ai.pick(vai trò))
+export function askAI(ai, env, prompt, { timeoutMs = 90000, what = 'gợi ý', fallbackModel = 'haiku' } = {}) {
   const name = ai.engine === 'codex' ? 'codex' : 'claude';
-  if (!FIELDS[field]) return Promise.reject(Object.assign(new Error('ô này không có gợi ý'), { code: 400 }));
-  if (!ai.bin) return Promise.reject(Object.assign(new Error(`Máy chưa có lệnh ${name} (cần cài và đăng nhập để dùng gợi ý — đổi công cụ ở Thiết lập).`), { code: 400 }));
-  if (busy) return Promise.reject(Object.assign(new Error('Đang lấy một gợi ý khác — thử lại sau vài giây.'), { code: 409 }));
-  busy = true;
+  if (!ai.bin) return Promise.reject(Object.assign(new Error(`Máy chưa có lệnh ${name} (cần cài và đăng nhập để dùng ${what} — đổi công cụ ở Thiết lập).`), { code: 400 }));
   return new Promise((ok, no) => {
-    const child = spawnBin(ai.bin, argsOf[name](promptOf(field, ctx), ai.model, ai.effort), { env, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawnBin(ai.bin, argsOf[name](prompt, ai.model || (name === 'claude' ? fallbackModel : ''), ai.effort), { env, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '', err = '';
-    const timer = setTimeout(() => { child.kill('SIGTERM'); no(new Error('Gợi ý quá lâu — thử lại.')); }, timeoutMs);
+    const timer = setTimeout(() => { child.kill('SIGTERM'); no(new Error(`Viết ${what} quá lâu — thử lại.`)); }, timeoutMs);
     child.stdout.on('data', (d) => (out += d));
     child.stderr.on('data', (d) => (err += d));
     child.on('error', (e) => { clearTimeout(timer); no(e); });
     child.on('close', (code) => {
       clearTimeout(timer);
-      try {
-        const text = answerOf[name](out);
-        const arr = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
-        const list = arr.map((s) => String(s).trim()).filter(Boolean).slice(0, 3);
-        if (!list.length) throw new Error('rỗng');
-        ok(list);
-      } catch {
-        no(new Error(code === 0 ? 'Trả lời không đúng dạng — bấm gợi ý lại.' : `Không lấy được gợi ý${/login|auth|401/i.test(err + out) ? ` (lệnh ${name} chưa đăng nhập)` : /model/i.test(err + out) ? ` (model "${ai.model}" không dùng được — đổi ở Thiết lập)` : ''}.`));
-      }
+      let text = '';
+      try { text = answerOf[name](out); } catch {}
+      if (text.trim()) return ok(text);
+      no(new Error(`Không lấy được ${what}${/login|auth|401/i.test(err + out) ? ` (lệnh ${name} chưa đăng nhập)` : /model/i.test(err + out) ? ` (model "${ai.model}" không dùng được — đổi ở Thiết lập)` : code ? '' : ' (trả lời rỗng)'}.`));
     });
-  }).finally(() => { busy = false; });
+  });
+}
+
+// ai = ai.pick('suggest')
+export async function suggest(ai, env, field, ctx, timeoutMs = 90000) {
+  if (!FIELDS[field]) throw Object.assign(new Error('ô này không có gợi ý'), { code: 400 });
+  if (busy) throw Object.assign(new Error('Đang lấy một gợi ý khác — thử lại sau vài giây.'), { code: 409 });
+  busy = true;
+  try {
+    const text = await askAI(ai, env, promptOf(field, ctx), { timeoutMs, fallbackModel: process.env.STUDIO_SUGGEST_MODEL || 'haiku' });
+    try {
+      const arr = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']') + 1));
+      const list = arr.map((s) => String(s).trim()).filter(Boolean).slice(0, 3);
+      if (list.length) return list;
+    } catch {}
+    throw new Error('Trả lời không đúng dạng — bấm gợi ý lại.');
+  } finally { busy = false; }
 }

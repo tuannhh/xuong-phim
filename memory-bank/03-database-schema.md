@@ -16,6 +16,7 @@ series/<slug>/
   episodes/epNN/
     episode.json  NGUỒN DUY NHẤT của tập
     script.md     kịch bản đọc được (sinh)
+    bai-dang.json bài đăng mạng xã hội {short, long, at, src (mtime episode.json lúc viết → biết kịch bản đã sửa), engine, model} — AI viết sau khi dựng (tools/web/post.mjs)
     storyboard/   01-s01.jpg…, index.html, layout.json (kết quả đo chồng lấn)
     voice/        <lineId>.wav, dur.json, engine.json (commit — đọc lại tốn thời gian)
     build/        timed.json, mix.wav, bundle (không commit)
