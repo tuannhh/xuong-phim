@@ -29,7 +29,7 @@ Xưởng sản xuất **series phim ngắn cho mạng xã hội** (TikTok, Reels
 
 ## Sản phẩm mẫu
 
-Series `series/canh-giac-lua-dao` — "Người MISA cảnh giác" (5 tập lên kế hoạch). Đã dựng: Tập 1 (cảnh kiểu cũ, có bản VieNeu và bản Gemini) và Tập 4 "Thả tim nhận tiền?" (toàn cảnh `story`, 66,8 giây, VieNeu) — chủ dự án đã khen tạo hình và bối cảnh của Tập 4.
+Series của người dùng (`series/<slug>/`) KHÔNG đưa lên GitHub (`.gitignore` bỏ cả `series/*`) — mỗi máy tự tạo series của mình. Trên GitHub chỉ giữ `series/huong-dan-xuong-phim` (video hướng dẫn dùng xưởng). Hai series đầu tiên của chủ dự án ("Người MISA cảnh giác" — `canh-giac-lua-dao`, `nguoi-misa-canh-giac-voi-lua-dao`) đã gỡ khỏi GitHub 26/11/2026, vẫn còn trên máy gốc. Tạo hình nhân viên MISA áo polo vàng có logo (`kind: "misa"`) nằm trong mã (`remotion/kit/Character.tsx`, `shared/catalog.mjs`), là trang phục mặc định của form tạo series và lựa chọn "Nhân viên MISA" khi tạo series bằng bot Telegram.
 
 ## Ngoài phạm vi
 

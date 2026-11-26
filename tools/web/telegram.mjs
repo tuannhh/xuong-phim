@@ -195,7 +195,7 @@ const COMMANDS = [
   ['gopy', 'Sửa tập theo góp ý: /gopy 11 nội dung góp ý'],
   ['xem', 'Gửi phim về điện thoại: /xem 11'],
   ['nhanvat', 'Bảng nhân vật của series'],
-  ['seriesmoi', 'Tạo series mới (giữ nhân vật của một series có sẵn)'],
+  ['seriesmoi', 'Tạo series mới (từ đầu, hoặc nhân bản series có sẵn)'],
   ['hang', 'Hàng đợi dựng phim'],
   ['tieptuc', 'Chạy tiếp hàng đợi'],
   ['huy', 'Dừng việc đang chạy (tạm dừng hàng đợi)'],
@@ -360,10 +360,36 @@ async function onText(chatId, text) {
   if (w.kind === 'new') return newSeriesStep(chatId, w, t);
 }
 
-// ───────── tạo series mới: nhân bản một series có sẵn (giữ nhân vật, giọng, màu, nhạc, watermark) → tên → ý tưởng → số tập → thời lượng
+// ───────── tạo series mới — hai cách:
+//   mới hoàn toàn: tên → ý tưởng → số tập → thời lượng → dàn nhân vật (nhân viên MISA áo polo vàng / văn phòng / không nhân vật)
+//   nhân bản: chọn series có sẵn (giữ nhân vật, giọng, màu, nhạc, watermark) → tên → ý tưởng → số tập → thời lượng
+// Dàn nhân vật mặc định giống form trên trang web (2 người, có nam có nữ); muốn chỉnh chi tiết thì sửa đề bài trên trang.
+const CASTS = {
+  misa: {
+    label: '👕 Nhân viên MISA (áo polo vàng)', desc: 'nhân viên MISA mặc áo polo vàng có logo MISA',
+    characters: [
+      { name: 'Minh', gender: 'nam', kind: 'misa', hair: 'ngan', role: 'nhân viên MISA, người dẫn chuyện' },
+      { name: 'Lan', gender: 'nu', kind: 'misa', hair: 'buoc', role: 'đồng nghiệp, hay gặp tình huống' },
+    ],
+  },
+  vp: {
+    label: '👔 Dân văn phòng (sơ mi, vest)', desc: 'nhân viên văn phòng mặc sơ mi / vest',
+    characters: [
+      { name: 'Minh', gender: 'nam', kind: 'so-mi', hair: 'ngan', role: 'nhân viên văn phòng, người dẫn chuyện' },
+      { name: 'Lan', gender: 'nu', kind: 'blazer-nu', hair: 'buoc', role: 'đồng nghiệp, hay gặp tình huống' },
+    ],
+  },
+  khong: { label: '🚫 Không dùng nhân vật', desc: 'không có nhân vật (chữ, biểu tượng, hình minh hoạ)', characters: [] },
+};
+function startNew(chatId) {
+  ask(chatId, { kind: 'new', step: 'name', data: {} });
+  return reply(chatId, 'Tạo series mới hoàn toàn. Tên series là gì? (/huybo để thôi)');
+}
 async function newSeriesStep(chatId, w, input) {
   const d = w.data;
+  if (w.step === 'type') return reply(chatId, 'Bấm "Tạo mới hoàn toàn" hoặc "Nhân bản" ở tin trên (hoặc /huybo).');
   if (w.step === 'src') return reply(chatId, 'Bấm chọn một series ở tin trên để lấy nhân vật (hoặc /huybo).');
+  if (w.step === 'cast') return reply(chatId, 'Bấm chọn dàn nhân vật ở tin trên (hoặc /huybo).');
   if (w.step === 'name') {
     d.name = input.slice(0, 80);
     ask(chatId, { ...w, step: 'idea' });
@@ -392,17 +418,27 @@ function setEps(chatId, w, x) {
   return reply(chatId, 'Mỗi tập dài khoảng bao nhiêu giây? (bấm hoặc nhắn số 20–300)', [[45, 60, 90, 120].map((s) => btn(`${s} giây`, `nd:${s}`))]);
 }
 function setDur(chatId, w, x) {
+  w.data.duration = x;
+  if (w.data.from) return confirmNew(chatId, w);
+  ask(chatId, { ...w, step: 'cast' });
+  return reply(chatId, 'Dàn nhân vật? (2 người, một nam một nữ — đổi tên, thêm người, đổi trang phục sau trên trang web)', Object.entries(CASTS).map(([k, c]) => [btn(c.label, `nc:${k}`)]));
+}
+function confirmNew(chatId, w) {
   const d = w.data;
-  d.duration = x;
   ask(chatId, { ...w, step: 'ok' });
-  return reply(chatId, [`Tạo series mới:`, `• Tên: ${d.name}`, `• Ý tưởng: ${d.idea.slice(0, 500)}`, `• ${d.episodes} tập × ${d.duration} giây`, `• Nhân vật, giọng, màu, nhạc: giữ như "${d.fromName}"`, '', 'Tạo xong xưởng tự lập kế hoạch các tập để bạn duyệt.'].join('\n'), [[btn('✅ Tạo và lập kế hoạch', 'nok'), btn('✖️ Thôi', 'nno')]]);
+  const cast = d.from ? `• Nhân vật, giọng, màu, nhạc: giữ như "${d.fromName}"` : `• Nhân vật: ${CASTS[d.cast].desc}${CASTS[d.cast].characters.length ? ` — ${CASTS[d.cast].characters.map((c) => c.name).join(', ')}` : ''}`;
+  return reply(chatId, [d.from ? 'Tạo series mới (nhân bản):' : 'Tạo series mới hoàn toàn:', `• Tên: ${d.name}`, `• Ý tưởng: ${d.idea.slice(0, 500)}`, `• ${d.episodes} tập × ${d.duration} giây`, cast, '', 'Tạo xong xưởng tự lập kế hoạch các tập để bạn duyệt.'].join('\n'), [[btn('✅ Tạo và lập kế hoạch', 'nok'), btn('✖️ Thôi', 'nno')]]);
 }
 async function createSeries(chatId, w) {
   const d = w.data;
   waiting.delete(chatId);
-  const { slug } = await local('POST', `/api/series/${d.from}/clone`, { name: d.name, idea: d.idea, episodes: d.episodes, duration: d.duration });
+  const base = { name: d.name, idea: d.idea, episodes: d.episodes, duration: d.duration };
+  const cast = CASTS[d.cast] ?? CASTS.misa;
+  const { slug } = d.from
+    ? await local('POST', `/api/series/${d.from}/clone`, base)
+    : await local('POST', '/api/series', { ...base, characterMode: cast.characters.length ? 'dong-nhat' : 'khong', characters: cast.characters });
   update({ series: slug });
-  await reply(chatId, `✓ Đã tạo series "${d.name}" và chọn làm series đang làm việc.`);
+  await reply(chatId, `✓ Đã tạo series "${d.name}" và chọn làm series đang làm việc.${!d.from && cast.characters.length ? ' Bảng nhân vật: /nhanvat (vẽ sau khi lập kế hoạch xong).' : ''}`);
   try { await startAi(chatId, slug, 'plan', null); }
   catch (e) { await reply(chatId, `Chưa lập kế hoạch được: ${e.message}`, [[btn('🧠 Lập kế hoạch', `lap:${sk(slug)}`)]]); }
 }
@@ -448,10 +484,9 @@ async function command(chatId, text) {
       return sendVideo(chatId, s.slug, n);
     }
     case 'seriesmoi': {
-      const list = await seriesList();
-      if (!list.length) return reply(chatId, 'Chưa có series nào để lấy nhân vật — tạo series đầu tiên trên trang web của xưởng.');
-      ask(chatId, { kind: 'new', step: 'src', data: {} });
-      return reply(chatId, 'Tạo series mới. Giữ nhân vật, giọng đọc, bộ màu, nhạc, watermark của series nào? (/huybo để thôi)', seriesButtons(list, 'ns'));
+      if (!(await seriesList()).length) return startNew(chatId);
+      ask(chatId, { kind: 'new', step: 'type', data: {} });
+      return reply(chatId, 'Tạo series mới — làm từ đầu, hay nhân bản một series có sẵn? (/huybo để thôi)', [[btn('✨ Tạo mới hoàn toàn', 'nm')], [btn('📑 Nhân bản series có sẵn (giữ nhân vật, giọng, màu, nhạc)', 'nb')]]);
     }
     case 'huybo': return reply(chatId, waiting.delete(chatId) ? 'Đã thôi.' : 'Không có gì đang chờ.');
     case 'huy': {
@@ -473,10 +508,14 @@ async function callback(q) {
   await call('answerCallbackQuery', { callback_query_id: q.id }).catch(() => {});
   const [act, a, b] = String(q.data ?? '').split(':');
   // bước tạo series không mang mã series
-  if (['ne', 'nd', 'nok', 'nno'].includes(act)) {
+  if (['nm', 'nb', 'nc', 'ne', 'nd', 'nok', 'nno'].includes(act)) {
     const w = waitingFor(chatId);
     if (w?.kind !== 'new') return reply(chatId, 'Phiên tạo series đã hết — gõ /seriesmoi để làm lại.');
     if (act === 'nno') { waiting.delete(chatId); return reply(chatId, 'Đã thôi tạo series.'); }
+    if (act === 'nm') return startNew(chatId);
+    if (act === 'nb') { ask(chatId, { ...w, step: 'src' }); return reply(chatId, 'Giữ nhân vật, giọng đọc, bộ màu, nhạc, watermark của series nào?', seriesButtons(await seriesList(), 'ns')); }
+    if (act === 'nc') { if (w.step !== 'cast' || !CASTS[a]) return; w.data.cast = a; return confirmNew(chatId, w); }
+    if (act === 'nok' && w.step !== 'ok') return reply(chatId, 'Chưa đủ thông tin — làm tiếp các bước ở trên.');
     if (act === 'ne') return setEps(chatId, w, +a);
     if (act === 'nd') return setDur(chatId, w, +a);
     return createSeries(chatId, w);

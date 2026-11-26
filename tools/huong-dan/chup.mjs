@@ -11,7 +11,10 @@ import { launch } from './cdp.mjs';
 const URL0 = process.env.XUONG_URL || 'http://localhost:4710/';
 const EP = path.join(ROOT, 'series/huong-dan-xuong-phim/episodes/ep01');
 const W = 1440, H = 900, SCALE = 2;
-const DEMO = process.env.HUONG_DAN_SERIES || 'nguoi-misa-canh-giac-voi-lua-dao'; // series có phim đã dựng
+// series có phim đã dựng: chỉ định bằng HUONG_DAN_SERIES, không thì lấy series đầu tiên trên máy có MP4 (series của người dùng không có trên GitHub)
+const hasFilm = (d) => { const e = path.join(ROOT, 'series', d, 'episodes'); return fs.existsSync(e) && fs.readdirSync(e).some((x) => fs.existsSync(path.join(e, x, 'out', `${x}.mp4`))); };
+const DEMO = process.env.HUONG_DAN_SERIES || (fs.existsSync(path.join(ROOT, 'series')) ? fs.readdirSync(path.join(ROOT, 'series')).find((d) => d !== 'huong-dan-xuong-phim' && hasFilm(d)) : null);
+if (!DEMO) { console.error('Cần một series có phim đã dựng để chụp (đặt HUONG_DAN_SERIES=<slug>).'); process.exit(1); }
 const DEMO_SB = process.env.HUONG_DAN_SB || DEMO; // series có tập đang chờ duyệt storyboard (không có → giữ ảnh cũ)
 
 // hàm tiện ích nạp vào trang
