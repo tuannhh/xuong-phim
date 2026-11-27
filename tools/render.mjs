@@ -95,6 +95,25 @@ export function renderGl() {
   return process.platform === 'win32' ? 'angle' : null;
 }
 
+// thay file cũ bằng file mới; Windows khoá file đang mở (trình xem phim…) → thử lại vài lần rồi báo rõ
+const LOCKED = ['EBUSY', 'EPERM', 'EACCES'];
+export async function replaceFile(src, dst, tries = 10) {
+  for (let i = 1; ; i++) {
+    try { return fs.renameSync(src, dst); }
+    catch (e) {
+      if (!LOCKED.includes(e.code)) throw e;
+      if (i >= tries) throw new Error(`không thay được ${path.basename(dst)} — file đang mở ở chương trình khác (trình xem phim?). Đóng lại rồi dựng lại; bản mới đang nằm ở ${path.basename(src)}.`);
+      await new Promise((ok) => setTimeout(ok, 1500));
+    }
+  }
+}
+
+// phụ đề của bản vừa dựng (build/<id>.srt do timing ghi) → out/, cạnh MP4
+export function syncSrt(epDir, mp4) {
+  const src = path.join(epDir, dirs().build, path.basename(mp4).replace(/\.mp4$/, '.srt'));
+  if (fs.existsSync(src)) fs.copyFileSync(src, mp4.replace(/\.mp4$/, '.srt'));
+}
+
 export async function renderVideo(epDir, { preview = false } = {}) {
   const props = loadProps(epDir);
   if (!props.audio) console.log('  ! chưa có build/mix.wav — video sẽ không có tiếng');
@@ -102,13 +121,16 @@ export async function renderVideo(epDir, { preview = false } = {}) {
   const comp = await selectComposition({ serveUrl, id: 'Episode', inputProps: props });
   const name = `${props.episode.id}${dirs().out}${preview ? '-preview' : ''}.mp4`;
   const output = path.join(epDir, 'out', name);
+  // vẽ ra file tạm rồi mới thay bản cũ: dựng lỗi / bấm dừng giữa chừng thì bản cũ vẫn nguyên; xong thì bản mới đè lên bản cũ
+  const tmp = output.replace(/\.mp4$/, '.dang-dung.mp4');
   fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.rmSync(tmp, { force: true });
   const t = Date.now();
   let last = -1;
   const gl = renderGl();
   const concurrency = await renderConcurrency();
   const go = (glMode) => renderMedia({
-    composition: comp, serveUrl, inputProps: props, codec: 'h264', outputLocation: output,
+    composition: comp, serveUrl, inputProps: props, codec: 'h264', outputLocation: tmp,
     ...(glMode ? { chromiumOptions: { gl: glMode } } : {}),
     crf: preview ? 28 : 18, scale: preview ? 0.5 : 1, audioBitrate: '192k', pixelFormat: 'yuv420p',
     concurrency,
@@ -120,15 +142,19 @@ export async function renderVideo(epDir, { preview = false } = {}) {
       if (b > last) { last = b; progressLine(`  render ${p}% · khung ${renderedFrames}/${comp.durationInFrames}`); }
     },
   });
-  try { await go(gl); }
-  catch (e) {
-    if (!gl) throw e;
-    progressDone();
-    console.log(`  ! vẽ bằng GPU (${gl}) lỗi: ${String(e.message).split('\n')[0]} — vẽ lại bằng CPU`);
-    last = -1;
-    await go(null);
-  }
+  try {
+    try { await go(gl); }
+    catch (e) {
+      if (!gl) throw e;
+      progressDone();
+      console.log(`  ! vẽ bằng GPU (${gl}) lỗi: ${String(e.message).split('\n')[0]} — vẽ lại bằng CPU`);
+      last = -1;
+      await go(null);
+    }
+  } catch (e) { fs.rmSync(tmp, { force: true }); throw e; }
   progressDone();
+  await replaceFile(tmp, output);
+  if (!preview) syncSrt(epDir, output);
   console.log(`  xong ${((Date.now() - t) / 1000).toFixed(0)}s → ${path.relative(process.cwd(), output)}`);
   return output;
 }

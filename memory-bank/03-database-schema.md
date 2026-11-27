@@ -19,8 +19,8 @@ series/<slug>/
     bai-dang.json bài đăng mạng xã hội {short, long, at, src (mtime episode.json lúc viết → biết kịch bản đã sửa), engine, model} — AI viết sau khi dựng (tools/web/post.mjs)
     storyboard/   01-s01.jpg…, index.html, layout.json (kết quả đo chồng lấn)
     voice/        <lineId>.wav, dur.json, engine.json (commit — đọc lại tốn thời gian)
-    build/        timed.json, mix.wav, bundle (không commit)
-    out/          epNN.mp4, epNN.srt, drive.json {account, folderId, uploadedAt, mp4 {id, link, mtime, size}, srt {id, link}} (không commit)
+    build/        timed.json, mix.wav, bundle, epNN.srt (timing ghi; chỉ chép sang out/ khi dựng xong — bấm dừng giữa chừng thì phụ đề cũ trong out/ vẫn khớp phim cũ), rendered.json (không commit)
+    out/          epNN.mp4 (vẽ ra epNN.dang-dung.mp4 rồi mới đổi tên đè bản cũ), epNN.srt, export.json (đích đã chép ra thư mục phim chung), drive.json {account, folderId, uploadedAt, mp4 {id, link, mtime, size}, srt {id, link}} (không commit)
 ```
 
 ## `brief.json` (do `tools/web/server.mjs` → `saveBrief` ghi)
@@ -34,6 +34,13 @@ series/<slug>/
 **Nhân vật** (`CharacterSpec`, `remotion/types.ts`): `id, name, gender (nam|nu), kind (misa|so-mi|vest|hoodie|ao-thun|cardigan), outfitColor, bottom (quan|vay), bottomColor, hair (nam: ngan|vuot|tia|xoan|hoi; nữ: dai|buoc|bob|bui), hairColor, skin, age (tre|trung-nien), beard, glasses, logo, voice (VieNeu), geminiVoice, villain, role`. Giọng phải đúng giới tính (`tools/voices.mjs` → `castVoices`; `check` chặn nếu sai).
 
 ## `plan.json`
+
+`episodes[].scriptOk` = mtime (ms) của `episode.json` lúc bấm duyệt kịch bản (chế độ duyệt toàn bộ). `episode.json` sửa sau đó (mtime > scriptOk + 1 s) → tập về "chờ duyệt". Bấm dựng / sản xuất một tập = coi như đã duyệt.
+
+## Ngoài repo: `~/.config/xuong-phim/social.json` + `social-posts.json` (tools/web/social.mjs)
+
+- `social.json` (quyền 600): `apps.meta {id, secret, config?}` · `apps.tiktok {key, secret}` (YouTube dùng OAuth client trong `google.json` của Drive) · `accounts[] {key: meta:<user>|yt:<channel>|tt:<open_id>, platform, name, connected, token, expiry?, broken?, dests[] {id: fb:<page>|ig:<ig-user>|yt:<channel>|tt:<open_id>, kind, name, ref, token? (token Trang)}}`.
+- `social-posts.json`: `posts[] {id, slug, episode, dest, kind, destName, caption, title?, privacy?, tiktok? {mode: direct|inbox, privacy, comment, duet, stitch, brand}, at (ms, null = đăng ngay), status: queued|scheduled|posting|done|error|canceled|missed, created, started, ended, error, url, remoteId, note, video {mtime, size}}` — giữ 2000 bài gần nhất.
 
 `{ brief: {tóm tắt}, episodes: [{ number, id, title, logline, hook, beats[], visual, cta, duration, status }] }` — `status`: `de-xuat` → `duyet` (các trạng thái sau suy ra từ file có trong thư mục tập).
 

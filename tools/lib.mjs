@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { castVoices } from './voices.mjs';
 import { normalize, seriesLexicon } from './tts/normalize.mjs';
 import crypto from 'node:crypto';
+import { watermarkProps } from '../shared/watermark.mjs';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Chép cả thư mục bằng copyFileSync từng file. KHÔNG dùng fs.cpSync: bản native của Node 24 hỏng trên thư mục
@@ -56,7 +57,54 @@ export const loadEpisode = (epArg) => {
   const episode = readJSON(path.join(epDir, 'episode.json'));
   if (!bible) die(`không thấy ${path.join(seriesDir, 'bible.json')}`);
   if (!episode) die(`không thấy ${path.join(epDir, 'episode.json')}`);
+  markBrief(seriesDir, epDir, episode);
   return { epDir, seriesDir, bible, episode };
+};
+
+// Dàn nhân vật dùng khi dựng một tập. episode.json giữ bản chép nhân vật lúc AI viết kịch bản; nhân vật nào trùng id với
+// đề bài (bible.characters) thì lấy hình dáng + tên + giọng theo đề bài MỚI NHẤT → sửa nhân vật ở đề bài rồi dựng lại là phim đổi theo.
+// Nhân vật riêng của tập (không có trong đề bài) giữ nguyên. Thuộc tính đề bài không có (vd AI thêm "trung niên" cho riêng tập)
+// chỉ bị bỏ khi đề bài được lưu SAU khi viết kịch bản (episode._briefNewer — người dùng đã sửa đề bài, vd bỏ kính).
+export const markBrief = (seriesDir, epDir, episode) => {
+  let v = false;
+  try { v = fs.statSync(path.join(seriesDir, 'bible.json')).mtimeMs > fs.statSync(path.join(epDir, 'episode.json')).mtimeMs + 1000; } catch {}
+  Object.defineProperty(episode, '_briefNewer', { value: v, enumerable: false, configurable: true });
+  return episode;
+};
+const LOOK = ['name', 'gender', 'kind', 'hair', 'hairColor', 'glasses', 'age', 'beard', 'logo', 'skin', 'bottom', 'bottomColor', 'outfitColor', 'voice', 'geminiVoice', 'mascot', 'image', 'villain'];
+export const castOf = (bible, episode) => {
+  const base = bible.characters ?? [];
+  if (!episode.characters) return base;
+  const byId = new Map(base.map((c) => [c.id, c]));
+  return episode.characters.map((c) => {
+    const b = byId.get(c.id);
+    if (!b) return c;
+    const out = { ...c };
+    for (const k of LOOK) if (k in b) out[k] = b[k]; else if (episode._briefNewer) delete out[k];
+    return out;
+  });
+};
+// so sánh không phụ thuộc thứ tự khoá
+export const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((y) => [y, x[y]])) : x));
+
+// Bản MP4 đã dựng còn khớp đề bài hiện tại không: so lịch hình lúc dựng (build/rendered.json; bản cũ → timed.json nếu không
+// mới hơn MP4) với watermark, nhân vật, giao diện tính từ đề bài bây giờ. Trả danh sách phần đã đổi (rỗng = khớp / không rõ).
+export const renderDrift = (epDir, bible, episode) => {
+  const D = dirs(), b = (f) => path.join(epDir, D.build, f);
+  const mp4 = path.join(epDir, 'out', `${episode.id}${D.out}.mp4`);
+  if (!fs.existsSync(mp4)) return [];
+  let r = readJSON(b('rendered.json'), null);
+  // tập dựng trước khi có rendered.json: timed.json chưa mới hơn MP4 = đúng bản đã dựng → lưu làm mốc ngay (lần dựng sau bị dừng giữa chừng sẽ ghi đè timed.json, mất mốc)
+  if (!r && fs.existsSync(b('timed.json')) && fs.statSync(b('timed.json')).mtimeMs <= fs.statSync(mp4).mtimeMs + 1000) {
+    r = readJSON(b('timed.json'), null);
+    if (r) try { fs.copyFileSync(b('timed.json'), b('rendered.json')); const t = fs.statSync(b('timed.json')).mtime; fs.utimesSync(b('rendered.json'), t, t); } catch { /* chỉ là mốc so sánh */ }
+  }
+  if (!r) return [];
+  const out = [];
+  if (canon(r.watermark ?? null) !== canon((episode.watermark === null ? undefined : watermarkProps(bible.watermark)) ?? null)) out.push('watermark');
+  if (canon(r.characters ?? []) !== canon(castOf(bible, episode))) out.push('nhân vật');
+  if (canon(r.theme ?? null) !== canon(resolveTheme(bible))) out.push('màu / giao diện');
+  return out;
 };
 
 // Bỏ cú pháp nhấn mạnh *x* _x_ ==x== ~~x~~ → chữ thường (cho phụ đề và lời đọc).
@@ -65,7 +113,7 @@ export const plain = (s = '') => s.replace(/==([^=]+)==/g, '$1').replace(/~~([^~
 // Các câu thoại của tập theo thứ tự, có id ổn định, giọng khoá theo nhân vật và lời đọc đã chuẩn hoá (MISA → "mi xa", số, ngày, viết tắt…).
 export const episodeLines = (bible, episode, { engine = process.env.SERIES_ENGINE === 'gemini' ? 'gemini' : 'vieneu' } = {}) => {
   const out = [];
-  const chars = episode.characters ?? bible.characters ?? [];
+  const chars = castOf(bible, episode);
   const { voices } = castVoices(chars, bible);
   const lex = [...seriesLexicon(bible), ...seriesLexicon(episode)];
   for (const s of episode.scenes) {

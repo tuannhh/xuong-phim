@@ -105,6 +105,8 @@ textarea{resize:vertical;min-height:74px}
 .airow{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(170px,1.4fr) minmax(110px,.8fr);gap:8px 12px;align-items:center}
 .airow>span{font-weight:600;font-size:14px}.airow .hdr{font-size:12.5px;color:var(--mut);font-weight:600}
 @media (max-width:640px){.airow{grid-template-columns:1fr 1fr}.airow>span{grid-column:1/-1}.airow>.hdr{display:none}}
+.kd{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11.5px;font-weight:700;color:#fff;background:#555}.kd-fb{background:#1877F2}.kd-ig{background:#C13584}.kd-yt{background:#E62117}.kd-tt{background:#111}
+.prow{display:grid;gap:6px;padding:10px 12px;border:1px solid var(--line);border-radius:12px}
 .ck{display:inline-flex;align-items:center;gap:7px;font-weight:500;font-size:14px;cursor:pointer}
 .ck input{width:16px;height:16px;accent-color:var(--navy)}
 input[type=color]{width:44px;height:38px;padding:2px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
@@ -130,8 +132,8 @@ input[type=color]{width:44px;height:38px;padding:2px;border:1px solid var(--line
 .qlist .x{border:0;background:none;color:var(--mut);font-size:17px;line-height:1;cursor:pointer;padding:0 6px;margin-left:4px}.qlist .x:hover{color:var(--fg)}
 ul.qlist{list-style:none;padding-left:0}
 .chk{display:flex;align-items:center;gap:9px;font-size:14px;cursor:pointer}.chk input{width:17px;height:17px;margin:0}
-.note.warn{background:#FFF1D6;color:#7A4A00}.note.bad{background:#FDE4E1;color:#8E1B12}
-@media (prefers-color-scheme:dark){.note.warn{background:#3D2C08;color:#FFD591}.note.bad{background:#4A1712;color:#FFB4AB}}
+.note.ok{background:#E3F6EA;color:#0F5130}.note.warn{background:#FFF1D6;color:#7A4A00}.note.bad{background:#FDE4E1;color:#8E1B12}
+@media (prefers-color-scheme:dark){.note.ok{background:#10381F;color:#9BE8BC}.note.warn{background:#3D2C08;color:#FFD591}.note.bad{background:#4A1712;color:#FFB4AB}}
 pre.log{margin:0;background:#0E1118;color:#D6DAE4;border-radius:11px;padding:12px;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;height:300px;overflow:auto;white-space:pre-wrap;word-break:break-word}
 .sum{white-space:pre-wrap;font-size:14px}
 .chars{width:100%;border-radius:11px;border:1px solid var(--line);cursor:zoom-in;display:block;background:#F3F1EA}
@@ -152,7 +154,7 @@ code.cmd{display:block;background:var(--soft);border-radius:9px;padding:9px 11px
 <body>
 <header class="top">
   <a class="brand" href="#/" title="Xưởng phim"><span class="logo-plate"><img src="/api/brand/misa-logo.svg" alt="MISA — Tin cậy, Tiện ích, Tận tình"></span><b>Xưởng phim</b></a>
-  <nav><a href="#/" id="nav-home">Series của tôi</a><a href="#/new" id="nav-new">+ Series mới</a><a href="#/settings" id="nav-settings">Thiết lập</a></nav>
+  <nav><a href="#/" id="nav-home">Series của tôi</a><a href="#/new" id="nav-new">+ Series mới</a><a href="#/lich-dang" id="nav-lich">Lịch đăng</a><a href="#/settings" id="nav-settings">Thiết lập</a></nav>
   <a id="jobpill" class="pill" style="display:none;text-decoration:none"></a>
 </header>
 <main id="app"></main>
@@ -287,6 +289,355 @@ const postBox = (slug, e) => {
   return det;
 };
 
+// vì sao phim đã dựng không còn khớp: kịch bản sửa sau lần dựng, hoặc đề bài (watermark, nhân vật, màu) đã đổi
+const staleWhy = (e) => [e.staleScript ? 'Kịch bản đã sửa sau lần dựng này' : '', e.drift?.length ? `Đề bài đã đổi ${e.drift.join(', ')} sau lần dựng này` : ''].filter(Boolean).join('; ');
+
+// ───────── sản xuất toàn bộ: AI viết kịch bản lần lượt → duyệt kịch bản toàn bộ → sản xuất (dựng) lần lượt mọi tập
+const queueEps = async (slug, episodes, action, msg) => {
+  try {
+    const r = await api('POST', `/api/series/${slug}/queue`, { episodes, action });
+    QUEUE = r.queue; if (r.job) { JOB = r.job; LOG = r.job.log.slice(); jobPill(); jobPanel(); poll(); }
+    toast(msg(r.added));
+    return true;
+  } catch (e) { toast(e.message, true); return false; }
+};
+const filmNeeded = (slug, eps) => eps.filter((e) => e.scenes && (!e.mp4 || e.stale) && !inQueue(slug, e.number) && !rendering(slug, e.number));
+const produceAll = async (slug, list) => {
+  if (await queueEps(slug, list.map((e) => e.number), 'render', (n) => `Đã xếp ${n} tập vào hàng đợi — máy dựng lần lượt từng tập (bản mới đè bản cũ).`)) location.hash = `#/s/${slug}`;
+};
+const prodCard = (slug, eps) => {
+  const toWrite = eps.filter((e) => e.approved && !e.scenes && !inQueue(slug, e.number) && !(busy() && JOB.action === 'script' && JOB.slug === slug && JOB.episode === e.number));
+  const need = filmNeeded(slug, eps), ok = need.filter((e) => e.scriptOk);
+  if (!toWrite.length && !need.length) return null;
+  const rows = [];
+  if (toWrite.length) rows.push(h('div', { class: 'row' }, h('div', { style: { flex: 1 } }, h('b', {}, `${toWrite.length} tập đã duyệt kế hoạch, chưa có kịch bản`), h('div', { class: 'mut small' }, `Tập ${toWrite.map((e) => e.number).join(', ')} — AI viết lần lượt từng tập (mỗi tập vài phút), xong hết thì duyệt kịch bản toàn bộ.`)),
+    META.claude ? h('button', { class: 'btn', onclick: async () => { if (await queueEps(slug, toWrite.map((e) => e.number), 'script', (n) => `Đã xếp ${n} tập vào hàng đợi — AI viết kịch bản lần lượt.`)) openSeries(slug, true); } }, h('span', { class: 'ai' }, 'AI'), `Viết kịch bản ${toWrite.length} tập`) : null));
+  if (need.length) {
+    const all = ok.length === need.length;
+    rows.push(h('div', { class: 'row' }, h('div', { style: { flex: 1 } }, h('b', {}, `Duyệt kịch bản: ${ok.length}/${need.length} tập`), h('div', { class: 'mut small' }, all ? 'Đã duyệt toàn bộ kịch bản.' : 'Xem storyboard + lời thoại của mọi tập trên một trang, duyệt từng tập hoặc duyệt tất cả.')),
+      h('a', { class: `btn ${all ? '' : 'pri'}`, href: `#/s/${slug}/duyet` }, 'Duyệt kịch bản toàn bộ')));
+    if (all) rows.push(h('div', { class: 'note ok' }, h('b', {}, `Sản xuất toàn bộ ${need.length} tập?`), ' Máy dựng lần lượt từng tập (giọng → thời gian → âm thanh → MP4), xong tập này tự sang tập kế; bản mới đè bản cũ.', h('div', { class: 'row', style: { marginTop: '8px' } }, h('button', { class: 'btn pri', onclick: () => produceAll(slug, need) }, `Sản xuất toàn bộ (${need.length} tập)`))));
+    else if (ok.length) rows.push(h('div', { class: 'row' }, h('span', { class: 'mut small' }, 'Hoặc sản xuất trước các tập đã duyệt:'), h('button', { class: 'btn sm', onclick: () => produceAll(slug, ok) }, `Sản xuất ${ok.length} tập đã duyệt`)));
+  }
+  return h('div', { class: 'card grid', style: { gap: '12px' } }, h('h3', {}, 'Sản xuất toàn bộ'), ...rows);
+};
+
+// màn hình duyệt kịch bản toàn bộ: #/s/<slug>/duyet
+let GOTO = null; // mở series rồi cuộn tới tập này (từ màn hình duyệt → "Góp ý / sửa")
+const reviewView = async (slug) => {
+  VIEW = 'duyet';
+  const d = (CUR = await api('GET', `/api/series/${slug}`));
+  const file = (rel, t) => `/files/${slug}/${rel}${t ? `?t=${Math.round(t)}` : ''}`;
+  const list = d.episodes.filter((e) => e.scenes && (!e.mp4 || e.stale));
+  const queued = list.filter((e) => inQueue(slug, e.number) || rendering(slug, e.number));
+  const todo = list.filter((e) => !queued.includes(e));
+  const okN = todo.filter((e) => e.scriptOk).length;
+  const set = async (nums, ok) => { const y = window.scrollY; try { await api('POST', `/api/series/${slug}/script-approve`, { episodes: nums, ok }); await reviewView(slug); window.scrollTo(0, ok && nums.length > 1 ? 0 : y); } catch (e) { toast(e.message, true); } };
+  const lines = (e) => {
+    const box = h('div', { class: 'grid', style: { gap: '6px' } }, h('span', { class: 'mut small' }, 'Đang tải…'));
+    const det = h('details', {}, h('summary', {}, 'Đọc lời thoại'), box);
+    det.addEventListener('toggle', async () => {
+      if (!det.open || box.dataset.ok) return;
+      box.dataset.ok = 1;
+      try {
+        const { scenes } = await api('GET', `/api/series/${slug}/lines?episode=${e.number}`);
+        box.replaceChildren(...scenes.map((sc, i) => h('div', { class: 'small' }, h('b', {}, `Cảnh ${i + 1}: `), sc.lines.length ? sc.lines.map((l) => h('div', {}, h('span', { class: 'mut' }, `${l.speaker ?? 'Lời dẫn'}: `), l.text)) : h('span', { class: 'mut' }, '(không lời)'))));
+      } catch (err) { box.replaceChildren(h('div', { class: 'note bad' }, err.message)); }
+    });
+    return det;
+  };
+  const card = (e) => h('div', { class: 'card grid', id: `duyet-${e.id}`, style: { gap: '10px' } },
+    h('div', { class: 'row' }, h('div', { style: { flex: 1 } }, h('h3', {}, `${e.number}. ${e.title || `Tập ${e.number}`}`), e.logline ? h('div', { class: 'mut small' }, e.logline) : null),
+      queued.includes(e) ? h('span', { class: 'pill info' }, 'đang trong hàng đợi dựng') : e.scriptOk ? h('span', { class: 'pill ok' }, '✓ đã duyệt') : h('span', { class: 'pill run' }, 'chờ duyệt')),
+    e.board.length ? h('div', { class: 'board' }, e.board.map((f) => h('img', { loading: 'lazy', src: file(`episodes/${e.id}/storyboard/${f}`, e.mtime || Date.now() / 6e4), alt: f, onclick: (ev) => zoom(ev.target.src) }))) : h('div', { class: 'note' }, 'Chưa vẽ storyboard.'),
+    e.issues?.length ? h('div', { class: 'note warn' }, `Bố cục còn ${e.issues.length} chỗ chồng lấn: ${e.issues.slice(0, 3).join(' · ')}`) : null,
+    e.mp4 && e.stale ? h('div', { class: 'note warn' }, `${staleWhy(e)} — sản xuất lại sẽ đè bản cũ.`) : null,
+    lines(e),
+    queued.includes(e) ? null : h('div', { class: 'row' },
+      e.scriptOk ? h('button', { class: 'btn', onclick: () => set([e.number], false) }, 'Bỏ duyệt') : h('button', { class: 'btn pri', onclick: () => set([e.number], true) }, '✓ Duyệt kịch bản'),
+      h('a', { class: 'btn', href: `#/s/${slug}`, onclick: () => (GOTO = e.id) }, 'Góp ý / sửa'), e.script ? h('a', { class: 'small', href: file(`episodes/${e.id}/script.md`), target: '_blank' }, 'Kịch bản đầy đủ') : null));
+  const all = todo.length > 0 && okN === todo.length;
+  const head = h('div', { class: 'card grid', style: { gap: '10px' } },
+    h('div', { class: 'row' }, h('div', { style: { flex: 1 } }, h('h2', {}, 'Duyệt kịch bản toàn bộ'), h('div', { class: 'mut small' }, todo.length ? `Đã duyệt ${okN}/${todo.length} tập. Xem storyboard + lời thoại từng tập; chỗ nào chưa ưng bấm "Góp ý / sửa".` : 'Không còn tập nào chờ duyệt kịch bản.')),
+      todo.length && !all ? h('button', { class: 'btn pri', onclick: () => confirm(`Duyệt kịch bản cả ${todo.length - okN} tập còn lại?`) && set(todo.filter((e) => !e.scriptOk).map((e) => e.number), true) }, 'Duyệt tất cả') : null),
+    all ? h('div', { class: 'note ok' }, h('b', {}, `Đã duyệt toàn bộ ${todo.length} kịch bản. Sản xuất toàn bộ luôn không?`), h('div', { class: 'small', style: { margin: '4px 0 8px' } }, 'Máy dựng lần lượt từng tập (giọng → thời gian → âm thanh → MP4), xong tập này tự sang tập kế; có thể để máy chạy và quay lại sau. Bản mới đè bản cũ.'),
+      h('div', { class: 'row' }, h('button', { class: 'btn pri', onclick: () => produceAll(slug, todo) }, `Sản xuất toàn bộ (${todo.length} tập)`), h('a', { class: 'btn', href: `#/s/${slug}` }, 'Để sau'))) : null);
+  app.replaceChildren(h('div', { class: 'row', style: { marginBottom: '10px' } }, h('a', { href: `#/s/${slug}` }, `← ${d.name}`)), h('div', { class: 'grid', style: { maxWidth: '980px' } }, head, ...todo.map(card), queued.length ? h('h3', { class: 'mut' }, 'Đang trong hàng đợi dựng') : null, ...queued.map(card)));
+};
+
+// ───────── đăng lên mạng xã hội (tools/web/social.mjs): chọn kênh → duyệt caption → đăng ngay hoặc hẹn giờ. Không bao giờ tự đăng.
+let SOCIAL = null;
+const NET = { fb: 'Facebook', ig: 'Instagram', yt: 'YouTube', tt: 'TikTok' };
+const LIMIT = { fb: 5000, ig: 2200, yt: 5000, tt: 2200 };
+const PST = { queued: ['run', 'chờ đăng'], scheduled: ['info', 'hẹn giờ'], posting: ['run', 'đang đăng'], done: ['ok', 'đã đăng'], error: ['bad', 'lỗi'], canceled: ['', 'đã huỷ'], missed: ['bad', 'lỡ giờ hẹn'] };
+const TT_PRIV = { PUBLIC_TO_EVERYONE: 'Mọi người', MUTUAL_FOLLOW_FRIENDS: 'Bạn bè (cùng theo dõi nhau)', FOLLOWER_OF_CREATOR: 'Người theo dõi', SELF_ONLY: 'Chỉ mình tôi' };
+const YT_PRIV = { public: 'Công khai', unlisted: 'Không công khai (ai có link)', private: 'Riêng tư' };
+const fmtTime = (ms) => new Date(ms).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+const inputTime = (ms) => new Date(ms - new Date(ms).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+const chars = (s) => [...String(s ?? '')].length;
+const kindTag = (k) => h('span', { class: `kd kd-${k}` }, NET[k]);
+// danh sách bài đã đăng / hẹn của một tập (hoặc mọi tập — trang Lịch đăng)
+const postRows = (list, reload, { withEp = false } = {}) => h('div', { class: 'grid', style: { gap: '6px' } }, list.map((p) => {
+  const [cls, lab] = PST[p.status] ?? ['', p.status];
+  const edit = async () => {
+    const c = prompt(`Sửa nội dung đăng lên ${NET[p.kind]} · ${p.destName}:`, p.caption);
+    if (c == null) return;
+    try { await api('PUT', `/api/social/posts/${p.id}`, { caption: c }); toast('Đã lưu nội dung.'); reload(); } catch (e) { toast(e.message, true); }
+  };
+  const when = async () => {
+    const v = prompt('Giờ đăng mới (ngày/tháng/năm giờ:phút), để trống = đăng ngay:', fmtTime(p.at && p.at > Date.now() ? p.at : Date.now() + 3600000));
+    if (v == null) return;
+    let at = null;
+    if (v.trim()) { const m = /(\d{1,2})[:h](\d{2}).*?(\d{1,2})\/(\d{1,2})\/(\d{4})|(\d{1,2})\/(\d{1,2})\/(\d{4}).*?(\d{1,2})[:h](\d{2})/.exec(v); if (!m) return toast('Không hiểu giờ — ví dụ: 19:30 28/11/2026', true); at = m[1] ? new Date(+m[5], +m[4] - 1, +m[3], +m[1], +m[2]).getTime() : new Date(+m[8], +m[7] - 1, +m[6], +m[9], +m[10]).getTime(); }
+    try { await api('PUT', `/api/social/posts/${p.id}`, { at }); toast(at ? `Đã hẹn ${fmtTime(at)}.` : 'Đã xếp đăng ngay.'); reload(); } catch (e) { toast(e.message, true); }
+  };
+  const del = async () => {
+    if (['queued', 'scheduled'].includes(p.status) && !confirm(`Huỷ bài hẹn đăng lên ${NET[p.kind]} · ${p.destName}?`)) return;
+    try { await api('DELETE', `/api/social/posts/${p.id}`); reload(); } catch (e) { toast(e.message, true); }
+  };
+  const open = ['queued', 'scheduled', 'error', 'missed', 'canceled'].includes(p.status);
+  return h('div', { class: 'prow' },
+    h('div', { class: 'row', style: { gap: '8px' } }, kindTag(p.kind), h('b', { class: 'small' }, p.destName),
+      h('span', { class: `pill ${cls}` }, p.status === 'posting' ? h('span', { class: 'dot' }) : null, lab), h('span', { class: 'mut small' }, p.status === 'scheduled' ? fmtTime(p.at) : p.ended ? fmtTime(p.ended) : ''),
+      h('span', { class: 'sp' }),
+      p.url ? h('a', { class: 'btn sm', href: p.url, target: '_blank', rel: 'noopener' }, 'Xem bài') : null,
+      open && p.status !== 'canceled' ? h('button', { class: 'btn sm', onclick: edit }, 'Sửa nội dung') : null,
+      open ? h('button', { class: 'btn sm', onclick: when }, p.status === 'scheduled' ? 'Đổi giờ' : p.status === 'canceled' ? 'Hẹn lại' : 'Đăng lại / hẹn') : null,
+      p.status !== 'posting' ? h('button', { class: 'btn sm danger', onclick: del }, ['queued', 'scheduled'].includes(p.status) ? 'Huỷ' : 'Xoá') : null),
+    withEp ? h('a', { class: 'small', href: `#/s/${p.slug}` }, `${p.seriesName ?? p.slug} · Tập ${p.episode}`) : null,
+    p.progress ? h('div', { class: 'mut small' }, p.progress) : null,
+    p.error ? h('div', { class: 'note bad small' }, p.error) : null,
+    p.note ? h('div', { class: 'note warn small' }, p.note) : null,
+    h('details', { class: 'small' }, h('summary', {}, 'Nội dung'), p.title ? h('div', {}, h('b', {}, 'Tiêu đề: '), p.title) : null, h('div', { class: 'sum' }, p.caption || '(trống)')));
+}));
+
+const socialBox = (slug, e) => {
+  const det = h('details', { class: 'post' });
+  let list = e.social ?? [], open = false, sel = new Set(), creators = {};
+  const D = () => SOCIAL?.dests ?? [];
+  const active = () => list.filter((p) => ['queued', 'scheduled', 'posting'].includes(p.status));
+  const P = e.post;
+  const cap = h('textarea', { rows: 7, value: P?.short ?? e.title ?? '' });
+  const capInfo = h('div', { class: 'mut small' });
+  const ytTitle = h('input', { type: 'text', maxlength: 100, value: (e.title ?? '').slice(0, 100) });
+  const ytPriv = h('select', {}, Object.entries(YT_PRIV).map(([k, v]) => h('option', { value: k }, v)));
+  const ttMode = h('select', {}, h('option', { value: 'direct' }, 'Đăng thẳng lên TikTok'), h('option', { value: 'inbox' }, 'Gửi vào hộp thư TikTok — mở ứng dụng để tự bấm đăng'));
+  const ttPriv = h('select', {}, h('option', { value: '' }, '— chọn ai được xem —'));
+  const ttCk = { comment: h('input', { type: 'checkbox' }), duet: h('input', { type: 'checkbox' }), stitch: h('input', { type: 'checkbox' }), brand: h('input', { type: 'checkbox' }) };
+  const whenNow = h('input', { type: 'radio', name: `w-${e.id}`, checked: true }), whenAt = h('input', { type: 'radio', name: `w-${e.id}` });
+  const at = h('input', { type: 'datetime-local', value: inputTime(Date.now() + 2 * 3600000 - (Date.now() % 1800000)) });
+  const ok = h('input', { type: 'checkbox' });
+  const capCheck = () => {
+    const n = chars(cap.value), kinds = [...new Set(D().filter((d) => sel.has(d.id)).map((d) => d.kind))];
+    const over = kinds.filter((k) => n > LIMIT[k]);
+    capInfo.textContent = `${n} ký tự${over.length ? ` — quá giới hạn của ${over.map((k) => `${NET[k]} (${LIMIT[k]})`).join(', ')}` : ''}`;
+    capInfo.style.color = over.length ? 'var(--red)' : '';
+  };
+  cap.oninput = capCheck;
+  const loadCreator = async (d) => {
+    if (creators[d.id]) return;
+    creators[d.id] = { loading: true };
+    try { creators[d.id] = await api('GET', `/api/social/tiktok?dest=${encodeURIComponent(d.id)}`); } catch (err) { creators[d.id] = { error: err.message }; }
+    draw();
+  };
+  const reload = async () => { try { list = (await api('GET', `/api/social/posts?slug=${slug}&episode=${e.number}`)).posts; } catch {} open = true; draw(); };
+  const submit = async (btn) => {
+    const chosen = D().filter((d) => sel.has(d.id));
+    if (!chosen.length) return toast('Chọn ít nhất một kênh.', true);
+    if (!ok.checked) return toast('Tích ô "Tôi đã xem lại phim và nội dung" trước khi đăng.', true);
+    const tt = chosen.find((d) => d.kind === 'tt');
+    if (tt && ttMode.value === 'direct' && !ttPriv.value) return toast('TikTok: chọn ai được xem video.', true);
+    const when = whenAt.checked ? new Date(at.value).getTime() : null;
+    if (whenAt.checked && !(when > Date.now())) return toast('Chọn giờ hẹn trong tương lai.', true);
+    const items = chosen.map((d) => ({ dest: d.id, caption: cap.value, ...(d.kind === 'yt' ? { title: ytTitle.value, privacy: ytPriv.value } : {}), ...(d.kind === 'tt' ? { tiktok: { mode: ttMode.value, privacy: ttPriv.value, comment: ttCk.comment.checked, duet: ttCk.duet.checked, stitch: ttCk.stitch.checked, brand: ttCk.brand.checked } } : {}) }));
+    btn.disabled = true;
+    try {
+      await api('POST', '/api/social/posts', { slug, episode: e.number, items, at: when });
+      toast(when ? `Đã hẹn đăng ${fmtTime(when)} lên ${chosen.length} kênh. Máy phải đang bật lúc đó.` : `Đang đăng lên ${chosen.length} kênh…`);
+      sel.clear(); ok.checked = false; await reload();
+    } catch (err) { toast(err.message, true); btn.disabled = false; }
+  };
+  const draw = () => {
+    const act = active(), done = list.filter((p) => p.status === 'done');
+    const sum = h('summary', {}, 'Đăng lên mạng xã hội ', act.length ? h('span', { class: 'pill info' }, `${act.length} bài chờ đăng`) : done.length ? h('span', { class: 'pill ok' }, `đã đăng ${done.length} kênh`) : h('span', { class: 'pill' }, 'chưa đăng'));
+    const kids = [sum];
+    if (!D().length) kids.push(h('div', { class: 'note' }, 'Chưa kết nối kênh nào. ', META.remote ? 'Kết nối kênh tại máy chạy xưởng: Thiết lập → Mạng xã hội.' : h('a', { href: '#/settings?muc=social' }, 'Vào Thiết lập → Mạng xã hội để kết nối Facebook, Instagram, YouTube, TikTok.')));
+    else {
+      const busyDest = new Set(act.map((p) => p.dest));
+      kids.push(h('div', { class: 'grid', style: { gap: '6px' } }, h('b', { class: 'small' }, 'Chọn kênh đăng'),
+        h('div', { class: 'row', style: { gap: '6px 16px' } }, D().map((d) => h('label', { class: 'ck', title: busyDest.has(d.id) ? 'Kênh này đã có bài chờ đăng cho tập này' : '' }, h('input', { type: 'checkbox', checked: sel.has(d.id), disabled: busyDest.has(d.id), onchange: (ev) => { ev.target.checked ? sel.add(d.id) : sel.delete(d.id); if (ev.target.checked && d.kind === 'tt') loadCreator(d); draw(); } }), kindTag(d.kind), d.name)))));
+      const kinds = new Set(D().filter((d) => sel.has(d.id)).map((d) => d.kind));
+      if (sel.size) {
+        kids.push(h('div', { class: 'grid', style: { gap: '6px' } }, h('div', { class: 'row' }, h('b', { class: 'small' }, kinds.has('yt') ? 'Nội dung (caption / mô tả YouTube)' : 'Nội dung đăng (caption)'), h('span', { class: 'sp' }),
+          P?.short ? h('button', { type: 'button', class: 'btn sm', onclick: () => { cap.value = P.short; capCheck(); } }, 'Dùng bản ngắn') : null, P?.long ? h('button', { type: 'button', class: 'btn sm', onclick: () => { cap.value = P.long; capCheck(); } }, 'Dùng bản dài') : null),
+          cap, capInfo, !P?.short ? h('div', { class: 'note small' }, 'Chưa có bài đăng AI viết cho tập này — mở mục "Bài đăng mạng xã hội" phía trên để AI viết, hoặc tự gõ.') : null));
+        if (kinds.has('fb') && e.seconds > 90) kids.push(h('div', { class: 'note bad small' }, `Facebook Reels chỉ nhận video tối đa 90 giây — phim này dài ${e.seconds} giây.`));
+        if (kinds.has('yt')) kids.push(h('div', { class: 'row', style: { alignItems: 'end' } }, h('div', { style: { flex: '2 1 280px' } }, lab2('Tiêu đề YouTube', 'tối đa 100 ký tự', ytTitle)), h('div', { style: { flex: '1 1 200px' } }, lab2('Chế độ xem YouTube', '', ytPriv))));
+        for (const d of D().filter((x) => sel.has(x.id) && x.kind === 'tt')) {
+          const c = creators[d.id] ?? {};
+          if (c.privacy?.length && ttPriv.options.length === 1) for (const v of c.privacy) ttPriv.append(h('option', { value: v }, TT_PRIV[v] ?? v));
+          kids.push(h('div', { class: 'card grid', style: { gap: '8px', padding: '12px' } },
+            h('div', { class: 'row' }, kindTag('tt'), h('b', {}, c.nickname ? `Đăng với tài khoản: ${c.nickname}${c.username ? ` (@${c.username})` : ''}` : d.name), c.loading ? h('span', { class: 'mut small' }, 'đang hỏi TikTok…') : null),
+            c.error ? h('div', { class: 'note bad small' }, c.error) : null,
+            c.maxSeconds && e.seconds > c.maxSeconds ? h('div', { class: 'note bad small' }, `Phim dài ${e.seconds} giây, tài khoản này chỉ đăng được tối đa ${c.maxSeconds} giây.`) : null,
+            lab2('Cách đăng', '', ttMode),
+            ttMode.value === 'direct' ? [lab2('Ai được xem video', 'TikTok yêu cầu tự chọn', ttPriv),
+              h('div', { class: 'row', style: { gap: '6px 16px' } }, h('label', { class: 'ck' }, (ttCk.comment.disabled = !!c.commentDisabled, ttCk.comment), 'Cho bình luận'), h('label', { class: 'ck' }, (ttCk.duet.disabled = !!c.duetDisabled, ttCk.duet), 'Cho Duet'), h('label', { class: 'ck' }, (ttCk.stitch.disabled = !!c.stitchDisabled, ttCk.stitch), 'Cho Stitch')),
+              h('label', { class: 'ck' }, ttCk.brand, 'Video quảng bá thương hiệu / doanh nghiệp của tôi (TikTok gắn nhãn "Quảng cáo")'),
+              h('div', { class: 'mut small' }, 'Khi đăng, bạn đồng ý với Chính sách xác nhận sử dụng âm nhạc của TikTok (Music Usage Confirmation). TikTok có thể mất vài phút để xử lý video sau khi đăng.')] : h('div', { class: 'mut small' }, 'Video vào hộp thư của ứng dụng TikTok (có thông báo); bạn mở ứng dụng, sửa nếu cần rồi tự bấm Đăng. Cách này dùng được cả khi ứng dụng TikTok của bạn chưa được TikTok duyệt.')));
+        }
+        ttMode.onchange = draw;
+        kids.push(h('div', { class: 'grid', style: { gap: '6px' } }, h('b', { class: 'small' }, 'Thời gian'),
+          h('div', { class: 'row', style: { gap: '6px 18px' } }, h('label', { class: 'ck' }, whenNow, 'Đăng ngay'), h('label', { class: 'ck' }, whenAt, 'Hẹn giờ'), at),
+          h('div', { class: 'mut small' }, 'Hẹn giờ do xưởng tự đăng khi đến giờ — máy phải đang bật và xưởng đang chạy (bật "Tự mở xưởng" ở Thiết lập). Trước giờ đăng vẫn sửa / huỷ được.')));
+        whenNow.onchange = whenAt.onchange = () => (at.disabled = whenNow.checked);
+        at.disabled = whenNow.checked;
+        at.onfocus = () => { whenAt.checked = true; at.disabled = false; };
+        const b = h('button', { type: 'button', class: 'btn pri' }, `Đăng lên ${sel.size} kênh`);
+        b.onclick = () => submit(b);
+        kids.push(h('label', { class: 'ck' }, ok, 'Tôi đã xem lại phim và nội dung đăng'), h('div', { class: 'row' }, b, e.stale ? h('span', { class: 'note warn small' }, 'Phim này đang là bản cũ (đề bài / kịch bản đã sửa) — nên dựng lại trước khi đăng.') : null));
+        capCheck();
+      }
+    }
+    if (list.length) kids.push(h('b', { class: 'small' }, 'Đã đăng / hẹn đăng'), postRows(list.slice().reverse(), reload));
+    det.open = open || det.open;
+    det.replaceChildren(...kids);
+    if (list.some((p) => ['queued', 'posting'].includes(p.status))) setTimeout(() => det.isConnected && reload(), 4000);
+  };
+  det.addEventListener('toggle', () => (open = det.open));
+  draw();
+  return det;
+};
+
+// trang Lịch đăng: mọi bài hẹn / đã đăng của mọi series
+const scheduleView = async () => {
+  VIEW = 'lich';
+  const [{ posts }, list] = await Promise.all([api('GET', '/api/social/posts'), api('GET', '/api/series')]);
+  const names = Object.fromEntries(list.map((s) => [s.slug, s.name]));
+  const all = posts.map((p) => ({ ...p, seriesName: names[p.slug] ?? p.slug }));
+  const up = all.filter((p) => ['queued', 'scheduled', 'posting', 'missed'].includes(p.status)).sort((a, b) => (a.at ?? a.created) - (b.at ?? b.created));
+  const past = all.filter((p) => !up.includes(p)).sort((a, b) => (b.ended || b.created) - (a.ended || a.created)).slice(0, 100);
+  app.replaceChildren(h('h1', {}, 'Lịch đăng'), h('p', { class: 'lead' }, 'Bài hẹn đăng và đã đăng lên Facebook, Instagram, YouTube, TikTok. Đăng / hẹn đăng ở mục "Đăng lên mạng xã hội" của từng tập (đã có phim).'),
+    h('div', { class: 'grid', style: { maxWidth: '980px' } },
+      !SOCIAL?.dests?.length ? h('div', { class: 'note' }, 'Chưa kết nối kênh nào — ', h('a', { href: '#/settings?muc=social' }, 'vào Thiết lập → Mạng xã hội'), '.') : null,
+      h('div', { class: 'card grid' }, h('h2', {}, `Sắp đăng (${up.length})`), up.length ? postRows(up, scheduleView, { withEp: true }) : h('p', { class: 'mut', style: { margin: 0 } }, 'Không có bài nào đang chờ.'), up.some((p) => p.status === 'scheduled') ? h('div', { class: 'mut small' }, 'Máy phải đang bật lúc đến giờ hẹn. Quá giờ hẹn hơn 6 tiếng (máy tắt) thì bài chuyển sang "lỡ giờ hẹn" và chờ bạn bấm lại.') : null),
+      h('div', { class: 'card grid' }, h('h2', {}, 'Đã đăng / lỗi / đã huỷ'), past.length ? postRows(past, scheduleView, { withEp: true }) : h('p', { class: 'mut', style: { margin: 0 } }, 'Chưa có.'))));
+  if (up.some((p) => ['queued', 'posting'].includes(p.status))) setTimeout(() => VIEW === 'lich' && location.hash.startsWith('#/lich-dang') && scheduleView(), 5000);
+};
+
+// lên lịch nhiều tập một lượt (trang series): mỗi tập một bài, cách nhau đều; caption = bài đăng AI đã viết của tập
+const bulkCard = (slug, eps) => {
+  const D = SOCIAL?.dests ?? [];
+  const films = eps.filter((e) => e.mp4);
+  if (!D.length || films.length < 2) return null;
+  const sel = new Set(), pick = new Set(films.filter((e) => !(e.social ?? []).some((p) => ['queued', 'scheduled', 'posting', 'done'].includes(p.status))).map((e) => e.number));
+  const start = h('input', { type: 'datetime-local', value: inputTime(new Date(new Date().setHours(19, 0, 0, 0) + (new Date().getHours() >= 18 ? 86400000 : 0)).getTime()) });
+  const gap = h('select', {}, [['86400000', 'mỗi ngày một tập'], ['172800000', '2 ngày một tập'], ['43200000', '12 tiếng một tập'], ['604800000', 'mỗi tuần một tập']].map(([v, t]) => h('option', { value: v }, t)));
+  const ver = h('select', {}, h('option', { value: 'short' }, 'Bản ngắn'), h('option', { value: 'long' }, 'Bản dài'));
+  const ytPriv = h('select', {}, Object.entries(YT_PRIV).map(([k, v]) => h('option', { value: k }, v)));
+  const ttPriv = h('select', {}, h('option', { value: '' }, '— chọn —'), Object.entries(TT_PRIV).map(([k, v]) => h('option', { value: k }, v)), h('option', { value: 'inbox' }, 'Gửi vào hộp thư TikTok (tự bấm đăng)'));
+  const ok = h('input', { type: 'checkbox' });
+  const preview = h('div', { class: 'grid small', style: { gap: '4px' } });
+  const box = h('div', { class: 'grid', style: { gap: '10px' } });
+  const plan = () => { const t0 = new Date(start.value).getTime(); return films.filter((e) => pick.has(e.number)).map((e, i) => ({ e, at: t0 + i * +gap.value })); };
+  const drawPrev = () => preview.replaceChildren(...plan().map(({ e, at }) => h('div', {}, `${fmtTime(at)} — Tập ${e.number}${e.title ? `: ${e.title}` : ''}`, e.post?.[ver.value] ? '' : h('span', { style: { color: 'var(--red)' } }, ' (chưa có bài đăng — bỏ qua)'))));
+  start.oninput = gap.onchange = ver.onchange = drawPrev;
+  const go = async (btn) => {
+    const chosen = D.filter((d) => sel.has(d.id));
+    if (!chosen.length) return toast('Chọn ít nhất một kênh.', true);
+    if (chosen.some((d) => d.kind === 'tt') && !ttPriv.value) return toast('TikTok: chọn ai được xem video.', true);
+    if (!ok.checked) return toast('Tích ô xác nhận trước.', true);
+    const rows = plan().filter(({ e }) => e.post?.[ver.value]);
+    if (!rows.length) return toast('Các tập đã chọn chưa có bài đăng — mở từng tập cho AI viết bài trước.', true);
+    if (rows[0].at < Date.now() + 60000) return toast('Giờ bắt đầu phải ở tương lai.', true);
+    btn.disabled = true;
+    let n = 0;
+    for (const { e, at } of rows) {
+      const items = chosen.map((d) => ({ dest: d.id, caption: e.post[ver.value], ...(d.kind === 'yt' ? { title: (e.title ?? `Tập ${e.number}`).slice(0, 100), privacy: ytPriv.value } : {}), ...(d.kind === 'tt' ? { tiktok: ttPriv.value === 'inbox' ? { mode: 'inbox' } : { mode: 'direct', privacy: ttPriv.value, comment: false, duet: false, stitch: false } } : {}) }));
+      try { await api('POST', '/api/social/posts', { slug, episode: e.number, items, at }); n++; } catch (err) { toast(`Tập ${e.number}: ${err.message}`, true); }
+    }
+    if (n) { toast(`Đã hẹn đăng ${n} tập. Xem / sửa ở trang Lịch đăng.`); openSeries(slug, true); } else btn.disabled = false;
+  };
+  const draw = () => {
+    const b = h('button', { type: 'button', class: 'btn pri' }, 'Hẹn đăng');
+    b.onclick = () => go(b);
+    const kinds = new Set(D.filter((d) => sel.has(d.id)).map((d) => d.kind));
+    box.replaceChildren(
+      h('div', { class: 'mut small' }, 'Mỗi tập một bài, cách nhau đều. Nội dung lấy từ bài đăng AI đã viết của từng tập; trước giờ đăng vẫn sửa / huỷ được ở trang Lịch đăng hoặc ở từng tập.'),
+      h('b', { class: 'small' }, 'Kênh'), h('div', { class: 'row', style: { gap: '6px 16px' } }, D.map((d) => h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: sel.has(d.id), onchange: (ev) => { ev.target.checked ? sel.add(d.id) : sel.delete(d.id); draw(); } }), kindTag(d.kind), d.name))),
+      h('b', { class: 'small' }, 'Tập'), h('div', { class: 'row', style: { gap: '6px 14px' } }, films.map((e) => h('label', { class: 'ck small' }, h('input', { type: 'checkbox', checked: pick.has(e.number), onchange: (ev) => { ev.target.checked ? pick.add(e.number) : pick.delete(e.number); drawPrev(); } }), `${e.number}`))),
+      h('div', { class: 'row', style: { alignItems: 'end' } }, lab2('Bắt đầu', '', start), lab2('Nhịp', '', gap), lab2('Nội dung', '', ver)),
+      kinds.has('yt') || kinds.has('tt') ? h('div', { class: 'row', style: { alignItems: 'end' } }, kinds.has('yt') ? lab2('YouTube', '', ytPriv) : null, kinds.has('tt') ? lab2('TikTok — ai được xem', '', ttPriv) : null) : null,
+      preview, h('label', { class: 'ck' }, ok, 'Tôi đã xem lại các phim và nội dung đăng'), h('div', { class: 'row' }, b));
+    drawPrev();
+  };
+  draw();
+  return h('details', { class: 'card' }, h('summary', {}, `Hẹn đăng nhiều tập lên mạng xã hội (${films.length} tập đã có phim)`), box);
+};
+
+// Thiết lập → Mạng xã hội: nhập khoá ứng dụng + kết nối tài khoản
+const socialConnect = async (platform) => {
+  try { const { url } = await api('POST', '/api/social/connect', { platform, back: '#/settings?muc=social' }); location.href = url; } catch (e) { toast(e.message, true); }
+};
+const socialCard = (S) => {
+  const box = h('div', { class: 'grid', id: 'social' });
+  const appForm = (platform, idLabel, secretLabel, idVal, withConfig) => {
+    const id = h('input', { type: 'text', value: idVal, placeholder: idLabel, autocomplete: 'off' });
+    const config = h('input', { type: 'text', value: S.appIds.metaConfig ?? '', placeholder: 'để trống nếu ứng dụng không phải kiểu Business', autocomplete: 'off' });
+    const secret = h('input', { type: 'password', placeholder: S.apps[platform] ? '•••••• (đã lưu — nhập lại nếu muốn đổi)' : secretLabel, autocomplete: 'new-password' });
+    return h('div', { class: 'grid', style: { gap: '8px' } }, h('div', { class: 'row', style: { alignItems: 'end' } }, lab2(idLabel, '', id), lab2(secretLabel, '', secret)),
+      withConfig ? lab2('Configuration ID', 'chỉ khi ứng dụng là kiểu Business — Facebook Login for Business → Configurations', config) : null,
+      h('div', { class: 'row' }, h('button', { class: 'btn', onclick: async () => { try { SOCIAL = await api('PUT', '/api/social/app', { platform, id: id.value, secret: secret.value, config: withConfig ? config.value : '' }); toast('Đã lưu.'); settingsView(); } catch (e) { toast(e.message, true); } } }, 'Lưu khoá ứng dụng'),
+        S.apps[platform] ? h('button', { class: 'btn danger', onclick: async () => { if (!confirm('Xoá khoá ứng dụng và ngắt mọi tài khoản đã nối bằng nó?')) return; SOCIAL = await api('DELETE', `/api/social/app?platform=${platform}`); settingsView(); } }, 'Xoá') : null));
+  };
+  const accounts = (platform) => S.accounts.filter((a) => a.platform === platform).map((a) => h('div', { class: 'prow' },
+    h('div', { class: 'row' }, h('b', {}, a.name), h('span', { class: 'mut small' }, `nối ${new Date(a.connected).toLocaleDateString('vi-VN')}`), h('span', { class: 'sp' }),
+      platform === 'meta' ? h('button', { class: 'btn sm', onclick: async () => { try { SOCIAL = await api('POST', '/api/social/account/refresh', { key: a.key }); toast('Đã cập nhật danh sách Trang.'); settingsView(); } catch (e) { toast(e.message, true); } } }, 'Cập nhật Trang') : null,
+      h('button', { class: 'btn sm danger', onclick: async () => { if (!confirm(`Ngắt kết nối ${a.name}? Bài đang hẹn đăng lên tài khoản này sẽ báo lỗi.`)) return; SOCIAL = await api('DELETE', `/api/social/account?key=${encodeURIComponent(a.key)}`); settingsView(); } }, 'Ngắt')),
+    a.broken ? h('div', { class: 'note bad small' }, a.broken, ' ', h('button', { class: 'btn sm', onclick: () => socialConnect(platform) }, 'Kết nối lại')) : null,
+    h('div', { class: 'row', style: { gap: '4px 12px' } }, a.dests.map((d) => h('span', { class: 'small' }, kindTag(d.kind), ' ', d.name)))));
+  const redirect = (p) => h('div', { class: 'small' }, 'Địa chỉ chuyển hướng (Redirect URI): ', h('code', { class: 'path' }, S.redirect[p]), ' ', h('button', { class: 'btn sm', onclick: () => copy(S.redirect[p], 'Đã chép địa chỉ.') }, 'Chép'));
+  const L = (href, t) => h('a', { href, target: '_blank', rel: 'noopener' }, t);
+  const meta = h('div', { class: 'card grid' },
+    h('div', { class: 'row' }, h('h3', {}, 'Facebook + Instagram'), h('span', { class: 'sp' }), S.apps.meta ? h('button', { class: 'btn pri sm', onclick: () => socialConnect('meta') }, S.accounts.some((a) => a.platform === 'meta') ? 'Thêm / kết nối lại tài khoản' : 'Kết nối tài khoản Facebook') : null),
+    ...accounts('meta'),
+    h('details', { open: !S.apps.meta }, h('summary', {}, S.apps.meta ? 'Ứng dụng Meta' : 'Làm một lần: tạo ứng dụng Meta'),
+      h('ol', { class: 'small', style: { paddingLeft: '20px' } },
+        h('li', {}, 'Mở ', L('https://developers.facebook.com/apps/creation/', 'Meta for Developers → Create app'), ' (đăng nhập bằng tài khoản Facebook quản trị Trang). Use case: chọn ', h('b', {}, 'Manage everything on your Page'), ' và ', h('b', {}, 'Manage messaging & content on Instagram'), ' (nếu cần Instagram).'),
+        h('li', {}, 'Trong ứng dụng: ', h('b', {}, 'Facebook Login → Settings'), ' → dán địa chỉ chuyển hướng bên dưới vào ', h('b', {}, 'Valid OAuth Redirect URIs'), '.'),
+        h('li', {}, 'Instagram phải là tài khoản ', h('b', {}, 'Business / Creator'), ' và đã liên kết với Trang Facebook.'),
+        h('li', {}, h('b', {}, 'App settings → Basic'), ': chép App ID và App Secret vào hai ô dưới, bấm Lưu, rồi bấm Kết nối.'),
+        h('li', {}, 'Nếu ứng dụng là kiểu Business: vào ', h('b', {}, 'Facebook Login for Business → Configurations'), ', tạo cấu hình với các quyền pages_show_list, pages_read_engagement, pages_manage_posts, instagram_basic, instagram_content_publish, chép Configuration ID vào ô dưới.'),
+        h('li', {}, 'Giữ ứng dụng ở chế độ ', h('b', {}, 'Development'), ' (địa chỉ http://localhost chỉ dùng được ở chế độ này) — đủ để đăng lên Trang / Instagram của chính bạn vì bạn là quản trị ứng dụng; không cần gửi Meta duyệt. Kết nối hết hạn sau khoảng 60 ngày: xưởng báo, bấm Kết nối lại.'),
+        h('li', {}, 'Giới hạn: Facebook Reels dài 3–90 giây, tối đa 30 Reels / Trang / ngày; Instagram tối đa 100 bài / ngày.')),
+      redirect('meta'), appForm('meta', 'App ID', 'App Secret', S.appIds.meta, true)));
+  const g = DRIVE ?? {};
+  const yt = h('div', { class: 'card grid' },
+    h('div', { class: 'row' }, h('h3', {}, 'YouTube'), h('span', { class: 'sp' }), S.apps.youtube ? h('button', { class: 'btn pri sm', onclick: () => socialConnect('youtube') }, S.accounts.some((a) => a.platform === 'youtube') ? 'Thêm kênh YouTube' : 'Kết nối kênh YouTube') : null),
+    ...accounts('youtube'),
+    h('details', { open: !S.apps.youtube }, h('summary', {}, 'Làm một lần: bật YouTube cho OAuth client Google'),
+      h('ol', { class: 'small', style: { paddingLeft: '20px' } },
+        h('li', {}, 'YouTube dùng chung OAuth client với Google Drive (mục Google Drive bên dưới). ', g.configured ? h('b', {}, 'Đã có client.') : h('b', {}, 'Chưa có — làm bước 1 của Google Drive trước.')),
+        h('li', {}, 'Trong cùng project Google Cloud, bật ', L('https://console.cloud.google.com/apis/library/youtube.googleapis.com', 'YouTube Data API v3'), '.'),
+        h('li', {}, 'Bấm "Kết nối kênh YouTube", chọn kênh (cả kênh thương hiệu). Mỗi lần kết nối là một kênh; muốn thêm kênh thì bấm lại.'),
+        h('li', {}, 'Ở ', L('https://console.cloud.google.com/auth/audience', 'Google Auth Platform → Audience'), ': nếu là Gmail cá nhân (External) hãy bấm ', h('b', {}, 'Publish app'), ' (In production) — để ở Testing thì kết nối YouTube hết hạn sau 7 ngày.'),
+        h('li', {}, 'Mỗi project được 100 lượt tải video lên YouTube / ngày. Video nhỏ hơn 3 phút, khung dọc → YouTube tự xếp vào Shorts.'))));
+  const tt = h('div', { class: 'card grid' },
+    h('div', { class: 'row' }, h('h3', {}, 'TikTok'), h('span', { class: 'sp' }), S.apps.tiktok ? h('button', { class: 'btn pri sm', onclick: () => socialConnect('tiktok') }, S.accounts.some((a) => a.platform === 'tiktok') ? 'Thêm tài khoản TikTok' : 'Kết nối tài khoản TikTok') : null),
+    ...accounts('tiktok'),
+    h('details', { open: !S.apps.tiktok }, h('summary', {}, S.apps.tiktok ? 'Ứng dụng TikTok' : 'Làm một lần: tạo ứng dụng TikTok'),
+      h('ol', { class: 'small', style: { paddingLeft: '20px' } },
+        h('li', {}, 'Mở ', L('https://developers.tiktok.com/apps/', 'TikTok for Developers → Manage apps'), ' → Connect an app. Thêm sản phẩm ', h('b', {}, 'Login Kit'), ' và ', h('b', {}, 'Content Posting API'), ' (bật Direct Post).'),
+        h('li', {}, 'Ở Login Kit, thêm địa chỉ chuyển hướng bên dưới (nền tảng Desktop).'),
+        h('li', {}, 'Chép Client key + Client secret vào hai ô dưới, bấm Lưu, rồi Kết nối.'),
+        h('li', {}, h('b', {}, 'Lưu ý: '), 'ứng dụng chưa được TikTok duyệt (audit) chỉ đăng thẳng được khi tài khoản TikTok để riêng tư và chọn "Chỉ mình tôi". Muốn công khai: chọn "Gửi vào hộp thư TikTok" rồi mở ứng dụng TikTok bấm Đăng (tối đa 5 video chờ / ngày), hoặc ', L('https://developers.tiktok.com/application/content-posting-api', 'gửi TikTok duyệt ứng dụng'), '. Mỗi tài khoản đăng tối đa khoảng 15 video / ngày qua API.')),
+      redirect('tiktok'), appForm('tiktok', 'Client key', 'Client secret', S.appIds.tiktok)));
+  box.append(h('div', { class: 'row' }, h('h2', { style: { margin: '10px 0 0' } }, 'Mạng xã hội'), h('span', { class: 'sp' }), h('a', { class: 'small', href: '#/lich-dang' }, 'Lịch đăng →')),
+    h('p', { class: 'mut', style: { margin: 0 } }, 'Kết nối Trang Facebook, Instagram, kênh YouTube, TikTok của bạn để đăng phim từ xưởng: chọn kênh, duyệt nội dung, đăng ngay hoặc hẹn giờ. Xưởng chỉ đăng khi bạn bấm hoặc đặt lịch. Khoá và token lưu ở ~/.config/xuong-phim/social.json trên máy này (không lên GitHub).'),
+    meta, yt, tt);
+  return box;
+};
+
 // ───────── trạng thái chung
 let META = null, JOB = null, LOG = [], CUR = null, VIEW = '', DRIVE = null;
 const DRAFT = new Map(); // góp ý đang gõ, giữ qua các lần vẽ lại
@@ -304,7 +655,7 @@ const queuePanel = () => {
   box.style.display = '';
   const qa = async (method, url) => { try { const r = await api(method, url, {}); QUEUE = r.queue; if (r.job) { JOB = r.job; LOG = r.job.log.slice(); jobPill(); jobPanel(); syncButtons(); poll(); } queuePanel(); } catch (e) { toast(e.message, true); } };
   box.replaceChildren(...[
-    h('div', { class: 'row' }, h('h3', {}, `Hàng đợi dựng phim${q.items.length ? ` (${q.items.length})` : ''}`), h('span', { class: 'sp' }),
+    h('div', { class: 'row' }, h('h3', {}, `Hàng đợi${q.items.length ? ` (${q.items.length})` : ''}`), h('span', { class: 'sp' }),
       q.items.length ? (q.paused ? h('button', { class: 'btn sm pri', onclick: () => qa('POST', '/api/queue/resume') }, 'Chạy tiếp') : h('button', { class: 'btn sm', title: 'Dựng xong tập hiện tại thì dừng, không sang tập kế', onclick: () => qa('POST', '/api/queue/pause') }, 'Tạm dừng')) : null),
     q.items.length && q.paused ? h('div', { class: 'note warn', style: { margin: '8px 0 0' } }, 'Hàng đợi đang tạm dừng — bấm "Chạy tiếp" để máy dựng lần lượt.') : null,
     q.items.length ? h('ol', { class: 'qlist' }, q.items.map((i) => h('li', {}, h('a', { href: `#/s/${i.slug}` }, i.title), h('button', { class: 'x', title: 'Bỏ khỏi hàng đợi', onclick: () => qa('DELETE', `/api/queue?slug=${encodeURIComponent(i.slug)}&episode=${i.episode}`) }, '×')))) : h('p', { class: 'mut small', style: { margin: '6px 0 0' } }, 'Hàng đợi trống.'),
@@ -392,30 +743,6 @@ const aiBtn = (label, slug, action, n, getFb, cls = 'pri') => META.claude
   ? h('button', { class: `btn ${cls}`, 'data-job': 1, disabled: busy(), onclick: () => { const fb = getFb ? getFb() : ''; if (action === 'fix' && !fb.trim()) return toast('Hãy ghi góp ý trước.', true); runJob(slug, action, n, fb); } }, h('span', { class: 'ai' }, 'AI'), label)
   : h('button', { class: `btn ${cls}`, onclick: () => copy(cmdText(slug, action, n)) }, 'Chép lệnh: ', label);
 const fbBox = (key, ph) => { const t = h('textarea', { placeholder: ph, value: DRAFT.get(key) ?? '', oninput: () => DRAFT.set(key, t.value) }); return t; };
-
-// thẻ "Dựng lần lượt": chọn các tập đã có kịch bản (chưa có phim, hoặc kịch bản sửa sau lần dựng) → xếp hàng một lần
-const batchCard = (slug, eps) => {
-  const cand = eps.filter((e) => e.scenes && (!e.mp4 || e.stale) && !inQueue(slug, e.number) && !rendering(slug, e.number));
-  if (cand.length < 2) return null;
-  const pick = new Set(cand.filter((e) => !e.mp4).map((e) => e.number));
-  const btn = h('button', { class: 'btn pri' });
-  const label = () => { btn.textContent = pick.size ? `Dựng lần lượt ${pick.size} tập` : 'Chọn tập để dựng'; btn.disabled = !pick.size; };
-  btn.onclick = async () => {
-    try {
-      const r = await api('POST', `/api/series/${slug}/queue`, { episodes: [...pick].sort((a, b) => a - b) });
-      QUEUE = r.queue; if (r.job) { JOB = r.job; LOG = r.job.log.slice(); jobPill(); jobPanel(); poll(); }
-      toast(`Đã xếp ${r.added} tập vào hàng đợi — máy dựng lần lượt từng tập.`);
-      openSeries(slug, true);
-    } catch (e) { toast(e.message, true); }
-  };
-  label();
-  return h('div', { class: 'card grid', style: { gap: '10px' } },
-    h('div', {}, h('h3', {}, 'Dựng lần lượt các tập đã duyệt kịch bản'), h('p', { class: 'mut small', style: { margin: '4px 0 0' } }, 'Chọn các tập đã xem kịch bản + storyboard. Máy dựng từng tập một (giọng → thời gian → âm thanh → MP4), xong tập này tự sang tập kế; có thể để máy chạy và quay lại sau.')),
-    h('div', { class: 'grid', style: { gap: '6px' } }, cand.map((e) => h('label', { class: 'chk' },
-      h('input', { type: 'checkbox', checked: pick.has(e.number), onchange: (ev) => { ev.target.checked ? pick.add(e.number) : pick.delete(e.number); label(); } }),
-      h('span', {}, `Tập ${e.number}: ${e.title || ''}`), h('span', { class: 'mut small' }, e.mp4 ? ' — dựng lại (kịch bản đã sửa)' : ' — chưa có phim')))),
-    h('div', { class: 'row' }, btn));
-};
 
 // ───────── nút chọn một (dùng ngoài form đề bài): opts [[giá trị, tên, mô tả]]
 const segPick = (S, key, opts, on) => {
@@ -1054,7 +1381,8 @@ const remoteCard = async () => {
 };
 const settingsView = async () => {
   VIEW = 'settings'; CUR = null;
-  const [D, S] = await Promise.all([api('GET', '/api/drive'), api('GET', '/api/settings')]);
+  const [D, S, SO] = await Promise.all([api('GET', '/api/drive'), api('GET', '/api/settings'), api('GET', '/api/social')]);
+  SOCIAL = SO;
   // mở từ xa: thiết lập máy chỉ đổi khi ngồi tại máy → chỉ hiện AI + lời nhắc
   if (META?.remote) {
     const aiOnly = await aiCard();
@@ -1095,8 +1423,8 @@ const settingsView = async () => {
          h('div', { class: 'row' }, D.canRead ? null : h('button', { class: 'btn pri', onclick: () => driveConnect('#/settings', true) }, 'Cho phép đọc tư liệu trên Drive'), h('button', { class: 'btn', onclick: () => driveConnect('#/settings') }, 'Kết nối lại / đổi tài khoản'), h('button', { class: 'btn danger', onclick: async () => { DRIVE = await api('POST', '/api/drive/disconnect', {}); toast('Đã ngắt kết nối.'); settingsView(); } }, 'Ngắt kết nối'))]
       : [h('p', { class: 'mut', style: { margin: 0 } }, D.configured ? 'Bấm nút, đăng nhập Google và cho phép quyền Google Drive. Xong trình duyệt tự quay lại trang này.' : 'Làm bước 1 trước.'),
          h('div', { class: 'row' }, h('button', { class: 'btn pri', disabled: !D.configured, onclick: () => driveConnect('#/settings') }, 'Kết nối Google Drive'), h('button', { class: 'btn', disabled: !D.configured, onclick: () => driveConnect('#/settings', true) }, 'Kết nối + cho phép đọc tư liệu'))]);
-  app.replaceChildren(h('h1', {}, 'Thiết lập'), h('p', { class: 'lead' }, 'AI viết kịch bản, tự mở xưởng, điều khiển từ điện thoại, nơi lưu phim trên máy và kết nối Google Drive.'),
-    h('div', { class: 'grid', style: { maxWidth: '820px' } }, aiBox, autoBox, tgBox, remoteBox, outCard, h('h2', { style: { margin: '10px 0 0' } }, 'Google Drive'), D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
+  app.replaceChildren(h('h1', {}, 'Thiết lập'), h('p', { class: 'lead' }, 'AI viết kịch bản, tự mở xưởng, điều khiển từ điện thoại, nơi lưu phim trên máy, kết nối mạng xã hội và Google Drive.'),
+    h('div', { class: 'grid', style: { maxWidth: '820px' } }, aiBox, autoBox, tgBox, remoteBox, outCard, socialCard(SOCIAL), h('h2', { style: { margin: '10px 0 0' } }, 'Google Drive'), D.configured ? [connect, h('details', { class: 'card' }, h('summary', {}, 'OAuth client'), setup)] : [setup, connect]));
 };
 
 // thẻ "Nguồn nội dung" ở cột phải trang series
@@ -1165,7 +1493,8 @@ const openSeries = async (slug, keepScroll) => {
     return det;
   };
   const exportRow = (e) => h('div', { class: 'row small' }, h('b', {}, 'Trên máy:'),
-    e.export ? [h('code', { class: 'path' }, e.export.path), e.export.stale ? h('span', { class: 'pill run' }, 'bản cũ — bấm Dựng lại để cập nhật') : null] : h('span', { class: 'mut' }, 'chưa chép ra thư mục phim — bấm "Dựng lại"'),
+    e.export ? [h('code', { class: 'path' }, e.export.path), e.export.stale ? h('span', { class: 'pill run' }, 'bản cũ') : null] : h('span', { class: 'mut' }, 'chưa chép ra thư mục phim'),
+    !e.export || e.export.stale ? h('button', { class: 'btn sm', title: 'Chép bản dựng mới nhất (đè bản cũ) ra thư mục phim chung', onclick: async () => { try { const r = await api('POST', `/api/series/${slug}/export`, { episode: e.number }); toast(`Đã chép: ${r.path}`); openSeries(slug, true); } catch (err) { toast(err.message, true); } } }, 'Chép lại ra thư mục phim') : null,
     META.docker ? null : h('button', { class: 'btn sm', onclick: () => openOutput(slug) }, 'Mở thư mục'));
 
   const epCard = (e) => {
@@ -1191,10 +1520,10 @@ const openSeries = async (slug, keepScroll) => {
     else body = [h('div', { class: 'film' },
         h('video', { controls: true, preload: 'none', poster: e.board[0] ? file(`${base}/storyboard/${e.board[0]}`, e.mtime) : null, class: d.format === '16:9' ? 'wide' : '', src: file(`${base}/out/${e.id}.mp4`, e.mtime) }),
         h('div', { class: 'grid', style: { gap: '12px' } },
-          e.stale ? h('div', { class: 'note warn' }, 'Kịch bản đã sửa sau lần dựng này — bấm "Dựng lại" để có bản mới.') : null,
+          e.stale ? h('div', { class: 'note warn' }, staleWhy(e), ' — bấm "Dựng lại" để có bản mới (bản mới đè lên bản cũ).') : null,
           h('div', { class: 'row' }, h('a', { class: 'btn dark', href: file(`${base}/out/${e.id}.mp4`), download: `${slug}-${e.id}.mp4` }, 'Tải MP4'), e.srt && h('a', { class: 'btn', href: file(`${base}/out/${e.id}.srt`), download: `${slug}-${e.id}.srt` }, 'Phụ đề SRT'),
             renderBtn(slug, e, 'Dựng lại', ''), voiceFixBtn(slug, e)),
-          postBox(slug, e), exportRow(e), driveRow(e), links, linesEditor(e, base), fix)),
+          postBox(slug, e), socialBox(slug, e), exportRow(e), driveRow(e), links, linesEditor(e, base), fix)),
       board && h('details', {}, h('summary', {}, `Storyboard (${e.board.length} cảnh)`), board)];
     return h('div', { class: 'card ep', id: e.id }, h('div', { class: 'hd' }, h('div', { class: 'no' }, String(e.number).padStart(2, '0')), h('div', { style: { flex: 1 } }, h('h3', {}, e.title || `Tập ${e.number}`), h('div', { class: 'mut small' }, [e.duration ? `khoảng ${e.duration} giây` : '', e.batch ? `tập thêm · đợt ${batchNo(e.batch)}` : ''].filter(Boolean).join(' · '))), h('span', { class: `pill ${chip[0]}` }, chip[1])), body);
   };
@@ -1215,7 +1544,8 @@ const openSeries = async (slug, keepScroll) => {
     h('div', { class: 'cols' },
       h('div', { class: 'grid' },
         !nPlan ? planCard : null,
-        batchCard(slug, eps),
+        prodCard(slug, eps),
+        bulkCard(slug, eps),
         pending.length > 1 ? h('div', { class: 'card row' }, h('div', {}, h('b', {}, `${pending.length} tập đang chờ duyệt kế hoạch`), h('div', { class: 'mut small' }, 'Đọc từng tập bên dưới, duyệt riêng hoặc duyệt hết.')), h('span', { class: 'sp' }), h('button', { class: 'btn pri', onclick: async () => { await api('POST', `/api/series/${slug}/approve`, { episodes: pending.map((e) => e.number) }); openSeries(slug, true); } }, 'Duyệt tất cả')) : null,
         eps.map(epCard),
         nPlan ? addCard(slug, d) : null,
@@ -1232,6 +1562,7 @@ const openSeries = async (slug, keepScroll) => {
         h('details', { class: 'card' }, h('summary', {}, 'Làm trong Claude Code thay vì bấm nút'), h('div', { class: 'grid', style: { gap: '8px' } }, h('p', { class: 'small mut', style: { margin: 0 } }, 'Dán câu lệnh này vào Claude Code (mở ở thư mục xưởng). Đổi giai đoạn thành plan, script hoặc fix và thêm số tập.'), h('code', { class: 'cmd' }, cmdText(slug, 'plan')), h('div', {}, h('button', { class: 'btn sm', onclick: () => copy(cmdText(slug, 'plan')) }, 'Chép')))))));
   jobPanel(); queuePanel();
   if (keepScroll) window.scrollTo(0, y);
+  if (GOTO) { document.getElementById(GOTO)?.scrollIntoView({ block: 'start' }); GOTO = null; }
 };
 
 // ───────── điều hướng
@@ -1241,21 +1572,26 @@ const route = async () => {
   const qs = new URLSearchParams(hq ?? '');
   if (qs.get('drive') === 'ok') toast('Đã kết nối Google Drive.');
   if (qs.get('drive_err')) toast(qs.get('drive_err'), true);
+  if (qs.get('social') === 'ok') toast('Đã kết nối tài khoản mạng xã hội.');
+  if (qs.get('social_err')) toast(qs.get('social_err'), true);
   if (hq) history.replaceState(null, '', hpath || '#/');
   document.getElementById('nav-home').className = !a ? 'on' : '';
   document.getElementById('nav-new').className = a === 'new' ? 'on' : '';
   document.getElementById('nav-settings').className = a === 'settings' || a === 'drive' ? 'on' : '';
+  document.getElementById('nav-lich').className = a === 'lich-dang' ? 'on' : '';
   try {
     if (!META) META = await api('GET', '/api/meta');
     if (META.remote && !document.getElementById('nav-out')) document.querySelector('header nav').append(h('a', { href: '#', id: 'nav-out', onclick: async (e) => { e.preventDefault(); await api('POST', '/api/logout', {}).catch(() => {}); location.reload(); } }, 'Đăng xuất'));
-    DRIVE = await api('GET', '/api/drive');
-    if (a === 'settings' || a === 'drive') await settingsView();
+    [DRIVE, SOCIAL] = await Promise.all([api('GET', '/api/drive'), api('GET', '/api/social').catch(() => null)]);
+    if (a === 'settings' || a === 'drive') { await settingsView(); if (qs.get('muc') === 'social' || qs.get('social') || qs.get('social_err')) setTimeout(() => document.getElementById('social')?.scrollIntoView({ block: 'start' }), 300); }
+    else if (a === 'lich-dang') await scheduleView();
     else if (a === 'new') await formView();
     else if (a === 's' && b && c === 'edit') await formView(b);
     else if (a === 's' && b && c === 'clone') await cloneView(b);
+    else if (a === 's' && b && c === 'duyet') await reviewView(b);
     else if (a === 's' && b) await openSeries(b);
     else await home();
-    if (a !== 's' || c === 'edit' || c === 'clone') window.scrollTo(0, 0);
+    if (a !== 's' || c === 'edit' || c === 'clone' || c === 'duyet') window.scrollTo(0, 0);
   } catch (e) { app.replaceChildren(h('div', { class: 'card' }, h('h2', {}, 'Không tải được'), h('p', { class: 'mut' }, e.message), h('a', { class: 'btn', href: '#/' }, 'Về danh sách'))); }
 };
 addEventListener('hashchange', route);

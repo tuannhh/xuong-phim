@@ -1,4 +1,5 @@
-// Hàng đợi dựng phim: người dùng duyệt kịch bản nhiều tập → máy dựng lần lượt từng tập (mỗi lúc vẫn chỉ một việc).
+// Hàng đợi: người dùng duyệt kịch bản nhiều tập → máy dựng lần lượt từng tập (mỗi lúc vẫn chỉ một việc).
+// Mỗi mục có action: 'render' (dựng phim, mặc định) hoặc 'script' (AI viết kịch bản + storyboard — nút "Viết kịch bản toàn bộ").
 // Lưu ra file để máy chủ khởi động lại không mất danh sách; tập đang dựng dở lúc tắt được xếp lại lên đầu.
 // Sau khi khởi động lại, hàng đợi ở trạng thái TẠM DỪNG — người dùng bấm "Chạy tiếp" (không tự chạy ngầm khi họ không để ý).
 import fs from 'node:fs';
@@ -9,12 +10,12 @@ const key = (i) => `${i.slug}#${i.episode}`;
 
 export function createQueue(file) {
   const raw = (() => { try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return {}; } })();
-  const clean = (list) => (Array.isArray(list) ? list : []).filter((i) => typeof i?.slug === 'string' && Number.isInteger(i?.episode)).map((i) => ({ slug: i.slug, episode: i.episode, added: i.added ?? Date.now() }));
+  const clean = (list) => (Array.isArray(list) ? list : []).filter((i) => typeof i?.slug === 'string' && Number.isInteger(i?.episode)).map((i) => ({ slug: i.slug, episode: i.episode, action: i.action === 'script' ? 'script' : 'render', added: i.added ?? Date.now() }));
   let items = clean(raw.items);
   if (raw.current?.slug) items = [...clean([raw.current]), ...items.filter((i) => key(i) !== key(raw.current))];
   let current = null;
   let paused = items.length > 0; // vừa khởi động lại mà còn tập → chờ người dùng bấm Chạy tiếp
-  const history = (Array.isArray(raw.history) ? raw.history : []).filter((h) => typeof h?.slug === 'string' && Number.isInteger(h?.episode)).map((h) => ({ slug: h.slug, episode: h.episode, status: String(h.status ?? ''), ended: +h.ended || 0 })).slice(0, HIST);
+  const history = (Array.isArray(raw.history) ? raw.history : []).filter((h) => typeof h?.slug === 'string' && Number.isInteger(h?.episode)).map((h) => ({ slug: h.slug, episode: h.episode, action: h.action === 'script' ? 'script' : 'render', status: String(h.status ?? ''), ended: +h.ended || 0 })).slice(0, HIST);
 
   const save = () => {
     try {
@@ -28,12 +29,12 @@ export function createQueue(file) {
     get paused() { return paused; },
     has: (slug, episode) => items.some((i) => i.slug === slug && i.episode === episode),
     // thêm các tập (bỏ tập đã có trong hàng); trả về số tập vừa thêm
-    add(slug, episodes) {
+    add(slug, episodes, action = 'render') {
       let n = 0;
       for (const episode of episodes) {
         if (items.length >= MAX || items.some((i) => i.slug === slug && i.episode === episode)) continue;
         if (current && current.slug === slug && current.episode === episode) continue;
-        items.push({ slug, episode, added: Date.now() });
+        items.push({ slug, episode, action: action === 'script' ? 'script' : 'render', added: Date.now() });
         n++;
       }
       if (n) save();
@@ -53,7 +54,7 @@ export function createQueue(file) {
     // tập vừa dựng xong / lỗi / bị dừng
     done(item, status) {
       if (current && key(current) === key(item)) current = null;
-      history.unshift({ slug: item.slug, episode: item.episode, status, ended: Date.now() });
+      history.unshift({ slug: item.slug, episode: item.episode, action: item.action ?? 'render', status, ended: Date.now() });
       history.length = Math.min(history.length, HIST);
       save();
     },

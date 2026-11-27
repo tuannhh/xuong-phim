@@ -34,6 +34,9 @@ const save = (c) => {
   fs.renameSync(tmp, CONF);
 };
 
+// OAuth client Google (Desktop app) — dùng chung cho kết nối YouTube (social.mjs)
+export const googleClient = () => load().client ?? null;
+
 export const status = () => {
   const c = load();
   return { configured: !!c.client?.id, connected: !!c.token?.refresh_token, canRead: !!c.token?.refresh_token && (c.token.scope ?? '').split(' ').includes(SCOPE_READ), account: c.account ?? null, root: ROOT_FOLDER };

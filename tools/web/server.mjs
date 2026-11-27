@@ -11,7 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { IS_WIN, isMain, spawnBin } from '../platform.mjs';
-import { FORMATS, PRESETS, ROOT, readJSON, writeJSON } from '../lib.mjs';
+import { FORMATS, PRESETS, ROOT, markBrief, readJSON, renderDrift, writeJSON } from '../lib.mjs';
 import { HAIRS, KINDS, MASCOTS, SETS, allHairs } from '../../shared/catalog.mjs';
 import { WM_DEFAULT, cleanWatermark } from '../../shared/watermark.mjs';
 import { MUSIC_EXT, MUSIC_MAX, musicDir, musicTracks } from '../music-source.mjs';
@@ -28,6 +28,7 @@ import { createQueue } from './queue.mjs';
 import * as tg from './telegram.mjs';
 import * as remote from './remote.mjs';
 import * as posts from './post.mjs';
+import * as social from './social.mjs';
 
 const PORT = +(process.env.PORT ?? 4710);
 const SERIES = path.join(ROOT, 'series');
@@ -77,16 +78,21 @@ const episodeState = (slug, e) => {
   const mp4 = has(`out/${id}.mp4`);
   const newer = (a, b) => has(a) && has(b) && fs.statSync(path.join(ed, a)).mtimeMs > fs.statSync(path.join(ed, b)).mtimeMs + 1000;
   const timed = readJSON(path.join(ed, 'build/timed.json'), null);
+  // đề bài (watermark, nhân vật, màu) đổi sau lần dựng → phim cũ không còn khớp, cần dựng lại
+  const drift = mp4 && ep ? renderDrift(ed, readJSON(path.join(seriesDir(slug), 'bible.json'), {}), markBrief(seriesDir(slug), ed, ep)) : [];
   return {
     number: e.number, id, batch: e.batch ?? null, title: ep?.title || e.title, logline: e.logline, hook: e.hook, beats: e.beats, visual: e.visual, cta: e.cta, duration: e.duration,
     approved: ['duyet', 'kich-ban', 'storyboard', 'voice', 'xong'].includes(e.status) || scenes > 0,
     scenes, board, issues, mp4, srt: has(`out/${id}.srt`), script: has('script.md'),
+    scriptOk: scenes > 0 && !!e.scriptOk && fs.statSync(path.join(ed, 'episode.json')).mtimeMs <= e.scriptOk + 1000, // đã duyệt kịch bản (chưa sửa sau khi duyệt)
     seconds: timed ? +(timed.durationInFrames / timed.fps).toFixed(1) : null,
-    stale: mp4 && newer('episode.json', `out/${id}.mp4`), // kịch bản đã sửa sau lần dựng gần nhất
+    stale: mp4 && (newer('episode.json', `out/${id}.mp4`) || drift.length > 0), // kịch bản / đề bài đã sửa sau lần dựng gần nhất
+    staleScript: mp4 && newer('episode.json', `out/${id}.mp4`), drift,
     mtime: mp4 ? fs.statSync(path.join(ed, `out/${id}.mp4`)).mtimeMs : 0,
     drive: mp4 ? drive.episodeDrive(ed, id) : null,
     export: mp4 ? output.episodeExport(ed, id) : null,
     post: mp4 || scenes ? posts.read(seriesDir(slug), e.number) : null, // bài đăng mạng xã hội (post.mjs)
+    social: mp4 ? social.listPosts({ slug, episode: e.number }) : [], // đã đăng / hẹn đăng lên kênh nào (social.mjs)
   };
 };
 const seriesInfo = (slug, full = false) => {
@@ -243,7 +249,7 @@ const finish = (j, code) => {
   j.status = j.status === 'stopping' ? 'stopped' : code === 0 && !j.failed ? 'done' : 'error';
   j.ended = Date.now();
   logLine(j, j.status === 'done' ? '✓ Xong.' : j.status === 'stopped' ? '■ Đã dừng.' : `✗ Lỗi (mã ${code}).`);
-  if (j.queued) queue.done({ slug: j.slug, episode: j.episode }, j.status);
+  if (j.queued) queue.done({ slug: j.slug, episode: j.episode, action: j.action === 'script' ? 'script' : 'render' }, j.status);
   // bấm Dừng = dừng tập đang dựng và TẠM DỪNG hàng đợi (không tự nhảy sang tập sau); tập lỗi thì vẫn dựng tiếp tập sau
   if (j.status === 'stopped' && queue.size) queue.pause();
   // báo lên Telegram (nếu đã liên kết)
@@ -252,6 +258,58 @@ const finish = (j, code) => {
   if (j.status === 'done' && ['render', 'voicefix'].includes(j.action) && j.episode) autoPost(j.slug, j.episode, title);
   setImmediate(pump);
 };
+// việc AI (kế hoạch / kịch bản / sửa) của một series — dùng cho nút trên trang, bot Telegram (qua API) và hàng đợi (viết kịch bản lần lượt)
+const httpErr = (code, message) => Object.assign(new Error(message), { code });
+function startAiJob(slug, action, n, fb = '', { batchId = null, queued = false } = {}) {
+  const dir = seriesDir(slug);
+  const pk = ai.pick(action === 'plan-add' ? 'plan' : action);
+  if (!pk.bin) throw httpErr(400, pk.engine === 'codex' ? 'Máy chưa có lệnh `codex` — cài Codex (npm i -g @openai/codex, rồi codex login) hoặc đổi sang Claude ở Thiết lập.' : 'Máy chưa có lệnh `claude` — dán câu lệnh thay thế vào Claude Code, hoặc đổi sang Codex ở Thiết lập.');
+  if (action === 'fix' && !fb) throw httpErr(400, 'Cần ghi góp ý.');
+  fs.mkdirSync(path.join(dir, '.studio'), { recursive: true });
+  const fbFile = path.join(dir, '.studio/gop-y.md');
+  if (fb) fs.writeFileSync(fbFile, `# Góp ý (${action}${n ? ` · tập ${n}` : ''}) — ${new Date().toLocaleString('vi-VN')}\n\n${fb}\n`); else fs.rmSync(fbFile, { force: true });
+  const brief = readJSON(path.join(dir, 'brief.json'), {});
+  const plan = readJSON(path.join(dir, 'plan.json'), { brief: {}, episodes: [] });
+  // đợt thêm tập: plan-add lập kế hoạch các tập mới; script/fix một tập thuộc đợt → nguồn + tư liệu của đợt đó
+  let batch = null, nums = null, extra = '';
+  if (action === 'plan-add') {
+    batch = (brief.batches ?? []).find((x) => x.id === batchId);
+    if (!batch) throw httpErr(400, 'Không thấy đợt thêm tập.');
+    const mine = plan.episodes.filter((e) => e.batch === batch.id);
+    const locked = (e) => (e.status ?? 'de-xuat') !== 'de-xuat' || fs.existsSync(path.join(dir, 'episodes', e.id ?? epId(e.number), 'episode.json'));
+    const redo = mine.filter((e) => !locked(e)).map((e) => +e.number).sort((x, y) => x - y);
+    const need = batch.count - (mine.length - redo.length);
+    if (need <= 0) throw httpErr(400, 'Các tập của đợt này đã duyệt hết — muốn thêm nữa hãy tạo đợt mới.');
+    // lập lại đợt → dùng lại số của tập chưa duyệt trong đợt; thiếu thì nối tiếp sau tập cuối của series
+    nums = redo.slice(0, need);
+    for (let x = planMax(dir, { episodes: plan.episodes.filter((e) => !redo.includes(+e.number)) }) + 1; nums.length < need; x++) if (!nums.includes(x)) nums.push(x);
+    if (Math.max(...nums) > 99) throw httpErr(400, 'Series tối đa 99 tập.');
+    extra = ` Đợt: ${batch.id} — lập kế hoạch ${nums.length} tập thêm, số tập: ${nums.join(', ')}.`;
+  } else if (n) {
+    const pe = plan.episodes.find((e) => +e.number === n);
+    batch = pe?.batch ? (brief.batches ?? []).find((x) => x.id === pe.batch) ?? null : null;
+    if (batch) extra = ` Tập này thuộc đợt thêm tập "${batch.id}" (brief.json → batches): nội dung và nguồn theo đợt đó.`;
+  }
+  const src = batch ? { ...brief, sourceMode: batch.sourceMode, materials: batch.materials } : brief, sub = batch?.id ?? '';
+  const snapshot = action === 'plan-add' ? structuredClone(plan) : null;
+  const seal = snapshot ? sealBatch(slug, batch.id, nums, snapshot) : null;
+  // chế độ có tư liệu → gom + đọc tư liệu trước, rồi mới gọi AI
+  const before = mat.needsMaterials(src) ? async (j) => { logLine(j, `— Chuẩn bị tư liệu${sub ? ' của đợt thêm tập' : ''} —`); return mat.prepare(dir, src, { log: (x) => logLine(j, x), run: (c, a) => runChild(j, c, a), signal: j.abort.signal }, sub); } : null;
+  const who = `${pk.engine === 'codex' ? 'Codex' : 'Claude'}${pk.model ? ` ${pk.model}` : ''}${pk.effort ? ` · ${pk.effort}` : ''}`;
+  const up = action === 'fix' ? autoUpload(slug, n) : null;
+  let j;
+  if (pk.engine === 'codex') {
+    const hadMp4 = n ? fs.existsSync(path.join(dir, 'episodes', epId(n), 'out', `${epId(n)}.mp4`)) : false;
+    const args = (prepared) => ai.codexArgs(promptFor(action, slug, n, !!fb, extra + mat.promptPart(slug, src, prepared, sub)) + ai.CODEX_NOTE, ROOT, { sourceMode: src.sourceMode, model: pk.model, effort: pk.effort });
+    const follow = action === 'plan' || action === 'plan-add' ? seal : codexFollowUp(slug, n, action, pk, src.sourceMode, hadMp4);
+    j = startJob({ action, slug, episode: n, queued }, pk.bin, args, { codex: true, who, before, after: follow || up ? async (jj) => { if (follow) await follow(jj); if (up && jj.status === 'running') await up(jj); } : null });
+  } else {
+    const args = (prepared) => claudeArgs(promptFor(action, slug, n, !!fb, extra + mat.promptPart(slug, src, prepared, sub)), { sourceMode: src.sourceMode, addDirs: prepared?.localDirs ?? [], model: pk.model, effort: pk.effort });
+    j = startJob({ action, slug, episode: n, queued }, pk.bin, args, { claude: true, who, before, after: seal ?? up });
+  }
+
+  return j;
+}
 // ───────── bài đăng mạng xã hội (post.mjs): dựng xong một tập → AI viết bài ngắn + dài (song song với việc kế, không chiếm hàng)
 const writePost = (slug, n) => posts.generate(seriesDir(slug), n, ai.pick('post'), childEnv(true), (s) => console.log(s));
 const autoPost = (slug, n, title) => {
@@ -265,8 +323,23 @@ const autoPost = (slug, n, title) => {
 const queue = createQueue(path.join(output.CONF_DIR, 'queue.json'));
 const queueTitle = (i) => {
   const ep = readJSON(path.join(seriesDir(i.slug), 'episodes', epId(i.episode), 'episode.json'), null);
-  return `${readJSON(path.join(seriesDir(i.slug), 'bible.json'), {}).name ?? i.slug} · Tập ${i.episode}${ep?.title ? `: ${ep.title}` : ''}`;
+  const pe = ep ? null : readJSON(path.join(seriesDir(i.slug), 'plan.json'), { episodes: [] }).episodes?.find((e) => +e.number === i.episode);
+  return `${i.action === 'script' ? 'Viết kịch bản · ' : ''}${readJSON(path.join(seriesDir(i.slug), 'bible.json'), {}).name ?? i.slug} · Tập ${i.episode}${(ep?.title || pe?.title) ? `: ${ep?.title || pe.title}` : ''}`;
 };
+// duyệt kịch bản: plan.json episodes[].scriptOk = mtime của episode.json lúc duyệt (kịch bản sửa sau đó → hết duyệt)
+const approveScripts = (slug, nums, ok = true) => {
+  const f = path.join(seriesDir(slug), 'plan.json'), plan = readJSON(f, { episodes: [] });
+  let changed = false;
+  for (const n of nums) {
+    const pe = plan.episodes.find((e) => +e.number === n);
+    const ej = path.join(seriesDir(slug), 'episodes', epId(n), 'episode.json');
+    if (!pe || !fs.existsSync(ej)) continue; // tập làm tay ngoài kế hoạch: không lưu được duyệt
+    if (ok) { pe.scriptOk = Math.round(fs.statSync(ej).mtimeMs); if ((pe.status ?? 'de-xuat') === 'de-xuat') pe.status = 'duyet'; } else delete pe.scriptOk;
+    changed = true;
+  }
+  if (changed) writeJSON(f, plan);
+};
+const hasScript = (slug, n) => (readJSON(path.join(seriesDir(slug), 'episodes', epId(n), 'episode.json'), null)?.scenes?.length ?? 0) > 0;
 const busyNow = () => job?.status === 'running' || job?.status === 'stopping';
 const renderDir = (slug, n) => path.join('series', slug, 'episodes', epId(n));
 const startRender = (slug, n, queued = false) =>
@@ -274,7 +347,14 @@ const startRender = (slug, n, queued = false) =>
 function pump() {
   if (busyNow()) return;
   for (let it = queue.take(); it; it = queue.take()) {
-    if (SLUG.test(it.slug) && fs.existsSync(path.join(ROOT, renderDir(it.slug, it.episode), 'episode.json'))) return void startRender(it.slug, it.episode, true);
+    if (!SLUG.test(it.slug) || !fs.existsSync(path.join(seriesDir(it.slug), 'bible.json'))) { queue.done(it, 'skipped'); continue; }
+    if (it.action === 'script') {
+      // viết kịch bản lần lượt: tập đã có kịch bản (viết tay / đã viết) thì bỏ qua
+      if (hasScript(it.slug, it.episode)) { queue.done(it, 'skipped'); continue; }
+      try { return void startAiJob(it.slug, 'script', it.episode, '', { queued: true }); }
+      catch (e) { console.error(`hàng đợi: không viết được kịch bản tập ${it.episode}: ${e.message}`); queue.done(it, 'error'); continue; }
+    }
+    if (fs.existsSync(path.join(ROOT, renderDir(it.slug, it.episode), 'episode.json'))) return void startRender(it.slug, it.episode, true);
     queue.done(it, 'skipped'); // tập đã bị xoá / chưa có kịch bản
   }
 }
@@ -473,7 +553,7 @@ const sceneLines = (slug, n) => {
 
 // ───────── HTTP
 // Đổi thiết lập máy (tự mở, truy cập từ xa, Telegram, Drive, thư mục phim) chỉ được làm khi ngồi tại máy
-const localOnly = (p, method) => /^\/api\/(autostart|remote|telegram)(\/|$)/.test(p) || (p.startsWith('/api/drive') && method !== 'GET') || p === '/api/open-output' || (p === '/api/settings' && method !== 'GET');
+const localOnly = (p, method) => /^\/api\/(autostart|remote|telegram)(\/|$)/.test(p) || (/^\/api\/social\/(app|connect|account)/.test(p) && method !== 'GET') || (p.startsWith('/api/drive') && method !== 'GET') || p === '/api/open-output' || (p === '/api/settings' && method !== 'GET');
 const handler = async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -612,6 +692,41 @@ const handler = async (req, res) => {
       spawn(IS_WIN ? 'explorer.exe' : process.platform === 'darwin' ? 'open' : 'xdg-open', [dir], { detached: true, stdio: 'ignore' }).on('error', () => {}).unref();
       return send(res, 200, { ok: true, dir: output.displayPath(dir) });
     }
+    // đăng phim lên mạng xã hội (social.mjs) — chỉ khi người dùng bấm Đăng / tự đặt lịch
+    if (p.startsWith('/api/social')) {
+      try {
+        if (req.method === 'GET' && p === '/api/social') return send(res, 200, social.status(PORT));
+        const cb = /^\/api\/social\/callback\/(meta|youtube|tiktok)$/.exec(p);
+        if (req.method === 'GET' && cb) {
+          let to;
+          try { to = await social.handleCallback(cb[1], url.searchParams); to += `${to.includes('?') ? '&' : '?'}social=ok`; }
+          catch (e) { to = `${e.back ?? '#/settings'}${(e.back ?? '').includes('?') ? '&' : '?'}social_err=${encodeURIComponent(e.message)}`; }
+          res.writeHead(302, { location: `http://localhost:${PORT}/${to}`, 'cache-control': 'no-store' });
+          return res.end();
+        }
+        if (p === '/api/social/app' && req.method === 'PUT') { const b = await readBody(req); social.saveApp(b.platform, b); return send(res, 200, social.status(PORT)); }
+        if (p === '/api/social/app' && req.method === 'DELETE') { social.forgetApp(url.searchParams.get('platform')); return send(res, 200, social.status(PORT)); }
+        if (p === '/api/social/connect' && req.method === 'POST') { const b = await readBody(req); return send(res, 200, { url: social.authUrl(b.platform, PORT, b.back) }); }
+        if (p === '/api/social/account' && req.method === 'DELETE') { social.removeAccount(url.searchParams.get('key')); return send(res, 200, social.status(PORT)); }
+        if (p === '/api/social/account/refresh' && req.method === 'POST') { await social.refreshAccount((await readBody(req)).key); return send(res, 200, social.status(PORT)); }
+        if (p === '/api/social/tiktok' && req.method === 'GET') return send(res, 200, await social.tiktokCreator(url.searchParams.get('dest')));
+        if (p === '/api/social/posts' && req.method === 'GET') {
+          const slug = url.searchParams.get('slug'), n = +(url.searchParams.get('episode') ?? 0);
+          return send(res, 200, { posts: social.listPosts({ slug: slug || null, episode: n || null }) });
+        }
+        if (p === '/api/social/posts' && req.method === 'POST') {
+          const b = await readBody(req), n = Math.floor(+b.episode);
+          if (!SLUG.test(b.slug ?? '') || !fs.existsSync(path.join(seriesDir(b.slug), 'bible.json')) || !(n > 0 && n < 100)) return fail(res, 400, 'Thiếu series / số tập.');
+          const ep = readJSON(path.join(seriesDir(b.slug), 'episodes', epId(n), 'episode.json'), {});
+          const tm = readJSON(path.join(seriesDir(b.slug), 'episodes', epId(n), 'build', 'timed.json'), null);
+          return send(res, 200, { posts: social.createPosts({ slug: b.slug, episode: n, items: b.items, at: b.at, epTitle: ep.title, seconds: tm ? tm.durationInFrames / tm.fps : null }) });
+        }
+        const pm = /^\/api\/social\/posts\/([\w-]{6,40})$/.exec(p);
+        if (pm && req.method === 'PUT') return send(res, 200, { post: social.updatePost(pm[1], await readBody(req)) });
+        if (pm && req.method === 'DELETE') return send(res, 200, social.cancelPost(pm[1]));
+      } catch (e) { if (e instanceof social.SocialError) return fail(res, e.status === 404 ? 404 : 400, e.message); throw e; }
+      return fail(res, 404, 'không có');
+    }
     if (p.startsWith('/api/drive')) {
       const back = (b) => `http://localhost:${PORT}/${b}`;
       if (req.method === 'GET' && p === '/api/drive') return send(res, 200, drive.status());
@@ -710,13 +825,33 @@ const handler = async (req, res) => {
         writeJSON(path.join(dir, 'plan.json'), plan);
         return send(res, 200, { ok: true });
       }
-      // xếp hàng dựng nhiều tập: { episodes: [n…] } — chỉ tập đã có kịch bản
+      // chép (đè) MP4 + SRT + bài đăng của một tập ra thư mục phim chung: { episode }
+      if (req.method === 'POST' && m[2] === '/export') {
+        const n = Math.floor(+(await readBody(req)).episode);
+        try { const d = output.exportEpisode(dir, epId(n)); return d ? send(res, 200, { path: output.displayPath(d) }) : fail(res, 400, 'Tập này chưa có MP4.'); }
+        catch (e) { return fail(res, e.code === 'LOCKED' ? 409 : 500, e.message); }
+      }
+      // duyệt kịch bản (chế độ duyệt toàn bộ): { episodes: [n…], ok: true|false } — sửa kịch bản sau khi duyệt thì mất duyệt
+      if (req.method === 'POST' && m[2] === '/script-approve') {
+        const b = await readBody(req);
+        const nums = (Array.isArray(b.episodes) ? b.episodes : []).map(Number).filter((n) => Number.isInteger(n) && n > 0 && n < 100 && hasScript(slug, n));
+        if (!nums.length) return fail(res, 400, 'Chưa chọn tập nào có kịch bản.');
+        approveScripts(slug, nums, b.ok !== false);
+        return send(res, 200, { ok: true, episodes: nums });
+      }
+      // xếp hàng nhiều tập: { episodes: [n…], action: 'render' (mặc định — tập đã có kịch bản) | 'script' (AI viết kịch bản — tập đã duyệt kế hoạch, chưa có kịch bản) }
       if (req.method === 'POST' && m[2] === '/queue') {
         const b = await readBody(req);
-        const eps = [...new Set((Array.isArray(b.episodes) ? b.episodes : []).map(Number))].filter((n) => Number.isInteger(n) && n > 0 && n < 100 && fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json')));
-        if (!eps.length) return fail(res, 400, 'Chưa chọn tập nào có kịch bản.');
-        const running = busyNow() && job.action === 'render' && job.slug === slug ? job.episode : null;
-        const added = queue.add(slug, eps.filter((n) => n !== running));
+        const action = b.action === 'script' ? 'script' : 'render';
+        const plan = readJSON(path.join(dir, 'plan.json'), { episodes: [] });
+        const okPlan = (n) => { const pe = plan.episodes.find((e) => +e.number === n); return !!pe && (pe.status ?? 'de-xuat') !== 'de-xuat'; };
+        const eps = [...new Set((Array.isArray(b.episodes) ? b.episodes : []).map(Number))].filter((n) => Number.isInteger(n) && n > 0 && n < 100
+          && (action === 'script' ? okPlan(n) && !hasScript(slug, n) : fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json'))));
+        if (!eps.length) return fail(res, 400, action === 'script' ? 'Không còn tập nào đã duyệt kế hoạch mà chưa có kịch bản.' : 'Chưa chọn tập nào có kịch bản.');
+        if (action === 'script' && !ai.pick('script').bin) return fail(res, 400, 'Máy chưa có công cụ AI để viết kịch bản — xem Thiết lập AI.');
+        if (action === 'render') approveScripts(slug, eps, true); // bấm sản xuất = đã duyệt kịch bản
+        const running = busyNow() && job.action === action && job.slug === slug ? job.episode : null;
+        const added = queue.add(slug, eps.filter((n) => n !== running), action);
         if (!busyNow()) { queue.resume(); pump(); }
         return send(res, 200, { added, job: jobView(job), queue: queue.view(queueTitle) });
       }
@@ -735,6 +870,7 @@ const handler = async (req, res) => {
           const n = Math.floor(+b.episode);
           if (!(n > 0 && n < 100) || !fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json'))) return fail(res, 400, 'Tập này chưa có kịch bản.');
           if (job.action === 'render' && job.slug === slug && job.episode === n) return fail(res, 409, 'Tập này đang được dựng.');
+          approveScripts(slug, [n], true);
           queue.add(slug, [n]);
           const v = queue.view(queueTitle);
           return send(res, 200, { queued: v.items.findIndex((i) => i.slug === slug && i.episode === n) + 1, queue: v });
@@ -744,55 +880,12 @@ const handler = async (req, res) => {
         const fb = String(b.feedback ?? '').trim();
         if (['script', 'fix', 'render', 'voicefix', 'upload', 'storyboard'].includes(b.action) && !(n > 0 && n < 100)) return fail(res, 400, 'thiếu số tập');
         if (['plan', 'plan-add', 'script', 'fix'].includes(b.action)) {
-          const pk = ai.pick(b.action === 'plan-add' ? 'plan' : b.action);
-          if (!pk.bin) return fail(res, 400, pk.engine === 'codex' ? 'Máy chưa có lệnh `codex` — cài Codex (npm i -g @openai/codex, rồi codex login) hoặc đổi sang Claude ở Thiết lập.' : 'Máy chưa có lệnh `claude` — dán câu lệnh thay thế vào Claude Code, hoặc đổi sang Codex ở Thiết lập.');
-          if (b.action === 'fix' && !fb) return fail(res, 400, 'Cần ghi góp ý.');
-          fs.mkdirSync(path.join(dir, '.studio'), { recursive: true });
-          const fbFile = path.join(dir, '.studio/gop-y.md');
-          if (fb) fs.writeFileSync(fbFile, `# Góp ý (${b.action}${n ? ` · tập ${n}` : ''}) — ${new Date().toLocaleString('vi-VN')}\n\n${fb}\n`); else fs.rmSync(fbFile, { force: true });
-          const brief = readJSON(path.join(dir, 'brief.json'), {});
-          const plan = readJSON(path.join(dir, 'plan.json'), { brief: {}, episodes: [] });
-          // đợt thêm tập: plan-add lập kế hoạch các tập mới; script/fix một tập thuộc đợt → nguồn + tư liệu của đợt đó
-          let batch = null, nums = null, extra = '';
-          if (b.action === 'plan-add') {
-            batch = (brief.batches ?? []).find((x) => x.id === b.batch);
-            if (!batch) return fail(res, 400, 'Không thấy đợt thêm tập.');
-            const mine = plan.episodes.filter((e) => e.batch === batch.id);
-            const locked = (e) => (e.status ?? 'de-xuat') !== 'de-xuat' || fs.existsSync(path.join(dir, 'episodes', e.id ?? epId(e.number), 'episode.json'));
-            const redo = mine.filter((e) => !locked(e)).map((e) => +e.number).sort((x, y) => x - y);
-            const need = batch.count - (mine.length - redo.length);
-            if (need <= 0) return fail(res, 400, 'Các tập của đợt này đã duyệt hết — muốn thêm nữa hãy tạo đợt mới.');
-            // lập lại đợt → dùng lại số của tập chưa duyệt trong đợt; thiếu thì nối tiếp sau tập cuối của series
-            nums = redo.slice(0, need);
-            for (let x = planMax(dir, { episodes: plan.episodes.filter((e) => !redo.includes(+e.number)) }) + 1; nums.length < need; x++) if (!nums.includes(x)) nums.push(x);
-            if (Math.max(...nums) > 99) return fail(res, 400, 'Series tối đa 99 tập.');
-            extra = ` Đợt: ${batch.id} — lập kế hoạch ${nums.length} tập thêm, số tập: ${nums.join(', ')}.`;
-          } else if (n) {
-            const pe = plan.episodes.find((e) => +e.number === n);
-            batch = pe?.batch ? (brief.batches ?? []).find((x) => x.id === pe.batch) ?? null : null;
-            if (batch) extra = ` Tập này thuộc đợt thêm tập "${batch.id}" (brief.json → batches): nội dung và nguồn theo đợt đó.`;
-          }
-          const src = batch ? { ...brief, sourceMode: batch.sourceMode, materials: batch.materials } : brief, sub = batch?.id ?? '';
-          const snapshot = b.action === 'plan-add' ? structuredClone(plan) : null;
-          const seal = snapshot ? sealBatch(slug, batch.id, nums, snapshot) : null;
-          // chế độ có tư liệu → gom + đọc tư liệu trước, rồi mới gọi AI
-          const before = mat.needsMaterials(src) ? async (j) => { logLine(j, `— Chuẩn bị tư liệu${sub ? ' của đợt thêm tập' : ''} —`); return mat.prepare(dir, src, { log: (x) => logLine(j, x), run: (c, a) => runChild(j, c, a), signal: j.abort.signal }, sub); } : null;
-          const who = `${pk.engine === 'codex' ? 'Codex' : 'Claude'}${pk.model ? ` ${pk.model}` : ''}${pk.effort ? ` · ${pk.effort}` : ''}`;
-          const up = b.action === 'fix' ? autoUpload(slug, n) : null;
-          let j;
-          if (pk.engine === 'codex') {
-            const hadMp4 = n ? fs.existsSync(path.join(dir, 'episodes', epId(n), 'out', `${epId(n)}.mp4`)) : false;
-            const args = (prepared) => ai.codexArgs(promptFor(b.action, slug, n, !!fb, extra + mat.promptPart(slug, src, prepared, sub)) + ai.CODEX_NOTE, ROOT, { sourceMode: src.sourceMode, model: pk.model, effort: pk.effort });
-            const follow = b.action === 'plan' || b.action === 'plan-add' ? seal : codexFollowUp(slug, n, b.action, pk, src.sourceMode, hadMp4);
-            j = startJob({ action: b.action, slug, episode: n }, pk.bin, args, { codex: true, who, before, after: follow || up ? async (jj) => { if (follow) await follow(jj); if (up && jj.status === 'running') await up(jj); } : null });
-          } else {
-            const args = (prepared) => claudeArgs(promptFor(b.action, slug, n, !!fb, extra + mat.promptPart(slug, src, prepared, sub)), { sourceMode: src.sourceMode, addDirs: prepared?.localDirs ?? [], model: pk.model, effort: pk.effort });
-            j = startJob({ action: b.action, slug, episode: n }, pk.bin, args, { claude: true, who, before, after: seal ?? up });
-          }
-          return send(res, 200, { job: jobView(j) });
+          try { return send(res, 200, { job: jobView(startAiJob(slug, b.action, n, fb, { batchId: b.batch })) }); }
+          catch (e) { if (typeof e.code === 'number') return fail(res, e.code, e.message); throw e; }
         }
         if (b.action === 'render') {
           if (!fs.existsSync(path.join(ROOT, renderDir(slug, n), 'episode.json'))) return fail(res, 400, 'Tập này chưa có kịch bản.');
+          approveScripts(slug, [n], true);
           queue.remove(slug, n); // bấm dựng ngay thì bỏ khỏi hàng đợi (nếu có)
           return send(res, 200, { job: jobView(startRender(slug, n)) });
         }
@@ -851,6 +944,7 @@ export function main() {
   const listen = () => server.listen(PORT, process.env.XUONG_DOCKER ? process.env.HOST || '0.0.0.0' : '127.0.0.1', () => {
     console.log(`Xưởng phim: http://localhost:${PORT}${CLAUDE ? '' : '  (chưa thấy lệnh claude — các bước sáng tác phải dán lệnh vào Claude Code)'}`);
     tg.init({ port: PORT, root: ROOT });
+    social.init({ seriesDir, notify: (ev) => { try { tg.socialEvent(ev, queueTitle({ slug: ev.post.slug, episode: ev.post.episode })); } catch {} } });
     if (process.env.XUONG_BOOT) tg.bootNotice();
     syncListeners();
     setInterval(syncListeners, 30000);

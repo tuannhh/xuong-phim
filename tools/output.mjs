@@ -35,6 +35,18 @@ export function setOutputDir(dir) {
 const safe = (s) => String(s ?? '').replace(/[\\/:*?"<>|\n\r\t]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100);
 export const seriesOutputDir = (seriesName) => path.join(outputDir(), safe(seriesName) || 'Series');
 
+// Chép đè bản cũ. APFS: nhân bản tức thì (COPYFILE_FICLONE). Windows: file đang mở ở trình xem phim bị khoá → thử lại vài lần rồi báo rõ.
+export function copyOver(src, dst, tries = 6) {
+  for (let i = 1; ; i++) {
+    try { return fs.copyFileSync(src, dst, fs.constants.COPYFILE_FICLONE); }
+    catch (e) {
+      if (!['EBUSY', 'EPERM', 'EACCES'].includes(e.code)) throw e;
+      if (i >= tries) throw Object.assign(new Error(`không chép đè được "${path.basename(dst)}" — file đang mở ở chương trình khác (trình xem phim?). Đóng lại rồi bấm "Chép lại ra thư mục phim".`), { code: 'LOCKED' });
+      const until = Date.now() + 1000; while (Date.now() < until) { /* chờ 1 giây rồi thử lại */ }
+    }
+  }
+}
+
 // Chép MP4 (+SRT) của một tập vào thư mục xuất; nhớ đích ở out/export.json để lần sau (đổi tiêu đề) xoá bản cũ của chính xưởng.
 export function exportEpisode(seriesDir, id) {
   const ed = path.join(seriesDir, 'episodes', id), out = path.join(ed, 'out');
@@ -45,7 +57,7 @@ export function exportEpisode(seriesDir, id) {
   const base = path.join(dir, safe(`${id.toUpperCase()} - ${ep.title || id}`));
   fs.mkdirSync(dir, { recursive: true });
   const rec = path.join(out, 'export.json'), prev = readJSON(rec, {});
-  const copy = (src, dst) => fs.copyFileSync(src, dst, fs.constants.COPYFILE_FICLONE); // APFS: nhân bản tức thì, không tốn thêm dung lượng
+  const copy = (src, dst) => copyOver(src, dst);
   copy(mp4, `${base}.mp4`);
   const srt = path.join(out, `${id}.srt`);
   if (fs.existsSync(srt)) copy(srt, `${base}.srt`);

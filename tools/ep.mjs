@@ -4,7 +4,7 @@
 //   script      sinh script.md (kịch bản chi tiết dạng bảng để duyệt)
 //   storyboard  ảnh tĩnh mỗi cảnh + storyboard/index.html (dùng thời lượng ước lượng nếu chưa có voice)
 //   voice       đọc lời bằng tts-vi (chỉ câu mới/đổi; --force đọc lại hết)
-//   timing      tính thời gian từ voice thật → build/timed.json, audio.json, out/<id>.srt
+//   timing      tính thời gian từ voice thật → build/timed.json, audio.json, build/<id>.srt (chép sang out/ khi dựng xong)
 //   audio       nhạc nền + SFX + voice → build/mix.wav, build/mouth.json
 //   render      xuất MP4 (out/<id>.mp4); --preview = nửa độ phân giải, nhanh
 //   all         voice → timing → audio → render
@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync, spawn } from 'node:child_process';
-import { ROOT, die, dirs, episodeLines, loadEpisode, readJSON, voiceSig, writeJSON } from './lib.mjs';
+import { ROOT, castOf, die, dirs, episodeLines, loadEpisode, readJSON, voiceSig, writeJSON } from './lib.mjs';
 import { castVoices } from './voices.mjs';
 import { buildTiming } from './timing.mjs';
 import { SETS } from '../shared/catalog.mjs';
@@ -35,7 +35,7 @@ const EXPRS = ['binh-thuong', 'cuoi', 'vui', 'cuoi-lon', 'buon', 'khoc', 'gian',
 
 function check() {
   const errs = [], warns = [];
-  const chars = new Set((episode.characters ?? bible.characters ?? []).map((c) => c.id));
+  const chars = new Set(castOf(bible, episode).map((c) => c.id));
   const ids = new Set();
   for (const s of episode.scenes) {
     if (!s.id) errs.push('có cảnh thiếu id');
@@ -80,7 +80,7 @@ function check() {
       }
     if (!(s.lines ?? []).length && !s.hold) warns.push(`${s.id}: không có lời đọc (đặt "hold": giây nếu cố ý)`);
   }
-  const cv = castVoices(episode.characters ?? bible.characters ?? [], bible);
+  const cv = castVoices(castOf(bible, episode), bible);
   cv.errors.forEach((e) => errs.push(`giọng: ${e}`));
   for (const l of episodeLines(bible, episode)) {
     for (const w of l.norm.warnings) warns.push(`${l.id}: ${w.code === 'UNKNOWN_ACRONYM' ? `chưa có cách đọc cho "${w.src}" (thêm vào bible.pronounce nếu máy đọc sai)` : `${w.code} ${w.src ?? ''}`}`);
@@ -211,8 +211,11 @@ async function render() {
 
 async function exportOut() {
   const { exportEpisode, displayPath } = await import('./output.mjs');
-  const dst = exportEpisode(path.dirname(path.dirname(epDir)), path.basename(epDir));
-  if (dst) console.log(`  xuất → ${displayPath(dst)}`);
+  // phim đã dựng xong trong series; chép ra thư mục phim chung lỗi (file đang mở…) thì chỉ cảnh báo, không coi là dựng hỏng
+  try {
+    const dst = exportEpisode(path.dirname(path.dirname(epDir)), path.basename(epDir));
+    if (dst) console.log(`  xuất → ${displayPath(dst)} (đè bản cũ)`);
+  } catch (e) { console.log(`  ! ${e.message}`); }
 }
 
 // ───── chỉ sửa giọng (memory-bank bẫy 29)
@@ -269,7 +272,9 @@ async function voiceFix() {
   const mux = spawnSync('ffmpeg', ['-y', '-v', 'error', '-i', mp4, '-i', b('mix.wav'), '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000',
     '-t', (old.durationInFrames / fps).toFixed(3), '-movflags', '+faststart', tmp], { stdio: 'inherit' });
   if (mux.status !== 0 || !fs.existsSync(tmp)) { fs.rmSync(tmp, { force: true }); die('ffmpeg lỗi khi ghép tiếng vào MP4'); }
-  fs.renameSync(tmp, mp4);
+  const { replaceFile, syncSrt } = await import('./render.mjs');
+  await replaceFile(tmp, mp4);
+  syncSrt(epDir, mp4);
   fs.copyFileSync(b('timed.json'), b('rendered.json'));
   console.log(`  xong ${((Date.now() - t0) / 1000).toFixed(0)}s → ${rel(mp4)} (chỉ thay tiếng, giữ nguyên hình)`);
   if (!flags.has('--gemini')) await exportOut();

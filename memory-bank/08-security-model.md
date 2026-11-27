@@ -41,6 +41,7 @@
 
 - Quyền xin duy nhất: `https://www.googleapis.com/auth/drive.file` — xưởng chỉ thấy/sửa file do chính nó tạo, không đọc được file khác trong Drive.
 - OAuth kiểu ứng dụng máy tính: redirect loopback `http://127.0.0.1:<PORT>/api/drive/callback`, `state` ngẫu nhiên dùng một lần (hạn 10 phút) + PKCE S256. Callback là GET nhưng an toàn vì phải khớp `state`.
+- Mạng xã hội: khoá ứng dụng Meta/TikTok + token (Meta: token người dùng ~60 ngày, token Trang; YouTube/TikTok: refresh token) lưu `~/.config/xuong-phim/social.json` (600, ghi nguyên tử), ngoài repo; `/api/social` không trả secret/token. Đổi khoá ứng dụng / kết nối / ngắt chỉ tại máy (từ xa → 403); đăng bài từ xa (Tailscale có mật khẩu, Telegram đã liên kết) được phép. Xưởng chỉ đăng khi người dùng bấm hoặc đặt lịch; mỗi lần đăng trên trang phải tích "đã xem lại", trên Telegram phải bấm Xác nhận.
 - Client secret + refresh token lưu `~/.config/xuong-phim/google.json` (thư mục 700, file 600, ghi nguyên tử), ngoài repo; API chỉ trả về `configured/connected/account`.
 - Chỉ tải lên file trong `series/<slug>/episodes/epNN/out/` (đường dẫn do máy chủ tự ghép, không nhận đường dẫn từ trình duyệt). Ngắt kết nối = gọi revoke của Google + xoá token.
 - Refresh token bị thu hồi/hết hạn (`invalid_grant`) → xoá token, báo người dùng kết nối lại. Ứng dụng OAuth để chế độ "Testing" với tài khoản ngoài tổ chức thì refresh token hết hạn sau 7 ngày — dùng "Internal" (Workspace) hoặc publish ứng dụng (quyền drive.file không cần Google thẩm định).

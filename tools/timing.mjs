@@ -1,8 +1,9 @@
-// episode.json + bible.json + voice/dur.json → build/timed.json (props cho Remotion), build/audio.json (cho bộ trộn), out/<id>.srt
+// episode.json + bible.json + voice/dur.json → build/timed.json (props cho Remotion), build/audio.json (cho bộ trộn), build/<id>.srt
+// (phụ đề chỉ chép sang out/ khi MP4 mới dựng xong — render.mjs — để phim và phụ đề trong out/ luôn cùng một bản)
 // Chưa có voice thì ước lượng thời lượng (dùng cho storyboard). Gọi: node tools/timing.mjs <thư-mục-tập>
 import fs from 'node:fs';
 import path from 'node:path';
-import { FORMATS, dirs, episodeLines, estimateDur, loadEpisode, readJSON, resolveTheme, voiceSig, writeJSON } from './lib.mjs';
+import { FORMATS, castOf, dirs, episodeLines, estimateDur, loadEpisode, readJSON, resolveTheme, voiceSig, writeJSON } from './lib.mjs';
 import { revealFrames, revealItems, storyTimes, STORY_SFX } from '../shared/reveal.mjs';
 import { watermarkProps } from '../shared/watermark.mjs';
 import { pickTrack } from './music-source.mjs';
@@ -150,7 +151,7 @@ export function buildTiming(epArg, { durOverride = null, write = true } = {}) {
     series: { name: bible.name, channel: bible.channel, slug: bible.slug },
     episode: { id: episode.id, number: episode.number, total: bible.episodes ?? undefined, title: episode.title },
     theme: resolveTheme(bible),
-    characters: episode.characters ?? bible.characters ?? [],
+    characters: castOf(bible, episode), // nhân vật theo đề bài mới nhất (lib.mjs)
     scenes, captions,
     audio: 'mix.wav',
     chrome: { ...(bible.chrome ?? {}), ...(episode.chrome ?? {}) },
@@ -177,8 +178,8 @@ export function buildTiming(epArg, { durOverride = null, write = true } = {}) {
     const p = (n, k = 2) => String(n).padStart(k, '0');
     return `${p(Math.floor(ms / 3600000))}:${p(Math.floor(ms / 60000) % 60)}:${p(Math.floor(ms / 1000) % 60)},${p(ms % 1000, 3)}`;
   };
-  fs.mkdirSync(path.join(epDir, 'out'), { recursive: true });
-  fs.writeFileSync(path.join(epDir, 'out', `${episode.id}${D.out}.srt`), captions.map((c, k) => `${k + 1}\n${ts(c.from)} --> ${ts(c.to)}\n${c.words.map((w) => w.w).join(' ')}\n`).join('\n'));
+  fs.mkdirSync(path.join(epDir, D.build), { recursive: true });
+  fs.writeFileSync(path.join(epDir, D.build, `${episode.id}${D.out}.srt`), captions.map((c, k) => `${k + 1}\n${ts(c.from)} --> ${ts(c.to)}\n${c.words.map((w) => w.w).join(' ')}\n`).join('\n'));
 
   return { timed, audio, estimated, staleVoice, total: lines.length, seconds: durationInFrames / fps };
 }

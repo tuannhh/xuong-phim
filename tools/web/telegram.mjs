@@ -151,14 +151,14 @@ export function jobFinished({ job: j, title, queueLeft = 0, queueEnded = false, 
     if (tail.length) lines.push('', ...tail.map((l) => l.slice(0, 200)));
   }
   if (queueLeft) lines.push('', `Còn ${queueLeft} tập trong hàng đợi.`);
-  else if (queueEnded) lines.push('', 'Hàng đợi đã dựng xong hết.');
+  else if (queueEnded) lines.push('', 'Hàng đợi đã làm xong hết.');
   // nút bước tiếp theo, theo loại việc
   const b = [];
   if (j.slug) {
     const k = sk(j.slug), e = j.episode;
     if (j.status === 'done') {
-      if (['render', 'voicefix'].includes(j.action) && e) b.push([btn('🎬 Xem phim', `xem:${k}:${e}`), btn(`📂 Tập ${e}`, `ep:${k}:${e}`)], [btn('📝 Bài đăng', `bd:${k}:${e}`)]);
-      else if (['script', 'fix', 'storyboard'].includes(j.action) && e) b.push([btn(`🖼 Xem tập ${e} (storyboard)`, `ep:${k}:${e}`)]);
+      if (['render', 'voicefix'].includes(j.action) && e) b.push([btn('🎬 Xem phim', `xem:${k}:${e}`), btn(`📂 Tập ${e}`, `ep:${k}:${e}`)], [btn('📝 Bài đăng', `bd:${k}:${e}`), btn('📣 Đăng lên MXH', `dmx:${k}:${e}`)]);
+      else if (['script', 'fix', 'storyboard'].includes(j.action) && e) b.push([btn(`🖼 Xem tập ${e} (storyboard)`, `ep:${k}:${e}`)], ...(j.action === 'script' && queueEnded ? [[btn('📝 Duyệt kịch bản toàn bộ', `dkl:${k}`)]] : []));
       else if (['plan', 'plan-add'].includes(j.action)) b.push([btn('📋 Xem kế hoạch', `kh:${k}`)]);
       else if (j.action === 'characters') b.push([btn('👥 Xem bảng nhân vật', `nv:${k}`)]);
     } else if (j.status === 'error' && e) {
@@ -176,7 +176,7 @@ async function sendPost(chatId, slug, n, title, p) {
   await reply(chatId, [`📝 Bài đăng mạng xã hội — ${title}`, p.stale ? '🟡 Kịch bản đã sửa sau khi viết bài — bấm "Viết lại" để cập nhật.' : '',
     `Hai tin dưới đây: bản ngắn (${words(p.short)} từ) và bản dài (${words(p.long)} từ). Giữ ngón tay lên tin → Sao chép, rồi dán lên Facebook, TikTok, YouTube, Zalo…`].filter(Boolean).join('\n'));
   await reply(chatId, p.short);
-  await reply(chatId, p.long, [[btn('🔄 Viết lại bài đăng', `bdv:${k}:${n}`), btn(`📂 Tập ${n}`, `ep:${k}:${n}`)]]);
+  await reply(chatId, p.long, [[btn('🔄 Viết lại bài đăng', `bdv:${k}:${n}`), btn(`📂 Tập ${n}`, `ep:${k}:${n}`)], [btn('📣 Đăng lên mạng xã hội', `dmx:${k}:${n}`)]]);
 }
 // máy chủ gọi khi AI viết xong bài sau lần dựng (tự động)
 export function postReady({ slug, episode, title, post }) {
@@ -230,10 +230,13 @@ const COMMANDS = [
   ['suagiong', 'Chỉ sửa giọng: /suagiong 11'],
   ['gopy', 'Sửa tập theo góp ý: /gopy 11 nội dung góp ý'],
   ['xem', 'Gửi phim về điện thoại: /xem 11'],
+  ['duyetkb', 'Duyệt kịch bản toàn bộ, rồi sản xuất toàn bộ'],
   ['baidang', 'Bài đăng mạng xã hội của tập: /baidang 11'],
+  ['dang', 'Đăng phim lên Facebook / Instagram / YouTube / TikTok: /dang 11'],
+  ['lichdang', 'Lịch đăng mạng xã hội (xem, huỷ, đăng ngay)'],
   ['nhanvat', 'Bảng nhân vật của series'],
   ['seriesmoi', 'Tạo series mới (từ đầu, hoặc nhân bản series có sẵn)'],
-  ['hang', 'Hàng đợi dựng phim'],
+  ['hang', 'Hàng đợi (viết kịch bản, dựng phim)'],
   ['tieptuc', 'Chạy tiếp hàng đợi'],
   ['huy', 'Dừng việc đang chạy (tạm dừng hàng đợi)'],
   ['huybo', 'Thôi nhập góp ý / thôi tạo series đang dở'],
@@ -279,7 +282,159 @@ async function episodesView(chatId, slug) {
   const k = sk(slug), b = [];
   const eps = s.episodes.slice(0, 40);
   for (let i = 0; i < eps.length; i += 5) b.push(eps.slice(i, i + 5).map((e) => btn(`${ICON[stateOf(e)]} ${e.number}`, `ep:${k}:${e.number}`)));
+  if (needFilm(s).length || s.episodes.some((e) => e.approved && !e.scenes)) b.push([btn('📝 Duyệt kịch bản / sản xuất toàn bộ', `dkl:${k}`)]);
   return reply(chatId, [s.name, ...rows, '', LEGEND, 'Bấm số tập để mở.'].join('\n'), b);
+}
+
+// ───────── sản xuất toàn bộ: AI viết kịch bản lần lượt → duyệt kịch bản toàn bộ → dựng lần lượt mọi tập
+const needFilm = (s) => s.episodes.filter((e) => e.scenes && (!e.mp4 || e.stale));
+async function reviewView(chatId, slug) {
+  const s = await seriesFull(slug);
+  const { queue } = await local('GET', '/api/job');
+  const inQ = (n) => (queue?.items ?? []).some((i) => i.slug === slug && i.episode === n);
+  const k = sk(slug);
+  const toWrite = s.episodes.filter((e) => e.approved && !e.scenes && !inQ(e.number));
+  const list = needFilm(s).filter((e) => !inQ(e.number));
+  const ok = list.filter((e) => e.scriptOk);
+  const t = [`${s.name} — duyệt kịch bản toàn bộ`];
+  const b = [];
+  if (toWrite.length) { t.push('', `✍️ ${toWrite.length} tập đã duyệt kế hoạch, chưa có kịch bản: ${toWrite.map((e) => e.number).join(', ')}.`); b.push([btn(`✍️ AI viết kịch bản ${toWrite.length} tập (lần lượt)`, `vka:${k}`)]); }
+  if (!list.length) {
+    t.push('', toWrite.length ? 'Viết xong kịch bản thì quay lại đây để duyệt.' : 'Không còn tập nào chờ duyệt kịch bản.');
+    return reply(chatId, t.join('\n'), b.length ? b : null);
+  }
+  t.push('', `Đã duyệt ${ok.length}/${list.length} tập:`, ...list.map((e) => `${e.scriptOk ? '✅' : '⬜'} ${e.number}. ${e.title ?? ''}${e.mp4 && e.stale ? ' (dựng lại)' : ''}`));
+  if (ok.length === list.length) {
+    t.push('', `Đã duyệt toàn bộ ${list.length} kịch bản. Sản xuất toàn bộ luôn không? Máy dựng lần lượt từng tập, xong tập nào báo tập đó; bản mới đè bản cũ.`);
+    b.push([btn(`🎬 Sản xuất toàn bộ (${list.length} tập)`, `sxa:${k}`)], [btn('Để sau', `ep0:${k}`)]);
+    return reply(chatId, t.join('\n'), b);
+  }
+  t.push('', 'Bấm 🖼 số tập để xem storyboard + lời thoại, ✅ để duyệt.');
+  const todo = list.filter((e) => !e.scriptOk).slice(0, 24);
+  for (let i = 0; i < todo.length; i += 3) b.push(todo.slice(i, i + 3).flatMap((e) => [btn(`🖼 ${e.number}`, `xkb:${k}:${e.number}`), btn(`✅ ${e.number}`, `dk:${k}:${e.number}`)]));
+  b.push([btn(`✅ Duyệt tất cả (${list.length - ok.length} tập)`, `dka:${k}`)]);
+  if (ok.length) b.push([btn(`🎬 Sản xuất ${ok.length} tập đã duyệt`, `sxo:${k}`)]);
+  return reply(chatId, t.join('\n'), b);
+}
+// xem một tập để duyệt: album storyboard + lời thoại, kèm nút duyệt / góp ý
+async function reviewEpisode(chatId, slug, n) {
+  const s = await seriesFull(slug);
+  const e = s.episodes.find((x) => x.number === n);
+  if (!e?.scenes) return reply(chatId, `Tập ${n} chưa có kịch bản.`);
+  if (e.board?.length) await sendBoard(chatId, slug, e);
+  const { scenes } = await local('GET', `/api/series/${slug}/lines?episode=${n}`);
+  const text = scenes.map((sc, i) => [`Cảnh ${i + 1}:`, ...(sc.lines.length ? sc.lines.map((l) => `  ${l.speaker ?? 'Dẫn'}: ${l.text}`) : ['  (không lời)'])].join('\n')).join('\n');
+  const k = sk(slug);
+  return reply(chatId, `📄 Tập ${n}${e.title ? `: ${e.title}` : ''}\n\n${text}`, [[btn(`✅ Duyệt tập ${n}`, `dk:${k}:${n}`), btn('💬 Góp ý để sửa', `gy:${k}:${n}`)], [btn('↩️ Danh sách duyệt', `dkl:${k}`)]]);
+}
+async function approveScripts(chatId, slug, nums) {
+  await local('POST', `/api/series/${slug}/script-approve`, { episodes: nums, ok: true });
+  await reply(chatId, `✅ Đã duyệt kịch bản ${nums.length === 1 ? `tập ${nums[0]}` : `${nums.length} tập`}.`);
+  return reviewView(chatId, slug);
+}
+async function produce(chatId, slug, onlyApproved) {
+  const s = await seriesFull(slug);
+  const list = needFilm(s).filter((e) => !onlyApproved || e.scriptOk).map((e) => e.number);
+  if (!list.length) return reply(chatId, 'Không còn tập nào cần dựng.');
+  const r = await local('POST', `/api/series/${slug}/queue`, { episodes: list, action: 'render' });
+  return reply(chatId, `🎬 Đã xếp ${r.added} tập vào hàng đợi sản xuất. Máy dựng lần lượt từng tập, xong tập nào báo tập đó (kèm bài đăng).${r.job?.status === 'running' ? `\nĐang chạy: ${r.job.label}${r.job.episode ? ` · tập ${r.job.episode}` : ''}.` : ''}`);
+}
+async function writeAll(chatId, slug) {
+  const s = await seriesFull(slug);
+  const list = s.episodes.filter((e) => e.approved && !e.scenes).map((e) => e.number);
+  if (!list.length) return reply(chatId, 'Không còn tập nào đã duyệt kế hoạch mà chưa có kịch bản.');
+  const r = await local('POST', `/api/series/${slug}/queue`, { episodes: list, action: 'script' });
+  return reply(chatId, `✍️ Đã xếp ${r.added} tập vào hàng đợi — AI viết kịch bản lần lượt (mỗi tập vài phút). Viết xong hết, bot nhắc duyệt kịch bản toàn bộ.`);
+}
+
+// ───────── đăng lên mạng xã hội (social.mjs) từ điện thoại: chọn kênh → chọn bản bài đăng (hoặc tự sửa) → TikTok: chọn ai xem → đăng ngay / hẹn giờ → xác nhận
+const KIND_T = { fb: 'Facebook', ig: 'Instagram', yt: 'YouTube', tt: 'TikTok' };
+const TT_P = [['PUBLIC_TO_EVERYONE', 'Mọi người'], ['MUTUAL_FOLLOW_FRIENDS', 'Bạn bè'], ['FOLLOWER_OF_CREATOR', 'Người theo dõi'], ['SELF_ONLY', 'Chỉ mình tôi'], ['inbox', 'Hộp thư TikTok (tự bấm đăng)']];
+const ACTIVE = ['queued', 'scheduled', 'posting'];
+const fmtT = (ms) => new Date(ms).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+const drafts = new Map(); // chatId → { slug, n, sel: [dest id], ver, caption, tt, at }
+// "19:30" (hôm nay, qua giờ thì mai) · "19:30 28/11" · "28/11 19:30" · "28/11/2026 19:30"
+function parseWhen(t) {
+  const m = /(\d{1,2})[:hg](\d{2})?/.exec(t);
+  if (!m) return null;
+  const d = /(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/.exec(t);
+  const now = new Date();
+  const x = d ? new Date(+(d[3] ?? now.getFullYear()), +d[2] - 1, +d[1], +m[1], +(m[2] ?? 0)) : new Date(now.getFullYear(), now.getMonth(), now.getDate(), +m[1], +(m[2] ?? 0));
+  if (!d && x.getTime() < Date.now()) x.setDate(x.getDate() + 1);
+  if (d && !d[3] && x.getTime() < Date.now() - 86400000) x.setFullYear(x.getFullYear() + 1);
+  return Number.isNaN(x.getTime()) ? null : x.getTime();
+}
+async function shareView(chatId, slug, n, { fresh = false, msgId = null } = {}) {
+  const s = await seriesFull(slug);
+  const e = s.episodes.find((x) => x.number === n);
+  if (!e?.mp4) return reply(chatId, `Tập ${n} chưa có phim — dựng phim trước.`);
+  const { dests: D } = await local('GET', '/api/social');
+  if (!D.length) return reply(chatId, 'Chưa kết nối kênh mạng xã hội nào. Kết nối Facebook, Instagram, YouTube, TikTok ở trang Thiết lập → Mạng xã hội (làm tại máy chạy xưởng).');
+  let d = drafts.get(chatId);
+  if (fresh || !d || d.slug !== slug || d.n !== n) { d = { slug, n, sel: [], ver: e.post?.short ? 'short' : 'own', caption: e.post?.short ?? e.title ?? '', tt: null, at: null }; drafts.set(chatId, d); }
+  d.sel = d.sel.filter((id) => D.some((x) => x.id === id));
+  const busy = new Set((e.social ?? []).filter((p) => ACTIVE.includes(p.status)).map((p) => p.dest));
+  const k = sk(slug), kinds = new Set(D.filter((x) => d.sel.includes(x.id)).map((x) => x.kind));
+  const t = [`📣 Đăng tập ${n}${e.title ? `: ${e.title}` : ''}`, '', 'Kênh (bấm để chọn / bỏ):', ...D.map((x) => `${d.sel.includes(x.id) ? '✅' : busy.has(x.id) ? '⏳' : '⬜'} ${KIND_T[x.kind]} · ${x.name}${busy.has(x.id) ? ' (đã có bài chờ đăng)' : ''}`),
+    '', `Nội dung — ${d.ver === 'short' ? 'bản ngắn' : d.ver === 'long' ? 'bản dài' : 'tự sửa'} (${[...d.caption].length} ký tự):`, d.caption.slice(0, 2500) || '(trống)'];
+  if (kinds.has('tt')) t.push('', `TikTok — ai được xem: ${TT_P.find(([v]) => v === d.tt)?.[1] ?? 'chưa chọn (bắt buộc)'}`);
+  if (kinds.has('yt')) t.push('', `YouTube: tiêu đề "${(e.title ?? `Tập ${n}`).slice(0, 100)}", công khai.`);
+  if (kinds.has('fb') && e.seconds > 90) t.push('', `⚠️ Facebook Reels chỉ nhận tối đa 90 giây — phim dài ${e.seconds} giây.`);
+  if (e.stale) t.push('', '🟡 Phim đang là bản cũ (đề bài / kịch bản đã sửa) — nên dựng lại trước khi đăng.');
+  const pick = D.map((x, i) => [x, i]).filter(([x]) => !busy.has(x.id));
+  const b = [];
+  for (let i = 0; i < pick.length; i += 2) b.push(pick.slice(i, i + 2).map(([x, j]) => btn(`${d.sel.includes(x.id) ? '✅' : '⬜'} ${KIND_T[x.kind]} ${x.name}`.slice(0, 40), `dmt:${k}:${n}:${j}`)));
+  b.push([...(e.post?.short ? [btn('Bản ngắn', `dmc:${k}:${n}:s`), btn('Bản dài', `dmc:${k}:${n}:l`)] : []), btn('✏️ Tự sửa', `dme:${k}:${n}`)]);
+  if (kinds.has('tt')) for (let i = 0; i < TT_P.length; i += 3) b.push(TT_P.slice(i, i + 3).map(([v, l], j) => btn(`${d.tt === v ? '● ' : ''}${l}`, `dmp:${k}:${n}:${i + j}`)));
+  if (d.sel.length) b.push([btn('🚀 Đăng ngay', `dmn:${k}:${n}`), btn('⏰ Hẹn giờ', `dmh:${k}:${n}`)]);
+  const text = t.join('\n').slice(0, 4000);
+  if (msgId) { try { return await call('editMessageText', { chat_id: chatId, message_id: msgId, text, disable_web_page_preview: true, ...markup(b) }); } catch { /* tin cũ quá / không đổi → gửi tin mới */ } }
+  return reply(chatId, text, b);
+}
+async function shareConfirm(chatId, at) {
+  const d = drafts.get(chatId);
+  if (!d?.sel.length) return reply(chatId, 'Phiên đăng bài đã hết — bấm 📣 Đăng lên MXH ở tập để làm lại.');
+  const { dests: D } = await local('GET', '/api/social');
+  const chosen = D.filter((x) => d.sel.includes(x.id));
+  if (chosen.some((x) => x.kind === 'tt') && !d.tt) return reply(chatId, 'TikTok: chọn ai được xem video trước (bấm một nút ở tin trên).');
+  if (!d.caption.trim()) return reply(chatId, 'Nội dung đăng đang trống — bấm ✏️ Tự sửa.');
+  d.at = at;
+  const k = sk(d.slug);
+  return reply(chatId, [`${at ? `⏰ Hẹn đăng lúc ${fmtT(at)}` : '🚀 Đăng ngay'} tập ${d.n} lên:`, ...chosen.map((x) => `• ${KIND_T[x.kind]} · ${x.name}`), '', 'Đã xem lại phim và nội dung? Bấm xác nhận để đăng.', at ? 'Máy chạy xưởng phải đang bật lúc đến giờ.' : ''].filter(Boolean).join('\n'),
+    [[btn('✅ Xác nhận đăng', `dmy:${k}:${d.n}`), btn('↩️ Sửa lại', `dmb:${k}:${d.n}`)]]);
+}
+async function shareGo(chatId) {
+  const d = drafts.get(chatId);
+  if (!d?.sel.length) return reply(chatId, 'Phiên đăng bài đã hết — bấm 📣 Đăng lên MXH ở tập để làm lại.');
+  const s = await seriesFull(d.slug), e = s.episodes.find((x) => x.number === d.n);
+  const { dests: D } = await local('GET', '/api/social');
+  const items = D.filter((x) => d.sel.includes(x.id)).map((x) => ({ dest: x.id, caption: d.caption, ...(x.kind === 'yt' ? { title: (e?.title ?? `Tập ${d.n}`).slice(0, 100), privacy: 'public' } : {}), ...(x.kind === 'tt' ? { tiktok: d.tt === 'inbox' ? { mode: 'inbox' } : { mode: 'direct', privacy: d.tt, comment: false, duet: false, stitch: false } } : {}) }));
+  if (d.at && d.at < Date.now() + 60000) return reply(chatId, 'Giờ hẹn đã qua — bấm ⏰ Hẹn giờ để chọn lại.');
+  const r = await local('POST', '/api/social/posts', { slug: d.slug, episode: d.n, items, at: d.at });
+  drafts.delete(chatId);
+  return reply(chatId, d.at ? `✓ Đã hẹn ${r.posts.length} bài lúc ${fmtT(d.at)}. Xem / huỷ: /lichdang` : `✓ Đang đăng lên ${r.posts.length} kênh — xong từng kênh sẽ báo.`);
+}
+async function scheduleList(chatId) {
+  const { posts } = await local('GET', '/api/social/posts');
+  const up = posts.filter((p) => [...ACTIVE, 'missed'].includes(p.status)).sort((a, b) => (a.at ?? a.created) - (b.at ?? b.created));
+  const names = Object.fromEntries((await seriesList()).map((s) => [s.slug, s.name]));
+  if (!up.length) {
+    const last = posts.filter((p) => p.status === 'done').sort((a, b) => b.ended - a.ended).slice(0, 5);
+    return reply(chatId, ['Không có bài nào đang chờ đăng.', ...(last.length ? ['', 'Đăng gần đây:', ...last.map((p) => `✅ ${fmtT(p.ended)} · ${names[p.slug] ?? p.slug} tập ${p.episode} → ${KIND_T[p.kind]} · ${p.destName}${p.url ? `\n   ${p.url}` : ''}`)] : [])].join('\n'));
+  }
+  const ic = { queued: '🔜', scheduled: '⏰', posting: '⏳', missed: '⚠️' };
+  return reply(chatId, ['Lịch đăng:', ...up.map((p, i) => `${i + 1}. ${ic[p.status]} ${p.status === 'scheduled' || p.status === 'missed' ? fmtT(p.at) : p.status === 'posting' ? 'đang đăng' : 'chờ lượt'} · ${names[p.slug] ?? p.slug} tập ${p.episode} → ${KIND_T[p.kind]} · ${p.destName}`)].join('\n'),
+    up.filter((p) => p.status !== 'posting').slice(0, 20).map((p) => [btn(`✖️ Huỷ ${up.indexOf(p) + 1}`, `pdx:${p.id}`), ...(p.status === 'missed' || p.status === 'scheduled' ? [btn(`🚀 Đăng ngay ${up.indexOf(p) + 1}`, `pdn:${p.id}`)] : [])]));
+}
+// máy chủ báo kết quả đăng bài (social.mjs)
+export function socialEvent(ev, title) {
+  const c = read(), p = ev.post;
+  if (!c.token || !c.chatId || !p) return;
+  const on = { ...NOTIFY_DEFAULT, ...c.notify };
+  const where = `${KIND_T[p.kind]} · ${p.destName}`;
+  if (ev.type === 'done' && on.done) send([`✅ Đã đăng ${title} lên ${where}`, p.url ?? '', p.note ? `ℹ️ ${p.note}` : ''].filter(Boolean).join('\n'));
+  else if (ev.type === 'error' && on.error) send(`⚠️ Đăng ${title} lên ${where} lỗi: ${p.error}`, [[btn('🔁 Đăng lại', `pdn:${p.id}`), btn('✖️ Bỏ', `pdx:${p.id}`)]]);
+  else if (ev.type === 'missed' && on.error) send(`⚠️ Lỡ giờ hẹn đăng ${title} lên ${where} (${fmtT(p.at)}) vì máy tắt / ngủ.`, [[btn('🚀 Đăng ngay', `pdn:${p.id}`), btn('✖️ Bỏ', `pdx:${p.id}`)]]);
 }
 
 async function planView(chatId, slug) {
@@ -313,12 +468,12 @@ async function episodeView(chatId, slug, n, { board = true } = {}) {
     if (e.cta) t.push(`Kết: ${e.cta}`);
   }
   if (e.issues?.length) t.push('', `⚠️ Bố cục còn ${e.issues.length} chỗ chồng lấn: ${e.issues.slice(0, 3).join(' · ')}`);
-  if (e.stale) t.push('', '🟡 Kịch bản đã sửa sau lần dựng gần nhất — dựng lại để cập nhật phim.');
+  if (e.stale) t.push('', `🟡 ${[e.staleScript ? 'Kịch bản đã sửa' : '', e.drift?.length ? `đề bài đã đổi ${e.drift.join(', ')}` : ''].filter(Boolean).join('; ')} sau lần dựng gần nhất — bấm Dựng lại, bản mới đè lên bản cũ.`);
   const b = [];
   if (st === 'de-xuat') b.push([btn('✅ Duyệt tập này', `dy:${k}:${n}`)]);
   if (st === 'duyet') b.push([btn('✍️ Viết kịch bản + storyboard', `vk:${k}:${n}`)], [btn('💬 Viết, kèm lưu ý', `vkn:${k}:${n}`)]);
   if (st === 'kich-ban') b.push([btn('✅ Duyệt và dựng phim', `dp:${k}:${n}`)], [btn('💬 Góp ý để sửa', `gy:${k}:${n}`), btn('📄 Kịch bản', `kb:${k}:${n}`)]);
-  if (st === 'phim') b.push([btn('🎬 Xem phim', `xem:${k}:${n}`), btn('📝 Bài đăng', `bd:${k}:${n}`)], [btn('🖼 Storyboard', `sb:${k}:${n}`)], [btn('💬 Góp ý để sửa', `gy:${k}:${n}`), btn('🔊 Chỉ sửa giọng', `sg:${k}:${n}`)], [btn('🔁 Dựng lại', `dp:${k}:${n}`), btn('📄 Kịch bản', `kb:${k}:${n}`)]);
+  if (st === 'phim') b.push([btn('🎬 Xem phim', `xem:${k}:${n}`), btn('📝 Bài đăng', `bd:${k}:${n}`)], [btn('📣 Đăng lên mạng xã hội', `dmx:${k}:${n}`)], [btn('🖼 Storyboard', `sb:${k}:${n}`)], [btn('💬 Góp ý để sửa', `gy:${k}:${n}`), btn('🔊 Chỉ sửa giọng', `sg:${k}:${n}`)], [btn('🔁 Dựng lại', `dp:${k}:${n}`), btn('📄 Kịch bản', `kb:${k}:${n}`)]);
   if (board && st === 'kich-ban' && e.board?.length) await sendBoard(chatId, slug, e);
   return reply(chatId, t.join('\n'), b);
 }
@@ -395,6 +550,13 @@ async function onText(chatId, text) {
   if (w.kind === 'note') { waiting.delete(chatId); return startAi(chatId, w.slug, 'script', w.n, t); }
   if (w.kind === 'planfb') { waiting.delete(chatId); return startAi(chatId, w.slug, 'plan', null, t); }
   if (w.kind === 'new') return newSeriesStep(chatId, w, t);
+  if (w.kind === 'sharecap') { waiting.delete(chatId); const d = drafts.get(chatId); if (!d) return reply(chatId, 'Phiên đăng bài đã hết — /dang <số tập> để làm lại.'); d.caption = t.slice(0, 5000); d.ver = 'own'; return shareView(chatId, d.slug, d.n); }
+  if (w.kind === 'sharetime') {
+    const at = parseWhen(t);
+    if (!at || at < Date.now() + 60000) return reply(chatId, 'Không hiểu giờ hoặc giờ đã qua. Nhắn ví dụ: 19:30 hoặc 19:30 28/11. /huybo để thôi.');
+    waiting.delete(chatId);
+    return shareConfirm(chatId, at);
+  }
 }
 
 // ───────── tạo series mới — hai cách:
@@ -520,6 +682,10 @@ async function command(chatId, text) {
       if (!n) return reply(chatId, 'Ghi số tập, ví dụ: /xem 11');
       return sendVideo(chatId, s.slug, n);
     }
+    case 'duyetkb': {
+      const s = await activeSeries(chatId);
+      return s ? reviewView(chatId, s.slug) : undefined;
+    }
     case 'baidang': {
       const s = await activeSeries(chatId);
       const n = nums(args)[0];
@@ -527,6 +693,14 @@ async function command(chatId, text) {
       if (!n) return reply(chatId, 'Ghi số tập, ví dụ: /baidang 11 — AI viết bài ngắn (dưới 100 từ) và bài dài (dưới 300 từ) theo kịch bản tập đó.');
       return postView(chatId, s.slug, n);
     }
+    case 'dang': {
+      const s = await activeSeries(chatId);
+      const n = nums(args)[0];
+      if (!s) return;
+      if (!n) return reply(chatId, 'Ghi số tập, ví dụ: /dang 11 — chọn kênh, duyệt nội dung rồi đăng ngay hoặc hẹn giờ.');
+      return shareView(chatId, s.slug, n, { fresh: true });
+    }
+    case 'lichdang': return scheduleList(chatId);
     case 'seriesmoi': {
       if (!(await seriesList()).length) return startNew(chatId);
       ask(chatId, { kind: 'new', step: 'type', data: {} });
@@ -550,7 +724,15 @@ async function command(chatId, text) {
 async function callback(q) {
   const chatId = q.message?.chat?.id;
   await call('answerCallbackQuery', { callback_query_id: q.id }).catch(() => {});
-  const [act, a, b] = String(q.data ?? '').split(':');
+  const [act, a, b, c4] = String(q.data ?? '').split(':');
+  // nút theo mã bài đăng (lịch đăng): đăng ngay / huỷ
+  if (act === 'pdn' || act === 'pdx') {
+    try {
+      if (act === 'pdn') { const r = await local('PUT', `/api/social/posts/${a}`, { at: null }); return reply(chatId, `🚀 Đang đăng lên ${KIND_T[r.post.kind]} · ${r.post.destName} — xong sẽ báo.`); }
+      await local('DELETE', `/api/social/posts/${a}`);
+      return reply(chatId, 'Đã huỷ / bỏ bài này.');
+    } catch (e) { return reply(chatId, e.message); }
+  }
   // bước tạo series không mang mã series
   if (['nm', 'nb', 'nc', 'ne', 'nd', 'nok', 'nno'].includes(act)) {
     const w = waitingFor(chatId);
@@ -582,7 +764,29 @@ async function callback(q) {
     case 'kb': return sendScript(chatId, slug, n);
     case 'xem': return sendVideo(chatId, slug, n);
     case 'bd': return postView(chatId, slug, n);
+    case 'dkl': return reviewView(chatId, slug);
+    case 'xkb': return reviewEpisode(chatId, slug, n);
+    case 'dk': return approveScripts(chatId, slug, [n]);
+    case 'dka': { const s2 = await seriesFull(slug); const nums = needFilm(s2).filter((e) => !e.scriptOk).map((e) => e.number); return nums.length ? approveScripts(chatId, slug, nums) : reviewView(chatId, slug); }
+    case 'sxa': return produce(chatId, slug, false);
+    case 'sxo': return produce(chatId, slug, true);
+    case 'vka': return writeAll(chatId, slug);
+    case 'ep0': return reply(chatId, 'Được rồi. Khi nào muốn sản xuất, gõ /duyetkb.');
     case 'bdv': return postView(chatId, slug, n, true);
+    case 'dmx': return shareView(chatId, slug, n, { fresh: true });
+    case 'dmb': return shareView(chatId, slug, n);
+    case 'dmt': case 'dmc': case 'dmp': {
+      const d = drafts.get(chatId);
+      if (!d || d.slug !== slug || d.n !== n) return shareView(chatId, slug, n, { fresh: true });
+      if (act === 'dmt') { const { dests: D } = await local('GET', '/api/social'); const x = D[+c4]; if (x) d.sel = d.sel.includes(x.id) ? d.sel.filter((y) => y !== x.id) : [...d.sel, x.id]; }
+      if (act === 'dmc') { const p = (await seriesFull(slug)).episodes.find((x) => x.number === n)?.post; const v = c4 === 'l' ? 'long' : 'short'; if (p?.[v]) { d.caption = p[v]; d.ver = v; } }
+      if (act === 'dmp') d.tt = TT_P[+c4]?.[0] ?? d.tt;
+      return shareView(chatId, slug, n, { msgId: q.message?.message_id });
+    }
+    case 'dme': { if (!drafts.get(chatId)) return shareView(chatId, slug, n, { fresh: true }); ask(chatId, { kind: 'sharecap' }); return reply(chatId, 'Nhắn nội dung đăng mới (thay toàn bộ nội dung hiện tại). /huybo để thôi.'); }
+    case 'dmh': ask(chatId, { kind: 'sharetime' }); return reply(chatId, 'Đăng lúc mấy giờ? Nhắn ví dụ: 19:30 (hôm nay, qua giờ thì mai) hoặc 19:30 28/11. /huybo để thôi.');
+    case 'dmn': return shareConfirm(chatId, null);
+    case 'dmy': return shareGo(chatId);
     case 'nv': return charactersView(chatId, slug);
     case 'vnv': { const r = await local('POST', `/api/series/${slug}/jobs`, { action: 'characters' }); return reply(chatId, `▶ ${r.job.label} — xong sẽ báo.`); }
     case 'dp': return startEpisodes(chatId, slug, [n], 'render');
