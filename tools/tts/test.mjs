@@ -26,7 +26,17 @@ const extra = [
   ['bắt tải file APK hoặc IPA', 'bắt tải file ây pi cây hoặc ai pi ây'],
   // người dùng 2026-11-25: "kây" sai chính tả → VieNeu đọc lệch; K đọc "cây"
   ['Không cài app từ file APK.', 'Không cài app từ file ây pi cây.'],
+  ['Ngắt mạng, báo IT ngay.', 'Ngắt mạng, báo ai ti ngay.'],
   ['Xác thực eKYC trên app', 'Xác thực i cây oai xi trên app'],
+  // 2026-11-27: tên kho ứng dụng / tài khoản Apple (VieNeu đọc tiếng Anh kém)
+  ['Chỉ tải trên App Store, Google Play.', 'Chỉ tải trên áp sờ to, Gu gồ pờ lây.', 'vieneu'],
+  ['Nhập Apple ID trên Android', 'Nhập áp pồ ai đi trên an đờ roi', 'vieneu'],
+  ['Nạp tiền vào nhóm VIP', 'Nạp tiền vào nhóm vi ai pi'],
+  ['Tổng đài in trên SIM.', 'Tổng đài in trên xim.'],
+  // 2026-11-27 (tập 22): tên app chỉnh ảnh, gói Locket Gold, bản mod
+  ['Locket Gold tặng kèm Meitu, Remini, Xingtu', 'lóc kịt gâu tặng kèm mây tu, rê mi ni, xinh tu', 'vieneu'],
+  ['Đăng nhập iCloud để có Locket', 'Đăng nhập ai clao để có lóc kịt', 'vieneu'],
+  ['Cài file Remini bản mod', 'Cài file rê mi ni bản mót', 'vieneu'],
   // tỉ lệ khung hình không đọc thành giờ (video hướng dẫn 2026-11-23)
   ['Khung hình 9:16 hoặc 16:9', 'Khung hình chín trên mười sáu hoặc mười sáu trên chín'],
   ['tỉ lệ 1:1 cho Facebook', 'tỉ lệ một trên một cho Facebook'],

@@ -577,6 +577,11 @@
   "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
  },
  {
+  "src": "IT",
+  "say": "ai ti",
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 19): \"bộ phận IT\" — đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
   "src": "URL",
   "say": "diu a eo",
   "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
@@ -605,5 +610,103 @@
   "src": "eKYC",
   "say": "i cây oai xi",
   "note": "người dùng 2026-11-22: viết tắt công nghệ đánh vần kiểu tiếng Anh theo âm tiếng Việt (bảng EN_LETTER)"
+ },
+ {
+  "src": "Apple ID",
+  "say": "áp pồ ai đi",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 2): tên thương hiệu đọc theo âm tiếng Việt cho VieNeu"
+ },
+ {
+  "src": "App Store",
+  "say": "áp sờ to",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 2): tên thương hiệu đọc theo âm tiếng Việt cho VieNeu"
+ },
+ {
+  "src": "Google Play",
+  "say": "Gu gồ pờ lây",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 2): tên thương hiệu đọc theo âm tiếng Việt cho VieNeu"
+ },
+ {
+  "src": "Android",
+  "say": "an đờ roi",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 2): tên thương hiệu đọc theo âm tiếng Việt cho VieNeu"
+ },
+ {
+  "src": "VIP",
+  "say": "vi ai pi",
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 10): viết tắt tiếng Anh đánh vần theo tên chữ cái (bảng EN_LETTER)"
+ },
+ {
+  "src": "SIM",
+  "say": "xim",
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 11): thẻ SIM đọc như một từ, không đánh vần"
+ },
+ {
+  "src": "iCloud",
+  "say": "ai clao",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 21, 22): tên dịch vụ Apple đọc theo âm tiếng Việt cho VieNeu"
+ },
+ {
+  "src": "Locket Gold",
+  "say": "lóc kịt gâu",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 22): gói trả phí của app Locket"
+ },
+ {
+  "src": "Locket",
+  "say": "lóc kịt",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 22): tên app đọc theo âm tiếng Việt cho VieNeu"
+ },
+ {
+  "src": "Meitu",
+  "say": "mây tu",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 22): tên app chỉnh ảnh"
+ },
+ {
+  "src": "Remini",
+  "say": "rê mi ni",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 22): tên app chỉnh ảnh"
+ },
+ {
+  "src": "Xingtu",
+  "say": "xinh tu",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 22): tên app chỉnh ảnh (醒图), đọc như người dùng Việt hay gọi"
+ },
+ {
+  "src": "mod",
+  "say": "mót",
+  "engines": [
+   "vieneu"
+  ],
+  "note": "2026-11-27 (lua-dao-o-quanh-ta tập 22): \"bản mod\" (app bị sửa mã) — đọc như tiếng lóng quen dùng"
  }
 ]
