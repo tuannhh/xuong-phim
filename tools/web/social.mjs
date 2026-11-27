@@ -229,12 +229,22 @@ const ttTok = (t) => Object.fromEntries(Object.entries({ access: t.access_token,
 async function connectTiktok(code, redirect, verifier) {
   const token = ttTok(await ttToken({ code, grant_type: 'authorization_code', redirect_uri: redirect, code_verifier: verifier }));
   if (token.scope && !String(token.scope).split(',').includes('video.publish') && !String(token.scope).split(',').includes('video.upload')) throw err('Chưa cấp quyền đăng video — kết nối lại và cho phép.');
-  let name = token.openId;
-  try {
-    const u = await ttApi('GET', '/user/info/?fields=open_id,display_name,username', null, token.access);
-    name = u.data?.user?.username ? `@${u.data.user.username}` : u.data?.user?.display_name ?? name;
-  } catch { /* chỉ để hiển thị tên */ }
+  const name = (await ttName(token.access)) ?? token.openId;
   setAccount({ key: `tt:${token.openId}`, platform: 'tiktok', name, connected: new Date().toISOString(), token, dests: [{ id: `tt:${token.openId}`, kind: 'tt', name, ref: token.openId }] });
+}
+// Tên hiển thị của tài khoản TikTok. `username` của /user/info cần quyền user.info.profile (xưởng không xin) → hỏi thì cả
+// yêu cầu bị từ chối, tên rơi về open_id (chuỗi mã khó đọc — người dùng báo 27/11/2026). Lấy từ creator_info (quyền video.publish),
+// rồi tới display_name (user.info.basic).
+async function ttName(access) {
+  try {
+    const d = (await ttApi('POST', '/post/publish/creator_info/query/', {}, access)).data ?? {};
+    if (d.creator_username) return `@${d.creator_username}`;
+    if (d.creator_nickname) return d.creator_nickname;
+  } catch { /* thiếu video.publish (chỉ gửi hộp thư) → thử cách sau */ }
+  try {
+    const u = (await ttApi('GET', '/user/info/?fields=open_id,display_name', null, access)).data?.user ?? {};
+    return u.display_name || null;
+  } catch { return null; }
 }
 async function ttAccess(acc) {
   if (acc.token.access && acc.token.expiry > Date.now() + 60000) return acc.token.access;
@@ -270,6 +280,9 @@ export async function tiktokCreator(destId) {
   if (acc?.platform !== 'tiktok') throw err('Không phải kênh TikTok.');
   const j = await ttApi('POST', '/post/publish/creator_info/query/', {}, await ttAccess(acc));
   const d = j.data ?? {};
+  // tài khoản nối trước bản sửa tên (tên còn là open_id) → cập nhật tên khi mở hộp đăng
+  const nm = d.creator_username ? `@${d.creator_username}` : d.creator_nickname;
+  if (nm && acc.name === acc.token.openId) { acc.name = nm; for (const x of acc.dests ?? []) x.name = nm; setAccount(acc); }
   return { nickname: d.creator_nickname, username: d.creator_username, avatar: d.creator_avatar_url, privacy: d.privacy_level_options ?? [], commentDisabled: !!d.comment_disabled, duetDisabled: !!d.duet_disabled, stitchDisabled: !!d.stitch_disabled, maxSeconds: d.max_video_post_duration_sec ?? null };
 }
 
@@ -285,6 +298,11 @@ function markBroken(key, msg) {
 export async function refreshAccount(key) {
   const c = load(), a = c.accounts.find((x) => x.key === key);
   if (!a) throw err('Không có tài khoản này.');
+  if (a.platform === 'tiktok') {
+    const nm = await ttName(await ttAccess(a));
+    if (nm) { a.name = nm; for (const x of a.dests ?? []) x.name = nm; setAccount(a); }
+    return;
+  }
   if (a.platform !== 'meta') return;
   a.dests = await metaDests(a.token);
   delete a.broken;
