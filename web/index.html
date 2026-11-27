@@ -525,31 +525,63 @@ const scheduleView = async () => {
   if (up.some((p) => ['queued', 'posting'].includes(p.status))) setTimeout(() => VIEW === 'lich' && location.hash.startsWith('#/lich-dang') && scheduleView(), 5000);
 };
 
-// lên lịch nhiều tập một lượt (trang series): mỗi tập một bài, cách nhau đều; caption = bài đăng AI đã viết của tập
+// Lịch đăng ngẫu nhiên: `perDay` video mỗi ngày (1–5), giờ bốc ngẫu nhiên trong khung [from, to] (phút trong ngày), hai bài trong
+// ngày cách nhau ít nhất `gap` phút nhưng khoảng cách không đều; mỗi ngày một bộ giờ khác (trông như người đăng tay, không như máy).
+// Ngày đầu là hôm nay thì chỉ dùng phần khung còn lại (từ bây giờ + 15 phút); còn ít quá thì sang ngày sau.
+const randomSlots = ({ count, perDay, day0, from, to }) => {
+  const out = [], now = Date.now();
+  for (let d = 0; out.length < count && d < 400; d++) {
+    const base = new Date(day0); base.setDate(base.getDate() + d); base.setHours(0, 0, 0, 0);
+    const lo = Math.max(from, Math.ceil((now + 15 * 60000 - base.getTime()) / 60000)); // hôm nay: từ bây giờ + 15 phút
+    const n = Math.min(perDay, count - out.length), L = to - lo;
+    if (L < 30) continue;
+    const gap = Math.min(60, Math.floor(L / (n * 2))); // khoảng cách tối thiểu giữa hai bài trong ngày
+    const span = L - (n - 1) * gap;
+    const pts = Array.from({ length: n }, () => Math.floor(Math.random() * (span + 1))).sort((a, b) => a - b);
+    pts.forEach((p, i) => out.push(base.getTime() + (lo + p + i * gap) * 60000));
+  }
+  return out;
+};
+const hm = (s) => { const [a, b] = String(s || '0:0').split(':').map(Number); return a * 60 + (b || 0); };
+
+// lên lịch nhiều tập một lượt (trang series): 1–5 tập mỗi ngày, giờ ngẫu nhiên trong khung giờ; caption = bài đăng AI đã viết của tập
 const bulkCard = (slug, eps) => {
   const D = SOCIAL?.dests ?? [];
   const films = eps.filter((e) => e.mp4);
   if (!D.length || films.length < 2) return null;
   const sel = new Set(), pick = new Set(films.filter((e) => !(e.social ?? []).some((p) => ['queued', 'scheduled', 'posting', 'done'].includes(p.status))).map((e) => e.number));
-  const start = h('input', { type: 'datetime-local', value: inputTime(new Date(new Date().setHours(19, 0, 0, 0) + (new Date().getHours() >= 18 ? 86400000 : 0)).getTime()) });
-  const gap = h('select', {}, [['86400000', 'mỗi ngày một tập'], ['172800000', '2 ngày một tập'], ['43200000', '12 tiếng một tập'], ['604800000', 'mỗi tuần một tập']].map(([v, t]) => h('option', { value: v }, t)));
+  const start = h('input', { type: 'date', value: inputTime(Date.now() + (new Date().getHours() >= 20 ? 86400000 : 0)).slice(0, 10) });
+  const perDay = h('select', {}, [1, 2, 3, 4, 5].map((n) => h('option', { value: n }, `${n} video / ngày`)));
+  const from = h('input', { type: 'time', value: '07:00', step: 300 }), to = h('input', { type: 'time', value: '22:00', step: 300 });
+  let slots = [];
   const ver = h('select', {}, h('option', { value: 'short' }, 'Bản ngắn'), h('option', { value: 'long' }, 'Bản dài'));
   const ytPriv = h('select', {}, Object.entries(YT_PRIV).map(([k, v]) => h('option', { value: k }, v)));
   const ttPriv = h('select', {}, h('option', { value: '' }, '— chọn —'), Object.entries(TT_PRIV).map(([k, v]) => h('option', { value: k }, v)), h('option', { value: 'inbox' }, 'Gửi vào hộp thư TikTok (tự bấm đăng)'));
   const ok = h('input', { type: 'checkbox' });
   const preview = h('div', { class: 'grid small', style: { gap: '4px' } });
   const box = h('div', { class: 'grid', style: { gap: '10px' } });
-  const plan = () => { const t0 = new Date(start.value).getTime(); return films.filter((e) => pick.has(e.number)).map((e, i) => ({ e, at: t0 + i * +gap.value })); };
-  const drawPrev = () => preview.replaceChildren(...plan().map(({ e, at }) => h('div', {}, `${fmtTime(at)} — Tập ${e.number}${e.title ? `: ${e.title}` : ''}`, e.post?.[ver.value] ? '' : h('span', { style: { color: 'var(--red)' } }, ' (chưa có bài đăng — bỏ qua)'))));
-  start.oninput = gap.onchange = ver.onchange = drawPrev;
+  // giờ đăng bốc lại mỗi khi đổi ngày / nhịp / khung giờ / tập (hoặc bấm 🎲); xem trước đúng giờ sẽ hẹn
+  const reroll = () => {
+    const count = films.filter((e) => pick.has(e.number) && e.post?.[ver.value]).length;
+    slots = start.value && hm(to.value) - hm(from.value) >= 60 ? randomSlots({ count, perDay: +perDay.value, day0: new Date(`${start.value}T00:00`), from: hm(from.value), to: hm(to.value) }) : [];
+  };
+  const plan = () => { let i = 0; return films.filter((e) => pick.has(e.number)).map((e) => ({ e, at: e.post?.[ver.value] ? slots[i++] : null })); };
+  const day = (ms) => new Date(ms).toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
+  const drawPrev = () => {
+    if (hm(to.value) - hm(from.value) < 60) return preview.replaceChildren(h('div', { style: { color: 'var(--red)' } }, 'Khung giờ đăng phải dài ít nhất 1 tiếng.'));
+    preview.replaceChildren(...plan().map(({ e, at }) => h('div', {}, at ? `${day(at)} ${new Date(at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} — ` : '', `Tập ${e.number}${e.title ? `: ${e.title}` : ''}`, at ? '' : h('span', { style: { color: 'var(--red)' } }, ' (chưa có bài đăng — bỏ qua)'))));
+  };
+  const redo = () => { reroll(); drawPrev(); };
+  start.onchange = perDay.onchange = from.onchange = to.onchange = ver.onchange = redo;
   const go = async (btn) => {
     const chosen = D.filter((d) => sel.has(d.id));
     if (!chosen.length) return toast('Chọn ít nhất một kênh.', true);
     if (chosen.some((d) => d.kind === 'tt') && !ttPriv.value) return toast('TikTok: chọn ai được xem video.', true);
     if (!ok.checked) return toast('Tích ô xác nhận trước.', true);
-    const rows = plan().filter(({ e }) => e.post?.[ver.value]);
+    if (hm(to.value) - hm(from.value) < 60) return toast('Khung giờ đăng phải dài ít nhất 1 tiếng.', true);
+    const rows = plan().filter(({ at }) => at);
     if (!rows.length) return toast('Các tập đã chọn chưa có bài đăng — mở từng tập cho AI viết bài trước.', true);
-    if (rows[0].at < Date.now() + 60000) return toast('Giờ bắt đầu phải ở tương lai.', true);
+    if (rows[0].at < Date.now() + 60000) { redo(); return toast('Giờ đầu tiên đã qua — đã xếp lại giờ, xem rồi bấm lại.', true); }
     btn.disabled = true;
     let n = 0;
     for (const { e, at } of rows) {
@@ -562,13 +594,15 @@ const bulkCard = (slug, eps) => {
     const b = h('button', { type: 'button', class: 'btn pri' }, 'Hẹn đăng');
     b.onclick = () => go(b);
     const kinds = new Set(D.filter((d) => sel.has(d.id)).map((d) => d.kind));
-    box.replaceChildren(
-      h('div', { class: 'mut small' }, 'Mỗi tập một bài, cách nhau đều. Nội dung lấy từ bài đăng AI đã viết của từng tập; trước giờ đăng vẫn sửa / huỷ được ở trang Lịch đăng hoặc ở từng tập.'),
+    box.replaceChildren(...[ // lọc null: replaceChildren(null) in ra chữ "null"
+      h('div', { class: 'mut small' }, 'Mỗi ngày đăng 1–5 tập, giờ đăng chọn ngẫu nhiên trong khung giờ (mỗi ngày một kiểu, hai bài cách nhau không đều). Nội dung lấy từ bài đăng AI đã viết của từng tập; trước giờ đăng vẫn sửa / huỷ được ở trang Lịch đăng hoặc ở từng tập.'),
       h('b', { class: 'small' }, 'Kênh'), h('div', { class: 'row', style: { gap: '6px 16px' } }, D.map((d) => h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: sel.has(d.id), onchange: (ev) => { ev.target.checked ? sel.add(d.id) : sel.delete(d.id); draw(); } }), kindTag(d.kind), d.name))),
-      h('b', { class: 'small' }, 'Tập'), h('div', { class: 'row', style: { gap: '6px 14px' } }, films.map((e) => h('label', { class: 'ck small' }, h('input', { type: 'checkbox', checked: pick.has(e.number), onchange: (ev) => { ev.target.checked ? pick.add(e.number) : pick.delete(e.number); drawPrev(); } }), `${e.number}`))),
-      h('div', { class: 'row', style: { alignItems: 'end' } }, lab2('Bắt đầu', '', start), lab2('Nhịp', '', gap), lab2('Nội dung', '', ver)),
+      h('b', { class: 'small' }, 'Tập'), h('div', { class: 'row', style: { gap: '6px 14px' } }, films.map((e) => h('label', { class: 'ck small' }, h('input', { type: 'checkbox', checked: pick.has(e.number), onchange: (ev) => { ev.target.checked ? pick.add(e.number) : pick.delete(e.number); redo(); } }), `${e.number}`))),
+      h('div', { class: 'row', style: { alignItems: 'end' } }, lab2('Bắt đầu từ ngày', '', start), lab2('Nhịp', '', perDay), lab2('Đăng từ', '', from), lab2('đến', '', to), lab2('Nội dung', '', ver)),
       kinds.has('yt') || kinds.has('tt') ? h('div', { class: 'row', style: { alignItems: 'end' } }, kinds.has('yt') ? lab2('YouTube', '', ytPriv) : null, kinds.has('tt') ? lab2('TikTok — ai được xem', '', ttPriv) : null) : null,
-      preview, h('label', { class: 'ck' }, ok, 'Tôi đã xem lại các phim và nội dung đăng'), h('div', { class: 'row' }, b));
+      h('div', { class: 'row', style: { alignItems: 'center', gap: '8px' } }, h('b', { class: 'small' }, 'Lịch dự kiến'), h('button', { type: 'button', class: 'btn sm', title: 'Bốc lại giờ ngẫu nhiên', onclick: redo }, '🎲 Xếp lại giờ')),
+      preview, h('label', { class: 'ck' }, ok, 'Tôi đã xem lại các phim và nội dung đăng'), h('div', { class: 'row' }, b)].filter(Boolean));
+    if (!slots.length) reroll();
     drawPrev();
   };
   draw();
