@@ -282,7 +282,7 @@ export async function tiktokCreator(destId) {
   const d = j.data ?? {};
   // tài khoản nối trước bản sửa tên (tên còn là open_id) → cập nhật tên khi mở hộp đăng
   const nm = d.creator_username ? `@${d.creator_username}` : d.creator_nickname;
-  if (nm && acc.name === acc.token.openId) { acc.name = nm; for (const x of acc.dests ?? []) x.name = nm; setAccount(acc); }
+  if (nm && acc.name === acc.token.openId) { acc.name = nm; for (const x of acc.dests ?? []) x.name = nm; setAccount(acc); renamePosts(acc.dests, nm); }
   return { nickname: d.creator_nickname, username: d.creator_username, avatar: d.creator_avatar_url, privacy: d.privacy_level_options ?? [], commentDisabled: !!d.comment_disabled, duetDisabled: !!d.duet_disabled, stitchDisabled: !!d.stitch_disabled, maxSeconds: d.max_video_post_duration_sec ?? null };
 }
 
@@ -300,7 +300,7 @@ export async function refreshAccount(key) {
   if (!a) throw err('Không có tài khoản này.');
   if (a.platform === 'tiktok') {
     const nm = await ttName(await ttAccess(a));
-    if (nm) { a.name = nm; for (const x of a.dests ?? []) x.name = nm; setAccount(a); }
+    if (nm) { a.name = nm; for (const x of a.dests ?? []) x.name = nm; setAccount(a); renamePosts(a.dests, nm); }
     return;
   }
   if (a.platform !== 'meta') return;
@@ -417,6 +417,13 @@ async function postTiktok(acc, d, file, p, log) {
 // trạng thái: queued (chờ lượt — đăng ngay) · scheduled (hẹn giờ) · posting · done · error · canceled · missed (máy tắt quá giờ hẹn)
 const MISS_AFTER = 6 * 3600 * 1000; // quá giờ hẹn hơn 6 tiếng (máy tắt / ngủ) → không tự đăng nữa, chờ người dùng bấm
 const loadPosts = () => readFile(POSTS, { posts: [] });
+// bài đã tạo giữ tên kênh lúc tạo (destName) → kênh đổi tên (vd TikTok từ open_id sang @tên) thì sửa theo
+function renamePosts(dests, name) {
+  const ids = new Set((dests ?? []).map((d) => d.id)), s = loadPosts();
+  let ch = false;
+  for (const p of s.posts) if (ids.has(p.dest) && p.destName !== name) { p.destName = name; ch = true; }
+  if (ch) savePosts(s);
+}
 const savePosts = (s) => { s.posts = s.posts.slice(-2000); writeFile(POSTS, s); };
 const ctx = { seriesDir: null, notify: () => {}, timer: null, running: false, log: new Map() };
 export function init({ seriesDir, notify }) {
@@ -424,6 +431,9 @@ export function init({ seriesDir, notify }) {
   const s = loadPosts();
   let ch = false;
   for (const p of s.posts) if (p.status === 'posting') { Object.assign(p, { status: 'error', error: 'Máy chủ tắt giữa lúc đăng — mở ứng dụng kiểm tra xem bài đã lên chưa rồi hãy bấm Đăng lại.', ended: Date.now() }); ch = true; }
+  // tên kênh trên bài theo tên kênh hiện tại (bài tạo trước khi kênh đổi tên)
+  const names = new Map(load().accounts.flatMap((a) => (a.dests ?? []).map((d) => [d.id, d.name])));
+  for (const p of s.posts) if (names.get(p.dest) && p.destName !== names.get(p.dest)) { p.destName = names.get(p.dest); ch = true; }
   if (ch) savePosts(s);
   clearInterval(ctx.timer);
   ctx.timer = setInterval(tick, MOCK ? 1000 : 20000);
