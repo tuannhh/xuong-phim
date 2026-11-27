@@ -86,6 +86,7 @@ export type TimedEpisode = {
   series: { name: string; channel?: string; slug: string };
   episode: { id: string; number: number; total?: number; title: string };
   theme: Theme;
+  brand?: 'misa' | 'none'; // đề bài: 'none' = không gắn thương hiệu (timing.mjs đã bỏ logo MISA khỏi cảnh + nhân vật)
   characters: CharacterSpec[];
   scenes: TimedScene[];
   captions: Caption[];

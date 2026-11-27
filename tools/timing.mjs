@@ -3,7 +3,7 @@
 // Chưa có voice thì ước lượng thời lượng (dùng cho storyboard). Gọi: node tools/timing.mjs <thư-mục-tập>
 import fs from 'node:fs';
 import path from 'node:path';
-import { FORMATS, castOf, dirs, episodeLines, estimateDur, loadEpisode, readJSON, resolveTheme, voiceSig, writeJSON } from './lib.mjs';
+import { FORMATS, brandOf, castFor, unbrandProps, dirs, episodeLines, estimateDur, loadEpisode, readJSON, resolveTheme, voiceSig, writeJSON } from './lib.mjs';
 import { revealFrames, revealItems, storyTimes, STORY_SFX } from '../shared/reveal.mjs';
 import { watermarkProps } from '../shared/watermark.mjs';
 import { pickTrack } from './music-source.mjs';
@@ -15,7 +15,8 @@ const TRANS_DEFAULT = { type: 'slide', frames: 12 };
 // opts.write=false: chỉ tính, không ghi timed.json / audio.json / .srt
 export function buildTiming(epArg, { durOverride = null, write = true } = {}) {
   const D = dirs();
-  const { epDir, bible, episode } = loadEpisode(epArg);
+  const { epDir, seriesDir, bible, episode } = loadEpisode(epArg);
+  const brand = brandOf(seriesDir); // 'none' = đề bài chọn không gắn thương hiệu → bỏ logo MISA kịch bản đặt
   const fps = episode.fps ?? bible.fps ?? 30;
   const [width, height] = FORMATS[episode.format ?? bible.format ?? '9:16'];
   const lines = episodeLines(bible, episode);
@@ -64,7 +65,7 @@ export function buildTiming(epArg, { durOverride = null, write = true } = {}) {
     const ch = s.character ? { ...s.character } : null;
     if (ch && prevChar && prevChar.id === ch.id && (prevChar.position ?? 'left') === (ch.position ?? 'left') && s.type !== 'character') ch.enter = false;
     prevChar = ch;
-    const scene = { id: s.id, type: s.type, props: s.props ?? {}, from, duration, transition: tr, beats, lines: sl, character: ch };
+    const scene = { id: s.id, type: s.type, props: (brand === 'none' ? unbrandProps(s.props) : s.props) ?? {}, from, duration, transition: tr, beats, lines: sl, character: ch };
     scenes.push(scene);
 
     for (const l of sl) voiceLines.push({ id: l.id, file: `${D.voice}/${l.id}.wav`, start: +((from + l.from) / fps).toFixed(3), speaker: l.speaker ?? null });
@@ -151,7 +152,8 @@ export function buildTiming(epArg, { durOverride = null, write = true } = {}) {
     series: { name: bible.name, channel: bible.channel, slug: bible.slug },
     episode: { id: episode.id, number: episode.number, total: bible.episodes ?? undefined, title: episode.title },
     theme: resolveTheme(bible),
-    characters: castOf(bible, episode), // nhân vật theo đề bài mới nhất (lib.mjs)
+    brand,
+    characters: castFor(bible, episode, brand), // nhân vật theo đề bài mới nhất (lib.mjs)
     scenes, captions,
     audio: 'mix.wav',
     chrome: { ...(bible.chrome ?? {}), ...(episode.chrome ?? {}) },

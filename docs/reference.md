@@ -162,7 +162,7 @@ Mục hiện dần theo lời: số câu = số mục + 1 → câu đầu là ti
 | `story` | set, time?, shot?, focus?, label?, actors[], desk[], pops[] hoặc screen — cảnh kể chuyện có bối cảnh (xem trên) | theo nhãn/mục |
 | `talk` | cast[], shot?, room?, title?, bubble? — hội thoại nhiều nhân vật (xem trên) | — |
 | `character` | như `talk` với một nhân vật lấy từ `character` | — |
-| `outro` | cta?, handle? (`false` = bỏ nút theo dõi), logo? ("misa") — không có dòng "tập sau" (tập đứng độc lập) | chime |
+| `outro` | cta?, handle? (`false` = bỏ nút theo dõi), logo? ("misa"; bị bỏ khi `brief.logo = "none"`) — không có dòng "tập sau" (tập đứng độc lập) | chime |
 | `custom` | component: "<series>/<Ten>" (viết ở remotion/custom/, đăng ký ở custom/index.ts). Có sẵn `huong-dan/ScreenTour`: src (ảnh chụp trang), w, h, kicker?, title?, steps[{beat, focus [x,y,w,h], cursor? [x,y], click?, label?}] — khung trình duyệt + máy quay zoom + con trỏ (video hướng dẫn) | click / whoosh-soft theo bước |
 Mọi template nhận thêm `bg: { variant, tint }` để đổi nền riêng cảnh. Icon: tên Lucide (kebab-case, vd `shield-check`) hoặc emoji.
 

@@ -84,6 +84,18 @@ export const castOf = (bible, episode) => {
     return out;
   });
 };
+// Đề bài "Không gắn thương hiệu" (brief.logo = 'none') thắng kịch bản: khi dựng bỏ mọi logo MISA do AI đặt — logo cảnh kết,
+// khung logo trên tường (story/talk), logo ngực áo. Watermark người dùng tự đặt thì giữ (đó là lựa chọn riêng của họ).
+export const brandOf = (seriesDir) => (readJSON(path.join(seriesDir, 'brief.json'), {})?.logo === 'none' ? 'none' : 'misa');
+export const castFor = (bible, episode, brand) => (brand === 'none' ? castOf(bible, episode).map((c) => ({ ...c, logo: false })) : castOf(bible, episode));
+export const unbrandProps = (props) => {
+  if (!props || !('logo' in props)) return props;
+  const { logo, ...rest } = props;
+  return rest;
+};
+// lịch hình đã dựng có logo MISA do kịch bản đặt không (để biết bản cũ có cần dựng lại khi đổi sang không thương hiệu)
+const misaIn = (t) => (t.scenes ?? []).some((s) => s.props?.logo === 'misa' || s.props?.logo === true) || (t.characters ?? []).some((c) => c.kind === 'misa' && c.logo !== false);
+
 // so sánh không phụ thuộc thứ tự khoá
 export const canon = (v) => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((y) => [y, x[y]])) : x));
 
@@ -102,7 +114,10 @@ export const renderDrift = (epDir, bible, episode) => {
   if (!r) return [];
   const out = [];
   if (canon(r.watermark ?? null) !== canon((episode.watermark === null ? undefined : watermarkProps(bible.watermark)) ?? null)) out.push('watermark');
-  if (canon(r.characters ?? []) !== canon(castOf(bible, episode))) out.push('nhân vật');
+  const brand = brandOf(path.dirname(path.dirname(epDir)));
+  // nhân vật so theo thương hiệu lúc dựng (đổi thương hiệu đã báo riêng ở dòng dưới, không báo trùng thành 'nhân vật')
+  if (canon(r.characters ?? []) !== canon(castFor(bible, episode, r.brand ?? 'misa'))) out.push('nhân vật');
+  if ((r.brand ?? 'misa') !== brand && (brand === 'misa' || misaIn(r))) out.push('thương hiệu');
   if (canon(r.theme ?? null) !== canon(resolveTheme(bible))) out.push('màu / giao diện');
   return out;
 };

@@ -312,7 +312,7 @@ export const Kinetic: React.FC<SceneProps> = ({ scene }) => {
   );
 };
 
-// ───────── outro: lời kêu gọi + kênh. props: { cta?, handle?, logo? ('misa') }
+// ───────── outro: lời kêu gọi + kênh. props: { cta?, handle?, logo? ('misa' — bị bỏ khi đề bài chọn không gắn thương hiệu) }
 // Không có dòng "Tập sau": tập nào được duyệt/đăng và đăng theo thứ tự nào là việc của người dùng — báo trước tập sau dễ sai (người dùng 2026-11-22).
 export const Outro: React.FC<SceneProps> = ({ scene }) => {
   const th = useTheme();
@@ -325,7 +325,7 @@ export const Outro: React.FC<SceneProps> = ({ scene }) => {
   return (
     <SceneShell scene={scene}>
       <div style={{ textAlign: 'center' }}>
-        {scene.props.logo === 'misa' && (
+        {scene.props.logo === 'misa' && ep.brand !== 'none' && (
           <div style={{ display: 'inline-block', background: '#fff', borderRadius: 28 * u, padding: `${20 * u}px ${34 * u}px`, marginBottom: 40 * u, transform: `scale(${p})` }}>
             <MisaLogo width={300 * u} />
           </div>
