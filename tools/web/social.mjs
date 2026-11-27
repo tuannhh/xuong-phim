@@ -426,8 +426,8 @@ function renamePosts(dests, name) {
 }
 const savePosts = (s) => { s.posts = s.posts.slice(-2000); writeFile(POSTS, s); };
 const ctx = { seriesDir: null, notify: () => {}, timer: null, running: false, log: new Map() };
-export function init({ seriesDir, notify }) {
-  ctx.seriesDir = seriesDir; ctx.notify = notify ?? (() => {});
+export function init({ seriesDir, notify, remind }) {
+  ctx.seriesDir = seriesDir; ctx.notify = notify ?? (() => {}); ctx.remind = remind ?? null;
   const s = loadPosts();
   let ch = false;
   for (const p of s.posts) if (p.status === 'posting') { Object.assign(p, { status: 'error', error: 'Máy chủ tắt giữa lúc đăng — mở ứng dụng kiểm tra xem bài đã lên chưa rồi hãy bấm Đăng lại.', ended: Date.now() }); ch = true; }
@@ -465,7 +465,8 @@ function cleanReq(kind, r, epTitle) {
   }
   if (kind === 'tt') {
     const t = r.tiktok ?? {};
-    if (t.mode === 'inbox') out.tiktok = { mode: 'inbox' };
+    if (t.mode === 'remind') out.tiktok = { mode: 'remind' }; // nhắc qua Telegram: gửi video + nội dung về điện thoại, người dùng tự đăng
+    else if (t.mode === 'inbox') out.tiktok = { mode: 'inbox' };
     else {
       if (!['PUBLIC_TO_EVERYONE', 'MUTUAL_FOLLOW_FRIENDS', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'].includes(t.privacy)) throw err('TikTok: hãy chọn ai được xem video.');
       out.tiktok = { mode: 'direct', privacy: t.privacy, comment: !!t.comment, duet: !!t.duet, stitch: !!t.stitch, brand: !!t.brand };
@@ -546,6 +547,17 @@ async function runPost(id) {
   try {
     const file = mp4Of(p.slug, p.episode);
     if (!fs.existsSync(file)) throw err('Tập này không còn file phim (MP4).');
+    // TikTok "nhắc qua Telegram": không gọi TikTok (Sandbox / chưa duyệt không đưa được bản nháp vào hộp thư tài khoản công khai —
+    // người dùng báo 27/11/2026) → gửi video + nội dung vào Telegram, người dùng đăng tay trên ứng dụng TikTok
+    if (p.kind === 'tt' && p.tiktok?.mode === 'remind') {
+      if (!ctx.remind) throw err('Chưa bật bot Telegram — vào Thiết lập → Telegram để kết nối rồi bấm Đăng lại.');
+      log('Gửi video + nội dung qua Telegram…');
+      await ctx.remind(p, file, log);
+      const st = fs.statSync(file);
+      const done = setPost(id, { status: 'done', ended: Date.now(), url: null, remoteId: null, note: 'Đã gửi video + nội dung qua Telegram — mở TikTok trên điện thoại để đăng.', video: { mtime: st.mtimeMs, size: st.size } });
+      ctx.notify({ type: 'done', post: done });
+      return;
+    }
     const acc = accountOf(p.dest), d = acc?.dests.find((x) => x.id === p.dest);
     if (!acc || !d) throw err('Kênh không còn kết nối — vào Thiết lập → Mạng xã hội để kết nối lại.');
     if (acc.broken) throw err(acc.broken);

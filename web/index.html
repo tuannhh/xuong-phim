@@ -398,6 +398,7 @@ const postRows = (list, reload, { withEp = false } = {}) => h('div', { class: 'g
   const open = ['queued', 'scheduled', 'error', 'missed', 'canceled'].includes(p.status);
   return h('div', { class: 'prow' },
     h('div', { class: 'row', style: { gap: '8px' } }, kindTag(p.kind), h('b', { class: 'small' }, p.destName),
+      p.tiktok?.mode === 'remind' ? h('span', { class: 'mut small', title: 'Đến giờ gửi video + nội dung qua Telegram, bạn tự đăng trên TikTok' }, '📲 nhắc qua Telegram') : p.tiktok?.mode === 'inbox' ? h('span', { class: 'mut small' }, 'hộp thư TikTok') : null,
       h('span', { class: `pill ${cls}` }, p.status === 'posting' ? h('span', { class: 'dot' }) : null, lab), h('span', { class: 'mut small' }, p.status === 'scheduled' ? fmtTime(p.at) : p.ended ? fmtTime(p.ended) : ''),
       h('span', { class: 'sp' }),
       p.url ? h('a', { class: 'btn sm', href: p.url, target: '_blank', rel: 'noopener' }, 'Xem bài') : null,
@@ -421,7 +422,7 @@ const socialBox = (slug, e) => {
   const capInfo = h('div', { class: 'mut small' });
   const ytTitle = h('input', { type: 'text', maxlength: 100, value: (e.title ?? '').slice(0, 100) });
   const ytPriv = h('select', {}, Object.entries(YT_PRIV).map(([k, v]) => h('option', { value: k }, v)));
-  const ttMode = h('select', {}, h('option', { value: 'direct' }, 'Đăng thẳng lên TikTok'), h('option', { value: 'inbox' }, 'Gửi vào hộp thư TikTok — mở ứng dụng để tự bấm đăng'));
+  const ttMode = h('select', {}, h('option', { value: 'remind' }, 'Nhắc qua Telegram — gửi video + nội dung về điện thoại, tự đăng trên TikTok'), h('option', { value: 'direct' }, 'Đăng thẳng lên TikTok (ứng dụng TikTok đã được duyệt)'), h('option', { value: 'inbox' }, 'Gửi vào hộp thư TikTok — mở ứng dụng để tự bấm đăng'));
   const ttPriv = h('select', {}, h('option', { value: '' }, '— chọn ai được xem —'));
   const ttCk = { comment: h('input', { type: 'checkbox' }), duet: h('input', { type: 'checkbox' }), stitch: h('input', { type: 'checkbox' }), brand: h('input', { type: 'checkbox' }) };
   const whenNow = h('input', { type: 'radio', name: `w-${e.id}`, checked: true }), whenAt = h('input', { type: 'radio', name: `w-${e.id}` });
@@ -481,7 +482,8 @@ const socialBox = (slug, e) => {
             c.error ? h('div', { class: 'note bad small' }, c.error) : null,
             c.maxSeconds && e.seconds > c.maxSeconds ? h('div', { class: 'note bad small' }, `Phim dài ${e.seconds} giây, tài khoản này chỉ đăng được tối đa ${c.maxSeconds} giây.`) : null,
             lab2('Cách đăng', '', ttMode),
-            ttMode.value === 'direct' ? [lab2('Ai được xem video', 'TikTok yêu cầu tự chọn', ttPriv),
+            ttMode.value === 'remind' ? h('div', { class: 'mut small' }, 'Đến giờ, xưởng gửi video (nặng quá 50 MB thì tự nén) và nội dung đăng vào Telegram. Trên điện thoại: lưu video → mở TikTok → Tải lên → dán nội dung → Đăng. Không cần ứng dụng TikTok được duyệt; cần đã kết nối bot Telegram ở Thiết lập.')
+            : ttMode.value === 'direct' ? [lab2('Ai được xem video', 'TikTok yêu cầu tự chọn', ttPriv),
               h('div', { class: 'row', style: { gap: '6px 16px' } }, h('label', { class: 'ck' }, (ttCk.comment.disabled = !!c.commentDisabled, ttCk.comment), 'Cho bình luận'), h('label', { class: 'ck' }, (ttCk.duet.disabled = !!c.duetDisabled, ttCk.duet), 'Cho Duet'), h('label', { class: 'ck' }, (ttCk.stitch.disabled = !!c.stitchDisabled, ttCk.stitch), 'Cho Stitch')),
               h('label', { class: 'ck' }, ttCk.brand, 'Video quảng bá thương hiệu / doanh nghiệp của tôi (TikTok gắn nhãn "Quảng cáo")'),
               h('div', { class: 'mut small' }, 'Khi đăng, bạn đồng ý với Chính sách xác nhận sử dụng âm nhạc của TikTok (Music Usage Confirmation). TikTok có thể mất vài phút để xử lý video sau khi đăng.')] : h('div', { class: 'mut small' }, 'Video vào hộp thư của ứng dụng TikTok (có thông báo); bạn mở ứng dụng, sửa nếu cần rồi tự bấm Đăng. Cách này dùng được cả khi ứng dụng TikTok của bạn chưa được TikTok duyệt.')));
@@ -556,7 +558,7 @@ const bulkCard = (slug, eps) => {
   let slots = [];
   const ver = h('select', {}, h('option', { value: 'short' }, 'Bản ngắn'), h('option', { value: 'long' }, 'Bản dài'));
   const ytPriv = h('select', {}, Object.entries(YT_PRIV).map(([k, v]) => h('option', { value: k }, v)));
-  const ttPriv = h('select', {}, h('option', { value: '' }, '— chọn —'), Object.entries(TT_PRIV).map(([k, v]) => h('option', { value: k }, v)), h('option', { value: 'inbox' }, 'Gửi vào hộp thư TikTok (tự bấm đăng)'));
+  const ttPriv = h('select', {}, h('option', { value: 'remind' }, 'Nhắc qua Telegram (gửi video + nội dung về điện thoại)'), Object.entries(TT_PRIV).map(([k, v]) => h('option', { value: k }, `Đăng thẳng — ${v}`)), h('option', { value: 'inbox' }, 'Gửi vào hộp thư TikTok (tự bấm đăng)'));
   const ok = h('input', { type: 'checkbox' });
   const preview = h('div', { class: 'grid small', style: { gap: '4px' } });
   const box = h('div', { class: 'grid', style: { gap: '10px' } });
@@ -585,7 +587,7 @@ const bulkCard = (slug, eps) => {
     btn.disabled = true;
     let n = 0;
     for (const { e, at } of rows) {
-      const items = chosen.map((d) => ({ dest: d.id, caption: e.post[ver.value], ...(d.kind === 'yt' ? { title: (e.title ?? `Tập ${e.number}`).slice(0, 100), privacy: ytPriv.value } : {}), ...(d.kind === 'tt' ? { tiktok: ttPriv.value === 'inbox' ? { mode: 'inbox' } : { mode: 'direct', privacy: ttPriv.value, comment: false, duet: false, stitch: false } } : {}) }));
+      const items = chosen.map((d) => ({ dest: d.id, caption: e.post[ver.value], ...(d.kind === 'yt' ? { title: (e.title ?? `Tập ${e.number}`).slice(0, 100), privacy: ytPriv.value } : {}), ...(d.kind === 'tt' ? { tiktok: ['inbox', 'remind'].includes(ttPriv.value) ? { mode: ttPriv.value } : { mode: 'direct', privacy: ttPriv.value, comment: false, duet: false, stitch: false } } : {}) }));
       try { await api('POST', '/api/social/posts', { slug, episode: e.number, items, at }); n++; } catch (err) { toast(`Tập ${e.number}: ${err.message}`, true); }
     }
     if (n) { toast(`Đã hẹn đăng ${n} tập. Xem / sửa ở trang Lịch đăng.`); openSeries(slug, true); } else btn.disabled = false;
@@ -599,7 +601,7 @@ const bulkCard = (slug, eps) => {
       h('b', { class: 'small' }, 'Kênh'), h('div', { class: 'row', style: { gap: '6px 16px' } }, D.map((d) => h('label', { class: 'ck' }, h('input', { type: 'checkbox', checked: sel.has(d.id), onchange: (ev) => { ev.target.checked ? sel.add(d.id) : sel.delete(d.id); draw(); } }), kindTag(d.kind), d.name))),
       h('b', { class: 'small' }, 'Tập'), h('div', { class: 'row', style: { gap: '6px 14px' } }, films.map((e) => h('label', { class: 'ck small' }, h('input', { type: 'checkbox', checked: pick.has(e.number), onchange: (ev) => { ev.target.checked ? pick.add(e.number) : pick.delete(e.number); redo(); } }), `${e.number}`))),
       h('div', { class: 'row', style: { alignItems: 'end' } }, lab2('Bắt đầu từ ngày', '', start), lab2('Nhịp', '', perDay), lab2('Đăng từ', '', from), lab2('đến', '', to), lab2('Nội dung', '', ver)),
-      kinds.has('yt') || kinds.has('tt') ? h('div', { class: 'row', style: { alignItems: 'end' } }, kinds.has('yt') ? lab2('YouTube', '', ytPriv) : null, kinds.has('tt') ? lab2('TikTok — ai được xem', '', ttPriv) : null) : null,
+      kinds.has('yt') || kinds.has('tt') ? h('div', { class: 'row', style: { alignItems: 'end' } }, kinds.has('yt') ? lab2('YouTube', '', ytPriv) : null, kinds.has('tt') ? lab2('TikTok — cách đăng', '', ttPriv) : null) : null,
       h('div', { class: 'row', style: { alignItems: 'center', gap: '8px' } }, h('b', { class: 'small' }, 'Lịch dự kiến'), h('button', { type: 'button', class: 'btn sm', title: 'Bốc lại giờ ngẫu nhiên', onclick: redo }, '🎲 Xếp lại giờ')),
       preview, h('label', { class: 'ck' }, ok, 'Tôi đã xem lại các phim và nội dung đăng'), h('div', { class: 'row' }, b)].filter(Boolean));
     if (!slots.length) reroll();

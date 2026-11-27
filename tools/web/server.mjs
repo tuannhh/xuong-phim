@@ -944,7 +944,8 @@ export function main() {
   const listen = () => server.listen(PORT, process.env.XUONG_DOCKER ? process.env.HOST || '0.0.0.0' : '127.0.0.1', () => {
     console.log(`Xưởng phim: http://localhost:${PORT}${CLAUDE ? '' : '  (chưa thấy lệnh claude — các bước sáng tác phải dán lệnh vào Claude Code)'}`);
     tg.init({ port: PORT, root: ROOT });
-    social.init({ seriesDir, notify: (ev) => { try { tg.socialEvent(ev, queueTitle({ slug: ev.post.slug, episode: ev.post.episode })); } catch {} } });
+    social.init({ seriesDir, notify: (ev) => { try { tg.socialEvent(ev, queueTitle({ slug: ev.post.slug, episode: ev.post.episode })); } catch {} },
+      remind: (p, file, log) => tg.remindPost(p, file, queueTitle({ slug: p.slug, episode: p.episode }), log) });
     if (process.env.XUONG_BOOT) tg.bootNotice();
     syncListeners();
     setInterval(syncListeners, 30000);

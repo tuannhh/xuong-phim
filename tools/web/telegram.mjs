@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { CONF_DIR } from '../output.mjs';
 
 const FILE = path.join(CONF_DIR, 'telegram.json');
@@ -349,7 +350,7 @@ async function writeAll(chatId, slug) {
 
 // ───────── đăng lên mạng xã hội (social.mjs) từ điện thoại: chọn kênh → chọn bản bài đăng (hoặc tự sửa) → TikTok: chọn ai xem → đăng ngay / hẹn giờ → xác nhận
 const KIND_T = { fb: 'Facebook', ig: 'Instagram', yt: 'YouTube', tt: 'TikTok' };
-const TT_P = [['PUBLIC_TO_EVERYONE', 'Mọi người'], ['MUTUAL_FOLLOW_FRIENDS', 'Bạn bè'], ['FOLLOWER_OF_CREATOR', 'Người theo dõi'], ['SELF_ONLY', 'Chỉ mình tôi'], ['inbox', 'Hộp thư TikTok (tự bấm đăng)']];
+const TT_P = [['PUBLIC_TO_EVERYONE', 'Mọi người'], ['MUTUAL_FOLLOW_FRIENDS', 'Bạn bè'], ['FOLLOWER_OF_CREATOR', 'Người theo dõi'], ['SELF_ONLY', 'Chỉ mình tôi'], ['inbox', 'Hộp thư TikTok (tự bấm đăng)'], ['remind', '📲 Nhắc qua Telegram']];
 const ACTIVE = ['queued', 'scheduled', 'posting'];
 const fmtT = (ms) => new Date(ms).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 const drafts = new Map(); // chatId → { slug, n, sel: [dest id], ver, caption, tt, at }
@@ -408,7 +409,7 @@ async function shareGo(chatId) {
   if (!d?.sel.length) return reply(chatId, 'Phiên đăng bài đã hết — bấm 📣 Đăng lên MXH ở tập để làm lại.');
   const s = await seriesFull(d.slug), e = s.episodes.find((x) => x.number === d.n);
   const { dests: D } = await local('GET', '/api/social');
-  const items = D.filter((x) => d.sel.includes(x.id)).map((x) => ({ dest: x.id, caption: d.caption, ...(x.kind === 'yt' ? { title: (e?.title ?? `Tập ${d.n}`).slice(0, 100), privacy: 'public' } : {}), ...(x.kind === 'tt' ? { tiktok: d.tt === 'inbox' ? { mode: 'inbox' } : { mode: 'direct', privacy: d.tt, comment: false, duet: false, stitch: false } } : {}) }));
+  const items = D.filter((x) => d.sel.includes(x.id)).map((x) => ({ dest: x.id, caption: d.caption, ...(x.kind === 'yt' ? { title: (e?.title ?? `Tập ${d.n}`).slice(0, 100), privacy: 'public' } : {}), ...(x.kind === 'tt' ? { tiktok: ['inbox', 'remind'].includes(d.tt) ? { mode: d.tt } : { mode: 'direct', privacy: d.tt, comment: false, duet: false, stitch: false } } : {}) }));
   if (d.at && d.at < Date.now() + 60000) return reply(chatId, 'Giờ hẹn đã qua — bấm ⏰ Hẹn giờ để chọn lại.');
   const r = await local('POST', '/api/social/posts', { slug: d.slug, episode: d.n, items, at: d.at });
   drafts.delete(chatId);
@@ -432,6 +433,7 @@ export function socialEvent(ev, title) {
   if (!c.token || !c.chatId || !p) return;
   const on = { ...NOTIFY_DEFAULT, ...c.notify };
   const where = `${KIND_T[p.kind]} · ${p.destName}`;
+  if (ev.type === 'done' && p.tiktok?.mode === 'remind') return; // tin nhắc (video + nội dung) chính là thông báo
   if (ev.type === 'done' && on.done) send([`✅ Đã đăng ${title} lên ${where}`, p.url ?? '', p.note ? `ℹ️ ${p.note}` : ''].filter(Boolean).join('\n'));
   else if (ev.type === 'error' && on.error) send(`⚠️ Đăng ${title} lên ${where} lỗi: ${p.error}`, [[btn('🔁 Đăng lại', `pdn:${p.id}`), btn('✖️ Bỏ', `pdx:${p.id}`)]]);
   else if (ev.type === 'missed' && on.error) send(`⚠️ Lỡ giờ hẹn đăng ${title} lên ${where} (${fmtT(p.at)}) vì máy tắt / ngủ.`, [[btn('🚀 Đăng ngay', `pdn:${p.id}`), btn('✖️ Bỏ', `pdx:${p.id}`)]]);
@@ -485,6 +487,45 @@ async function sendBoard(chatId, slug, e) {
   await sendAlbum(chatId, files, `Storyboard tập ${e.number}${e.title ? `: ${e.title}` : ''} — ${files.length} cảnh`);
 }
 
+// Bản gửi điện thoại: phim ≤ 49 MB gửi nguyên; nặng hơn thì nén H.264 về ~46 MB (bitrate theo thời lượng) → build/telegram.mp4,
+// dùng lại tới khi MP4 đổi. Phim 2 phút ~ 3 Mbit/s — đủ nét để đăng TikTok / Reels.
+const run = (bin, args) => new Promise((ok, no) => {
+  const c = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+  let out = '', er = '';
+  c.stdout.on('data', (d) => (out += d)); c.stderr.on('data', (d) => (er += d));
+  c.on('error', no);
+  c.on('close', (code) => (code === 0 ? ok(out) : no(new Error(`${bin} lỗi: ${er.trim().split('\n').pop() ?? code}`))));
+});
+export async function phoneFile(file, log = () => {}) {
+  const st = fs.statSync(file);
+  if (st.size <= VIDEO_MAX) return file;
+  const small = path.join(path.dirname(path.dirname(file)), 'build', 'telegram.mp4');
+  if (fs.existsSync(small)) { const s2 = fs.statSync(small); if (s2.mtimeMs > st.mtimeMs && s2.size <= VIDEO_MAX) return small; }
+  const sec = parseFloat(await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file])) || 120;
+  fs.mkdirSync(path.dirname(small), { recursive: true });
+  const tmp = `${small}.tmp.mp4`;
+  for (const k of [1, 0.85, 0.7]) {
+    const v = Math.max(600, Math.floor(((46 * 8 * 1024 * 1024) / sec / 1000) * k) - 128);
+    log(`Nén phim cho điện thoại (${(st.size / 1e6).toFixed(0)} MB → dưới 50 MB)…`);
+    await run('ffmpeg', ['-y', '-v', 'error', '-i', file, '-c:v', 'libx264', '-preset', 'veryfast', '-b:v', `${v}k`, '-maxrate', `${Math.floor(v * 1.4)}k`, '-bufsize', `${v * 2}k`, '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', tmp]);
+    if (fs.statSync(tmp).size <= VIDEO_MAX) { fs.renameSync(tmp, small); return small; }
+  }
+  fs.rmSync(tmp, { force: true });
+  throw new TgError('Nén phim vẫn quá 50 MB — không gửi được qua Telegram.', 413);
+}
+
+// TikTok "nhắc qua Telegram" (social.mjs gọi khi đến giờ hẹn): gửi video + nội dung đăng vào chat; người dùng lưu video → mở TikTok → đăng.
+// Nội dung gửi riêng một tin (chú thích video tối đa 1024 ký tự, nội dung TikTok tới 2200) để giữ lâu tay là chép được trọn.
+export async function remindPost(p, file, title, log = () => {}) {
+  const c = read();
+  if (!c.token || !c.chatId) throw new TgError('Chưa kết nối bot Telegram — vào Thiết lập → Telegram để kết nối rồi bấm Đăng lại.', 400);
+  const f = await phoneFile(file, log);
+  log('Gửi video qua Telegram…');
+  await call('sendChatAction', { chat_id: c.chatId, action: 'upload_video' }).catch(() => {});
+  await sendFile('sendVideo', 'video', c.chatId, f, { caption: `📲 Đến giờ đăng TikTok — ${title}\nLưu video về máy → mở TikTok → ＋ Tải lên → chọn video → dán nội dung ở tin dưới → Đăng.`, supports_streaming: 'true' }, `tap-${String(p.episode).padStart(2, '0')}.mp4`, 'video/mp4');
+  await call('sendMessage', { chat_id: c.chatId, text: p.caption, disable_web_page_preview: true });
+}
+
 async function sendVideo(chatId, slug, n) {
   const s = await seriesFull(slug);
   const e = s.episodes.find((x) => x.number === n);
@@ -493,10 +534,14 @@ async function sendVideo(chatId, slug, n) {
   const file = path.join(ctx.root, 'series', slug, 'episodes', e.id, 'out', `${e.id}.mp4`);
   const size = fs.statSync(file).size;
   const caption = `${s.name} · Tập ${n}${e.title ? `: ${e.title}` : ''}`;
-  if (size > VIDEO_MAX) return reply(chatId, `${caption}\nPhim nặng ${(size / 1048576).toFixed(0)} MB, quá giới hạn 50 MB của bot Telegram.${e.drive?.link ? `\nXem trên Google Drive: ${e.drive.link}` : ''}`);
+  let f = file;
+  if (size > VIDEO_MAX) {
+    await reply(chatId, `Phim nặng ${(size / 1e6).toFixed(0)} MB (bot Telegram chỉ gửi được tới 50 MB) — đang nén bản nhẹ để gửi, chờ khoảng 1–2 phút…`);
+    try { f = await phoneFile(file); } catch (err) { return reply(chatId, `${caption}\n${err.message}${e.drive?.link ? `\nXem trên Google Drive: ${e.drive.link}` : ''}`); }
+  }
   await call('sendChatAction', { chat_id: chatId, action: 'upload_video' }).catch(() => {});
   const k = sk(slug);
-  await sendFile('sendVideo', 'video', chatId, file, { caption, supports_streaming: 'true', ...markup([[btn('💬 Góp ý để sửa', `gy:${k}:${n}`), btn('🔊 Chỉ sửa giọng', `sg:${k}:${n}`)]]) }, `${e.id}.mp4`, 'video/mp4');
+  await sendFile('sendVideo', 'video', chatId, f, { caption, supports_streaming: 'true', ...markup([[btn('💬 Góp ý để sửa', `gy:${k}:${n}`), btn('🔊 Chỉ sửa giọng', `sg:${k}:${n}`)]]) }, `${e.id}.mp4`, 'video/mp4');
 }
 
 async function sendScript(chatId, slug, n) {
